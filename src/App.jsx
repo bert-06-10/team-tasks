@@ -6,7 +6,7 @@ import { SettingsModal } from "./components/Settings.jsx";
 import { MilestoneModal, TaskModal, DocModal, ImportModal, CycleModal } from "./components/Modals.jsx";
 import { AuthScreen } from "./components/AuthScreen.jsx";
 import { VIEWS, VIEW_LABELS, DEFAULT_STATUS_COLORS, DEFAULT_PREFS } from "./constants.js";
-import { avatarBg, avatarTx, initials, isOverdue, addDays, isFlagged, genClassTasks } from "./utils.js";
+import { avatarBg, avatarTx, initials, isOverdue, addDays, isFlagged, genClassTasks, exportTasksToCSV } from "./utils.js";
 import { supabase } from "./supabaseClient.js";
 import * as db from "./lib/db.js";
 
@@ -631,10 +631,12 @@ export default function App() {
             {/* Import dropdown */}
             {!isReadOnly && (
               <div style={{ position: "relative", zIndex: 100 }}>
-                <button onClick={() => setOpenDropdown(openDropdown === 'import' ? null : 'import')} style={{ fontSize: 13, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'import' ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>Import ▾</button>
+                <button onClick={() => setOpenDropdown(openDropdown === 'import' ? null : 'import')} style={{ fontSize: 13, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'import' ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>Import / Export ▾</button>
                 {openDropdown === 'import' && (
-                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 160, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200 }}>
-                    <div onClick={() => { setOpenDropdown(null); setShowImportModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Import CSV</div>
+                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 180, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200 }}>
+                    <div onClick={() => { setOpenDropdown(null); setShowImportModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Import CSV</div>
+                    <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "2px 0" }} />
+                    <div onClick={() => { setOpenDropdown(null); exportTasksToCSV(displayProgramTasks, displayClassTasks, (viewingArchive ? viewingArchive.cycle : activeCycle)?.name); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Export tasks to CSV</div>
                   </div>
                 )}
               </div>

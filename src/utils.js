@@ -132,6 +132,41 @@ export function parseProgramTasksCSV(rows) {
   }));
 }
 
+export function exportTasksToCSV(programTasks, classTasks, cycleName) {
+  const escape = v => {
+    const s = (v == null ? "" : String(v)).replace(/"/g, '""');
+    return /[",\n]/.test(s) ? `"${s}"` : s;
+  };
+  const row = cols => cols.map(escape).join(",");
+
+  const header = row(["type","task","owner","alternate_owner","due_date","days_from_cycle_start","fall_days_from_cycle_start","status","notes","links","department","tags","flagged"]);
+
+  const taskRow = t => row([
+    t.type,
+    t.title,
+    t.assignee,
+    t.assist,
+    t.due,
+    t.offset ?? 0,
+    t.fallOffset ?? 0,
+    t.status,
+    t.notes,
+    t.links,
+    t.department,
+    (t.tags || []).join(";"),
+    t.flagged ? "true" : "",
+  ]);
+
+  const lines = [header, ...[...programTasks, ...classTasks].map(taskRow)];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${(cycleName || "tasks").replace(/\s+/g, "_")}_export.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function parseRunOfShowCSV(rows) {
   return rows.map((row,i) => ({
     id: "ri"+Date.now()+i,
