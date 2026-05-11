@@ -196,12 +196,25 @@ export default function App() {
 
   // ── Auth state listener ─────────────────────────────────────────────────────
   useEffect(() => {
-    // onAuthStateChange fires INITIAL_SESSION immediately on mount (replaces getSession),
-    // and SIGNED_IN after OAuth redirects or email sign-in.
+    let handled = false;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && s) {
+        handled = true;
         handleAuthSuccess(s);
       } else if (event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !s)) {
+        if (!handled) { setSession(null); setLoading(false); }
+      }
+    });
+
+    // Fallback: if the hash-based OAuth token isn't picked up by onAuthStateChange
+    // (a known issue with Supabase JS v2 PKCE mode receiving implicit-flow tokens),
+    // explicitly exchange it here.
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      if (s && !handled) {
+        handled = true;
+        handleAuthSuccess(s);
+      } else if (!s && !handled) {
         setSession(null);
         setLoading(false);
       }
