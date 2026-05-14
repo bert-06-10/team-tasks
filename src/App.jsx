@@ -546,6 +546,7 @@ export default function App() {
   const isReadOnly          = !!viewingArchive;
   const sortByDue = ts => [...ts].sort((a, b) => { if (!a.due && !b.due) return 0; if (!a.due) return 1; if (!b.due) return -1; return a.due < b.due ? -1 : a.due > b.due ? 1 : 0; });
   const filteredTasks       = sortByDue(displayTasks.filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter));
+  const myFilteredTasks     = sortByDue(displayTasks.filter(t => t.assignee === myUser || t.assist === myUser).filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter));
 
   const openTask     = t => { if (!isReadOnly) { setEditTask(t); setShowTaskModal(true); } };
   const openDoc      = d => { if (!isReadOnly) { setEditDoc(d); setShowDocModal(true); } };
@@ -690,7 +691,7 @@ export default function App() {
           </div>
         )}
 
-        {(view === "board" || view === "list") && showTaskList && (
+        {(view === "board" || view === "list" || view === "mytasks") && showTaskList && (
           <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
             <FilterDropdown label="Department" options={["All", ...departments]} value={deptFilter} onChange={setDeptFilter} />
             <FilterDropdown label="Owner" options={["All", ...members]} value={ownerFilter} onChange={setOwnerFilter} />
@@ -705,14 +706,7 @@ export default function App() {
         {view === "board" && showTaskList && <BoardView filteredTasks={filteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} boardGroup={boardGroup} setBoardGroup={setBoardGroup} openTask={openTask} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} />}
         {view === "list"  && showTaskList && <ListView  filteredTasks={filteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} />}
 
-        {view === "mytasks" && showTaskList && (
-          <div style={{ background: "var(--color-background-primary)", borderRadius: "var(--border-radius-lg)", border: "0.5px solid var(--color-border-tertiary)", overflow: "hidden" }}>
-            <ListHeader />
-            {sortByDue(displayTasks.filter(t => t.assignee === myUser || t.assist === myUser)).map((t, i, arr) => (
-              <ListRow key={t.id} task={t} tasks={allTasks} docs={displayDocs} last={i === arr.length - 1} readOnly={isReadOnly} onEdit={() => openTask(t)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} />
-            ))}
-          </div>
-        )}
+        {view === "mytasks" && showTaskList && <ListView filteredTasks={myFilteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} />}
 
         {view === "calendar"   && <CalendarView tasks={displayAllTasks} milestones={milestones} openTask={openTask} statusColors={statusColors} />}
 
