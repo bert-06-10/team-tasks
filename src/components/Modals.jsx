@@ -176,6 +176,19 @@ export function DocModal({doc,members,audiences,globalTags,prefs,onChange,onSave
           {members.map(m=><option key={m}>{m}</option>)}
         </select>
       </Field>
+      <Field label="Content owner">
+        <select value={doc.content_owner||""} onChange={e=>onChange({...doc,content_owner:e.target.value})}>
+          <option value="">—</option>
+          {members.map(m=><option key={m}>{m}</option>)}
+        </select>
+      </Field>
+      <Field label="Assist">
+        <select value={doc.assist||""} onChange={e=>onChange({...doc,assist:e.target.value})}>
+          <option value="">—</option>
+          {members.map(m=><option key={m}>{m}</option>)}
+        </select>
+      </Field>
+      <Field label="Shareable link"><input type="url" value={doc.shareable_link||""} onChange={e=>onChange({...doc,shareable_link:e.target.value})} placeholder="https://..."/></Field>
       <Field label="Last updated"><input type="date" value={doc.updated} onChange={e=>onChange({...doc,updated:e.target.value})}/></Field>
       <Field label="Next scheduled update"><input type="date" value={doc.next_update||""} onChange={e=>onChange({...doc,next_update:e.target.value})}/></Field>
       <Field label="Tags"><TagInput tags={doc.tags||[]} suggestions={globalTags} onChange={tags=>onChange({...doc,tags})}/></Field>
@@ -520,8 +533,11 @@ export function ImportCollateralModal({ onImport, onClose }) {
   const previewCols = [
     ["Title", r => r.title],
     ["Owner", r => r.owner],
+    ["Content Owner", r => r.content_owner],
+    ["Assist", r => r.assist],
     ["Audience", r => r.audience],
     ["Editable Link", r => r.url],
+    ["Shareable Link", r => r.shareable_link],
     ["Last Updated", r => r.updated],
     ["Tags", r => r.tags.join(", ") || "—"],
   ];

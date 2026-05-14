@@ -17,6 +17,7 @@ export const isWeekend = s => { const wd=new Intl.DateTimeFormat("en-US",{timeZo
 export const isFlagged = (s,hols) => isWeekend(s)||(hols||[]).includes(s);
 export const nextBusinessDay = (s,hols) => { let d=s; while(isFlagged(d,hols)) d=addDays(d,1); return d; };
 export const fmtDate = s => { if(!s)return""; return new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",month:"short",day:"numeric"}).format(etNoon(s)); };
+export const fmtDateYear = s => { if(!s)return""; return new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",month:"short",day:"numeric",year:"numeric"}).format(etNoon(s)); };
 
 export const genClassTasks = sessions => {
   let id = 1000;
@@ -188,9 +189,6 @@ export function parseCollateralCSV(rows) {
     if (truthy(row.video_testimonial)) tags.push("Video Testimonial");
 
     const extras = [
-      row.shareable_link?.trim() && `Shareable Link: ${row.shareable_link.trim()}`,
-      row.content_owner?.trim() && `Content Owner: ${row.content_owner.trim()}`,
-      row.assist?.trim() && `Assist: ${row.assist.trim()}`,
       row.notes?.trim() && `Notes: ${row.notes.trim()}`,
     ].filter(Boolean);
 
@@ -202,9 +200,12 @@ export function parseCollateralCSV(rows) {
     return {
       title: row.title?.trim() || "(untitled)",
       owner: row.owner?.trim() || "",
+      content_owner: row.content_owner?.trim() || "",
+      assist: row.assist?.trim() || "",
       audience: row.audience?.trim() || "",
       description,
       url: row.editable_link?.trim() || "",
+      shareable_link: row.shareable_link?.trim() || "",
       updated: normalizeDate(row.last_updated?.trim() || ""),
       next_update: normalizeDate(row.next_scheduled_update?.trim() || ""),
       type: "Google Drive",

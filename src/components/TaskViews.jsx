@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Avatar, Badge, StatusPill } from "./Primitives.jsx";
-import { fmtDate, isOverdue } from "../utils.js";
+import { fmtDate, fmtDateYear, isOverdue, avatarBg, avatarTx } from "../utils.js";
 import { DEFAULT_STATUS_COLORS } from "../constants.js";
 
 const LIST_COLS       = "1fr 70px 70px 90px 1fr 80px 130px 110px";
@@ -162,9 +162,9 @@ export function DocCard({doc,readOnly,onEdit,last}) {
 }
 
 // ── Doc List (collateral tab) ─────────────────────────────────────────────────
-const DOC_COLS     = "1.5fr 110px 110px 1.5fr 130px 110px 100px 1fr 60px";
-const DOC_COLS_SEL = "36px 1.5fr 110px 110px 1.5fr 130px 110px 100px 1fr 60px";
-const DOC_HEADERS  = ["Title","Owner","Audience","Description","Link","Next Update","Last Updated","Tags",""];
+const DOC_COLS     = "1.5fr 130px 130px 130px 110px 1.5fr 130px 130px 110px 115px 1fr 60px";
+const DOC_COLS_SEL = "36px 1.5fr 130px 130px 130px 110px 1.5fr 130px 130px 110px 115px 1fr 60px";
+const DOC_HEADERS  = ["Title","Owner","Content Owner","Assist","Audience","Description","Editable Link","Shareable Link","Next Update","Last Updated","Tags",""];
 const sep = {borderRight:"1px solid var(--color-border-tertiary)"};
 const inp = {fontSize:12,width:"100%",boxSizing:"border-box",padding:"3px 6px",border:"1px solid var(--color-border-secondary)",borderRadius:4,background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"inherit"};
 
@@ -204,6 +204,18 @@ function DocListRow({doc,last,readOnly,selectable,selected,onSelect,editing,edit
           </select>
         </div>
         <div style={{padding:"8px 8px",...sep}}>
+          <select value={editVal.content_owner||""} onChange={e=>onChange({...editVal,content_owner:e.target.value})} onKeyDown={esc} style={{...inp,padding:"2px 4px"}}>
+            <option value="">—</option>
+            {members.map(m=><option key={m}>{m}</option>)}
+          </select>
+        </div>
+        <div style={{padding:"8px 8px",...sep}}>
+          <select value={editVal.assist||""} onChange={e=>onChange({...editVal,assist:e.target.value})} onKeyDown={esc} style={{...inp,padding:"2px 4px"}}>
+            <option value="">—</option>
+            {members.map(m=><option key={m}>{m}</option>)}
+          </select>
+        </div>
+        <div style={{padding:"8px 8px",...sep}}>
           <select value={editVal.audience||""} onChange={e=>onChange({...editVal,audience:e.target.value})} onKeyDown={esc} style={{...inp,padding:"2px 4px"}}>
             <option value="">—</option>
             {audiences.map(a=><option key={a}>{a}</option>)}
@@ -211,6 +223,7 @@ function DocListRow({doc,last,readOnly,selectable,selected,onSelect,editing,edit
         </div>
         <div style={{padding:"8px 8px",...sep}}><input value={editVal.description||""} onChange={e=>onChange({...editVal,description:e.target.value})} onKeyDown={esc} style={inp}/></div>
         <div style={{padding:"8px 8px",...sep}}><input value={editVal.url||""} onChange={e=>onChange({...editVal,url:e.target.value})} onKeyDown={esc} placeholder="https://..." style={inp}/></div>
+        <div style={{padding:"8px 8px",...sep}}><input value={editVal.shareable_link||""} onChange={e=>onChange({...editVal,shareable_link:e.target.value})} onKeyDown={esc} placeholder="https://..." style={inp}/></div>
         <div style={{padding:"8px 8px",...sep}}><input type="date" value={editVal.next_update||""} onChange={e=>onChange({...editVal,next_update:e.target.value})} onKeyDown={esc} style={inp}/></div>
         <div style={{padding:"8px 8px",...sep}}><input type="date" value={editVal.updated||""} onChange={e=>onChange({...editVal,updated:e.target.value})} onKeyDown={esc} style={inp}/></div>
         <div style={{padding:"8px 8px",...sep}}><input value={(editVal.tags||[]).join(", ")} onChange={e=>onChange({...editVal,tags:e.target.value.split(",").map(t=>t.trim()).filter(Boolean)})} onKeyDown={esc} placeholder="tag1, tag2" style={inp}/></div>
@@ -233,7 +246,13 @@ function DocListRow({doc,last,readOnly,selectable,selected,onSelect,editing,edit
         <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{doc.title}</div>
       </div>
       <div style={{padding:"11px 10px",display:"flex",alignItems:"center",...sep}}>
-        {doc.owner ? <Avatar name={doc.owner} size={22}/> : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+        {doc.owner ? <span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.owner),color:avatarTx(doc.owner),whiteSpace:"nowrap"}}>{doc.owner}</span> : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      </div>
+      <div style={{padding:"11px 10px",display:"flex",alignItems:"center",...sep}}>
+        {doc.content_owner ? <span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.content_owner),color:avatarTx(doc.content_owner),whiteSpace:"nowrap"}}>{doc.content_owner}</span> : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      </div>
+      <div style={{padding:"11px 10px",display:"flex",alignItems:"center",...sep}}>
+        {doc.assist ? <span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.assist),color:avatarTx(doc.assist),whiteSpace:"nowrap"}}>{doc.assist}</span> : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
       <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",...sep}} title={doc.audience||""}>{doc.audience||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
       <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",...sep}} title={doc.description||""}>{doc.description||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
@@ -242,8 +261,13 @@ function DocListRow({doc,last,readOnly,selectable,selected,onSelect,editing,edit
           ? <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}}>↗ Open</a>
           : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
+      <div style={{padding:"11px 12px",...sep}} onClick={e=>e.stopPropagation()}>
+        {doc.shareable_link
+          ? <a href={doc.shareable_link} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}}>↗ Open</a>
+          : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      </div>
       <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDate(doc.next_update)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
-      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDate(doc.updated)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDateYear(doc.updated)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
       <div style={{padding:"11px 12px",display:"flex",gap:4,flexWrap:"wrap",alignItems:"center",...sep}}>
         {(doc.tags||[]).length>0
           ? doc.tags.map(t=><span key={t} style={{fontSize:11,padding:"2px 7px",borderRadius:10,background:"var(--color-background-secondary)",color:"var(--color-text-secondary)",whiteSpace:"nowrap"}}>{t}</span>)

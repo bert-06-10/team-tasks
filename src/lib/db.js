@@ -365,7 +365,7 @@ export async function fetchDocs() {
   return data.map(r => ({
     id: r.id, title: r.title, type: r.type, url: r.url,
     audience: r.audience, description: r.description,
-    owner: r.owner, updated: r.updated_date || '', tags: r.tags || [],
+    owner: r.owner, content_owner: r.content_owner || '', assist: r.assist || '', shareable_link: r.shareable_link || '', updated: r.updated_date || '', tags: r.tags || [],
     next_update: r.next_update || '',
   }))
 }
@@ -374,7 +374,7 @@ export async function saveDoc(doc) {
   const row = {
     title: doc.title, type: doc.type, url: doc.url || '',
     audience: doc.audience || '', description: doc.description || '',
-    owner: doc.owner || '', updated_date: doc.updated || null, tags: doc.tags || [],
+    owner: doc.owner || '', content_owner: doc.content_owner || '', assist: doc.assist || '', shareable_link: doc.shareable_link || '', updated_date: doc.updated || null, tags: doc.tags || [],
     next_update: doc.next_update || null,
   }
   if (doc.id) {
