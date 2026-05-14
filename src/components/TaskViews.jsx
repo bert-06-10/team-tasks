@@ -132,7 +132,7 @@ export function MilestoneBar({milestones}) {
   );
 }
 
-// ── Doc Card ──────────────────────────────────────────────────────────────────
+// ── Doc Card (used in search results) ────────────────────────────────────────
 export function DocCard({doc,readOnly,onEdit,last}) {
   const typeIcon = t => ({"Google Drive":"G","PDF":"P","Web Link":"W"}[t]||"D");
   const typeColor = t => ({"Google Drive":"#185FA5","PDF":"#A32D2D","Web Link":"#0F6E56"}[t]||"#5F5E5A");
@@ -158,6 +158,160 @@ export function DocCard({doc,readOnly,onEdit,last}) {
         {!readOnly&&<button onClick={onEdit} style={{fontSize:12,padding:"5px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Edit</button>}
       </div>
     </div>
+  );
+}
+
+// ── Doc List (collateral tab) ─────────────────────────────────────────────────
+const DOC_COLS     = "1.5fr 110px 110px 1.5fr 130px 110px 100px 1fr 60px";
+const DOC_COLS_SEL = "36px 1.5fr 110px 110px 1.5fr 130px 110px 100px 1fr 60px";
+const DOC_HEADERS  = ["Title","Owner","Audience","Description","Link","Next Update","Last Updated","Tags",""];
+const sep = {borderRight:"1px solid var(--color-border-tertiary)"};
+const inp = {fontSize:12,width:"100%",boxSizing:"border-box",padding:"3px 6px",border:"1px solid var(--color-border-secondary)",borderRadius:4,background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"inherit"};
+
+function DocListHeader({selectable,selectedAll,someSelected,onSelectAll}) {
+  const cols = selectable ? DOC_COLS_SEL : DOC_COLS;
+  return (
+    <div style={{display:"grid",gridTemplateColumns:cols,borderBottom:"1px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}}>
+      {selectable && (
+        <div style={{padding:"8px 10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}}>
+          <input type="checkbox" checked={selectedAll} ref={el=>{if(el)el.indeterminate=someSelected&&!selectedAll;}} onChange={onSelectAll} style={{cursor:"pointer",margin:0}}/>
+        </div>
+      )}
+      {DOC_HEADERS.map((h,i) => (
+        <div key={i} style={{padding:"8px 12px",fontSize:11,fontWeight:500,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em",...(i<DOC_HEADERS.length-1?sep:{})}}>{h}</div>
+      ))}
+    </div>
+  );
+}
+
+function DocListRow({doc,last,readOnly,selectable,selected,onSelect,editing,editVal,onChange,onSave,onCancel,onStartEdit,members,audiences}) {
+  const cols = selectable ? DOC_COLS_SEL : DOC_COLS;
+  const esc = e => { if (e.key === "Escape") onCancel(); };
+
+  if (editing) {
+    return (
+      <div style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",background:"var(--color-background-secondary)"}}>
+        {selectable && (
+          <div style={{padding:"8px 10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}}>
+            <input type="checkbox" checked={!!selected} onChange={()=>onSelect(doc.id)} style={{cursor:"pointer",margin:0}}/>
+          </div>
+        )}
+        <div style={{padding:"8px 8px",...sep}}><input value={editVal.title||""} onChange={e=>onChange({...editVal,title:e.target.value})} onKeyDown={esc} autoFocus style={inp}/></div>
+        <div style={{padding:"8px 8px",...sep}}>
+          <select value={editVal.owner||""} onChange={e=>onChange({...editVal,owner:e.target.value})} onKeyDown={esc} style={{...inp,padding:"2px 4px"}}>
+            <option value="">—</option>
+            {members.map(m=><option key={m}>{m}</option>)}
+          </select>
+        </div>
+        <div style={{padding:"8px 8px",...sep}}>
+          <select value={editVal.audience||""} onChange={e=>onChange({...editVal,audience:e.target.value})} onKeyDown={esc} style={{...inp,padding:"2px 4px"}}>
+            <option value="">—</option>
+            {audiences.map(a=><option key={a}>{a}</option>)}
+          </select>
+        </div>
+        <div style={{padding:"8px 8px",...sep}}><input value={editVal.description||""} onChange={e=>onChange({...editVal,description:e.target.value})} onKeyDown={esc} style={inp}/></div>
+        <div style={{padding:"8px 8px",...sep}}><input value={editVal.url||""} onChange={e=>onChange({...editVal,url:e.target.value})} onKeyDown={esc} placeholder="https://..." style={inp}/></div>
+        <div style={{padding:"8px 8px",...sep}}><input type="date" value={editVal.next_update||""} onChange={e=>onChange({...editVal,next_update:e.target.value})} onKeyDown={esc} style={inp}/></div>
+        <div style={{padding:"8px 8px",...sep}}><input type="date" value={editVal.updated||""} onChange={e=>onChange({...editVal,updated:e.target.value})} onKeyDown={esc} style={inp}/></div>
+        <div style={{padding:"8px 8px",...sep}}><input value={(editVal.tags||[]).join(", ")} onChange={e=>onChange({...editVal,tags:e.target.value.split(",").map(t=>t.trim()).filter(Boolean)})} onKeyDown={esc} placeholder="tag1, tag2" style={inp}/></div>
+        <div style={{padding:"8px 8px",display:"flex",flexDirection:"column",gap:4,alignItems:"center"}} onClick={e=>e.stopPropagation()}>
+          <button onClick={onSave} style={{fontSize:11,padding:"2px 8px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>✓</button>
+          <button onClick={onCancel} style={{fontSize:11,padding:"2px 8px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>✕</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div onClick={!readOnly ? onStartEdit : undefined} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",background:selected?"var(--color-background-secondary)":"transparent",cursor:readOnly?"default":"pointer"}}>
+      {selectable && (
+        <div style={{padding:"11px 10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}} onClick={e=>e.stopPropagation()}>
+          <input type="checkbox" checked={!!selected} onChange={()=>onSelect(doc.id)} style={{cursor:"pointer",margin:0}}/>
+        </div>
+      )}
+      <div style={{padding:"11px 12px",minWidth:0,...sep}}>
+        <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{doc.title}</div>
+      </div>
+      <div style={{padding:"11px 10px",display:"flex",alignItems:"center",...sep}}>
+        {doc.owner ? <Avatar name={doc.owner} size={22}/> : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      </div>
+      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",...sep}} title={doc.audience||""}>{doc.audience||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",...sep}} title={doc.description||""}>{doc.description||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div style={{padding:"11px 12px",...sep}} onClick={e=>e.stopPropagation()}>
+        {doc.url
+          ? <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}}>↗ Open</a>
+          : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      </div>
+      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDate(doc.next_update)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDate(doc.updated)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div style={{padding:"11px 12px",display:"flex",gap:4,flexWrap:"wrap",alignItems:"center",...sep}}>
+        {(doc.tags||[]).length>0
+          ? doc.tags.map(t=><span key={t} style={{fontSize:11,padding:"2px 7px",borderRadius:10,background:"var(--color-background-secondary)",color:"var(--color-text-secondary)",whiteSpace:"nowrap"}}>{t}</span>)
+          : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      </div>
+      <div/>
+    </div>
+  );
+}
+
+export function CollateralView({filteredDocs,isReadOnly,onSave,onDeleteSelected,members,audiences}) {
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [editingId,   setEditingId]   = useState(null);
+  const [editVal,     setEditVal]     = useState(null);
+  const selectable = !isReadOnly;
+
+  const toggleSelect = id => setSelectedIds(prev => {
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
+  });
+
+  const visibleIds = filteredDocs.map(d => d.id);
+  const visibleSelected = visibleIds.filter(id => selectedIds.has(id));
+  const selectedAll = visibleIds.length > 0 && visibleSelected.length === visibleIds.length;
+  const someSelected = visibleSelected.length > 0 && !selectedAll;
+
+  const handleSelectAll = () => setSelectedIds(selectedAll ? new Set() : new Set(visibleIds));
+
+  const handleDelete = async () => {
+    if (!visibleSelected.length) return;
+    await onDeleteSelected(visibleSelected);
+    setSelectedIds(new Set());
+  };
+
+  const startEdit = doc => { setEditingId(doc.id); setEditVal({...doc}); };
+  const cancelEdit = () => { setEditingId(null); setEditVal(null); };
+  const saveEdit = async () => {
+    if (!editVal) return;
+    await onSave(editVal);
+    setEditingId(null);
+    setEditVal(null);
+  };
+
+  return (
+    <>
+      {visibleSelected.length > 0 && (
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+          <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{visibleSelected.length} selected</span>
+          <button onClick={handleDelete} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer"}}>
+            Delete {visibleSelected.length === 1 ? "item" : `${visibleSelected.length} items`}
+          </button>
+          <button onClick={()=>setSelectedIds(new Set())} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>
+        </div>
+      )}
+      <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"hidden"}}>
+        {filteredDocs.length === 0
+          ? <div style={{padding:"16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No documents match.</div>
+          : <>
+              <DocListHeader selectable={selectable} selectedAll={selectedAll} someSelected={someSelected} onSelectAll={handleSelectAll}/>
+              {filteredDocs.map((d,i,arr) => (
+                <DocListRow key={d.id} doc={d} last={i===arr.length-1}
+                  readOnly={isReadOnly} selectable={selectable} selected={selectedIds.has(d.id)} onSelect={toggleSelect}
+                  editing={editingId===d.id} editVal={editVal} onChange={setEditVal}
+                  onSave={saveEdit} onCancel={cancelEdit} onStartEdit={()=>startEdit(d)}
+                  members={members} audiences={audiences}/>
+              ))}
+            </>}
+      </div>
+    </>
   );
 }
 

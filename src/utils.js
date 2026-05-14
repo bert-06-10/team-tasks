@@ -178,3 +178,37 @@ export function parseRunOfShowCSV(rows) {
     notes: row.notes||row.description||"",
   }));
 }
+
+export function parseCollateralCSV(rows) {
+  const truthy = v => v && /^(yes|true|x|1|✓|check)$/i.test(v.trim());
+  return rows.map(row => {
+    const tags = [];
+    if (truthy(row.logo_wall)) tags.push("Logo Wall");
+    if (truthy(row.impact_stats)) tags.push("Impact Stats");
+    if (truthy(row.video_testimonial)) tags.push("Video Testimonial");
+
+    const extras = [
+      row.shareable_link?.trim() && `Shareable Link: ${row.shareable_link.trim()}`,
+      row.content_owner?.trim() && `Content Owner: ${row.content_owner.trim()}`,
+      row.assist?.trim() && `Assist: ${row.assist.trim()}`,
+      row.notes?.trim() && `Notes: ${row.notes.trim()}`,
+    ].filter(Boolean);
+
+    const base = row.description?.trim() || "";
+    const description = extras.length
+      ? (base ? `${base}\n\n${extras.join("\n")}` : extras.join("\n"))
+      : base;
+
+    return {
+      title: row.title?.trim() || "(untitled)",
+      owner: row.owner?.trim() || "",
+      audience: row.audience?.trim() || "",
+      description,
+      url: row.editable_link?.trim() || "",
+      updated: normalizeDate(row.last_updated?.trim() || ""),
+      next_update: normalizeDate(row.next_scheduled_update?.trim() || ""),
+      type: "Google Drive",
+      tags,
+    };
+  });
+}

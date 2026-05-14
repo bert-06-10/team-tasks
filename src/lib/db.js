@@ -366,6 +366,7 @@ export async function fetchDocs() {
     id: r.id, title: r.title, type: r.type, url: r.url,
     audience: r.audience, description: r.description,
     owner: r.owner, updated: r.updated_date || '', tags: r.tags || [],
+    next_update: r.next_update || '',
   }))
 }
 
@@ -374,6 +375,7 @@ export async function saveDoc(doc) {
     title: doc.title, type: doc.type, url: doc.url || '',
     audience: doc.audience || '', description: doc.description || '',
     owner: doc.owner || '', updated_date: doc.updated || null, tags: doc.tags || [],
+    next_update: doc.next_update || null,
   }
   if (doc.id) {
     const { error } = await supabase.from('docs').update(row).eq('id', doc.id)

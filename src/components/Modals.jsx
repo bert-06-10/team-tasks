@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Modal, Field, TagInput } from "./Primitives.jsx";
 import { STATUSES, DOC_TYPES, DEFAULT_CLASS_TASKS } from "../constants.js";
-import { fmtDate, addDays, isFlagged, nextBusinessDay, parseCSV, parseClassTasksCSV, parseProgramTasksCSV, parseRunOfShowCSV } from "../utils.js";
+import { fmtDate, addDays, isFlagged, nextBusinessDay, parseCSV, parseClassTasksCSV, parseProgramTasksCSV, parseRunOfShowCSV, parseCollateralCSV } from "../utils.js";
 
 function gcalUrl(title, date, details = "") {
   if (!date || !title) return null;
@@ -177,6 +177,7 @@ export function DocModal({doc,members,audiences,globalTags,prefs,onChange,onSave
         </select>
       </Field>
       <Field label="Last updated"><input type="date" value={doc.updated} onChange={e=>onChange({...doc,updated:e.target.value})}/></Field>
+      <Field label="Next scheduled update"><input type="date" value={doc.next_update||""} onChange={e=>onChange({...doc,next_update:e.target.value})}/></Field>
       <Field label="Tags"><TagInput tags={doc.tags||[]} suggestions={globalTags} onChange={tags=>onChange({...doc,tags})}/></Field>
       <div style={{display:"flex",gap:8,marginTop:8,justifyContent:"flex-end"}}>
         {!isNew&&<button onClick={()=>onDelete(doc.id)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-danger)",cursor:"pointer",marginRight:"auto"}}>Delete</button>}
@@ -485,6 +486,88 @@ export function CycleModal({tasks,activeCycle,initialDraft,sessions,onSaveDraft,
           </div>
         </>
       )}
+    </Modal>
+  );
+}
+
+// ── Import Collateral Modal ───────────────────────────────────────────────────
+export function ImportCollateralModal({ onImport, onClose }) {
+  const [csvText, setCsvText] = useState("");
+  const [preview, setPreview] = useState(null);
+  const [error, setError] = useState("");
+  const fileRef = useRef();
+
+  const runPreview = text => {
+    try {
+      const rows = parseCSV(text);
+      if (!rows.length) { setError("No rows found."); setPreview(null); return; }
+      setPreview(parseCollateralCSV(rows));
+      setError("");
+    } catch (e) {
+      setError("Could not parse CSV: " + (e.message || e));
+      setPreview(null);
+    }
+  };
+
+  const handleFile = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => { const text = ev.target.result; setCsvText(text); setError(""); runPreview(text); };
+    r.readAsText(f);
+  };
+
+  const previewCols = [
+    ["Title", r => r.title],
+    ["Owner", r => r.owner],
+    ["Audience", r => r.audience],
+    ["Editable Link", r => r.url],
+    ["Last Updated", r => r.updated],
+    ["Tags", r => r.tags.join(", ") || "—"],
+  ];
+
+  return (
+    <Modal onClose={onClose} title="Import collateral from CSV">
+      <div style={{marginBottom:16,padding:"10px 14px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:12,color:"var(--color-text-secondary)",lineHeight:1.7}}>
+        Expected columns: <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>Title, Owner, Audience, Description, Editable Link, Shareable Link, Next Scheduled Update, Last Updated, Content Owner, Assist, Logo Wall, Impact Stats, Video Testimonial, Notes</code>
+        <div style={{marginTop:6,fontSize:11,color:"var(--color-text-tertiary)"}}>Logo Wall, Impact Stats, and Video Testimonial are stored as tags when set to "yes", "true", or "x". Other extra fields are appended to the description.</div>
+      </div>
+      <Field label="Upload CSV file"><input ref={fileRef} type="file" accept=".csv" onChange={handleFile}/></Field>
+      <Field label="Or paste CSV text">
+        <textarea value={csvText} onChange={e=>{setCsvText(e.target.value);setPreview(null);}} rows={4} placeholder="Title,Owner,Audience,..." style={{resize:"vertical",fontFamily:"monospace",fontSize:12}}/>
+      </Field>
+      {error && <div style={{fontSize:12,color:"var(--color-text-danger)",marginBottom:12}}>{error}</div>}
+      {preview && (
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",marginBottom:8}}>{preview.length} items — verify before importing:</div>
+          <div style={{overflowX:"auto",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-md)"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead>
+                <tr style={{background:"var(--color-background-secondary)"}}>
+                  {previewCols.map(([h],i,arr) => (
+                    <th key={h} style={{padding:"6px 10px",textAlign:"left",fontWeight:500,color:"var(--color-text-secondary)",borderBottom:"1px solid var(--color-border-secondary)",borderRight:i<arr.length-1?"0.5px solid var(--color-border-tertiary)":"none",whiteSpace:"nowrap"}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {preview.map((row,i) => (
+                  <tr key={i} style={{borderBottom:i===preview.length-1?"none":"0.5px solid var(--color-border-tertiary)"}}>
+                    {previewCols.map(([h,fn],j,arr) => {
+                      const v = fn(row);
+                      return <td key={h} style={{padding:"6px 10px",color:v&&v!=="—"?"var(--color-text-primary)":"var(--color-text-tertiary)",borderRight:j<arr.length-1?"0.5px solid var(--color-border-tertiary)":"none",maxWidth:j===0?200:150,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={v||""}>{v||"—"}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:8}}>
+        <button onClick={onClose} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
+        {!preview && <button onClick={()=>runPreview(csvText)} disabled={!csvText.trim()} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:csvText.trim()?"var(--color-background-secondary)":"transparent",color:csvText.trim()?"var(--color-text-primary)":"var(--color-text-tertiary)",cursor:csvText.trim()?"pointer":"default"}}>Preview</button>}
+        {preview && <button onClick={()=>onImport(preview)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>Import {preview.length} items</button>}
+      </div>
     </Modal>
   );
 }

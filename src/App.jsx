@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { BoardView, ListView, CalendarView, SearchView } from "./components/MainViews.jsx";
-import { RunOfShowView, ListHeader, ListRow, DocCard } from "./components/TaskViews.jsx";
+import { RunOfShowView, ListHeader, ListRow, DocCard, CollateralView } from "./components/TaskViews.jsx";
 import { FilterDropdown } from "./components/Primitives.jsx";
 import { SettingsModal } from "./components/Settings.jsx";
-import { MilestoneModal, TaskModal, DocModal, ImportModal, CycleModal } from "./components/Modals.jsx";
+import { MilestoneModal, TaskModal, DocModal, ImportModal, ImportCollateralModal, CycleModal } from "./components/Modals.jsx";
 import { AuthScreen } from "./components/AuthScreen.jsx";
 import { VIEWS, VIEW_LABELS, DEFAULT_STATUS_COLORS, DEFAULT_PREFS } from "./constants.js";
 import { avatarBg, avatarTx, initials, isOverdue, addDays, isFlagged, genClassTasks, exportTasksToCSV } from "./utils.js";
@@ -57,6 +57,7 @@ export default function App() {
   const [showCycleModal,            setShowCycleModal]            = useState(false);
   const [newCycleType,              setNewCycleType]              = useState("spring");
   const [showImportModal,           setShowImportModal]           = useState(false);
+  const [showImportCollateralModal, setShowImportCollateralModal] = useState(false);
   const [showSettings,              setShowSettings]              = useState(false);
   const [showMilestoneModal,        setShowMilestoneModal]        = useState(false);
   const [renamingCycle,             setRenamingCycle]             = useState(false);
@@ -330,6 +331,17 @@ export default function App() {
     db.deleteDoc(id).catch(() => toast("Failed to delete document"));
   };
 
+  const deleteSelectedDocs = async ids => {
+    setDocs(p => p.filter(d => !ids.includes(d.id)));
+    try {
+      await Promise.all(ids.map(id => db.deleteDoc(id)));
+      toast(`${ids.length} item${ids.length !== 1 ? "s" : ""} deleted.`);
+    } catch (e) {
+      console.error("deleteSelectedDocs error:", e);
+      toast("Failed to delete some items");
+    }
+  };
+
   // ── Milestone handlers ──────────────────────────────────────────────────────
   const saveMilestone = async m => {
     try {
@@ -505,6 +517,15 @@ export default function App() {
     } catch (e) { console.error("importROS error:", e); toast("Failed to import run of show rows"); }
   };
 
+  const importCollateral = async (items) => {
+    try {
+      const saved = await Promise.all(items.map(item => db.saveDoc(item)));
+      setDocs(p => [...p, ...saved]);
+      setShowImportCollateralModal(false);
+      toast(`${saved.length} collateral items imported.`);
+    } catch (e) { console.error("importCollateral error:", e); toast("Failed to import collateral: " + (e?.message || JSON.stringify(e))); }
+  };
+
   // ── Run of show handlers ────────────────────────────────────────────────────
   const handleSaveRunOfShowRow   = async (sessionId, row) => db.saveRunOfShowRow(sessionId, row);
   const handleDeleteRunOfShowRow = async id => db.deleteRunOfShowRow(id);
@@ -622,7 +643,7 @@ export default function App() {
                   <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 180, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200 }}>
                     <div onClick={() => { setOpenDropdown(null); setEditTask({ ...newTaskBase }); setShowTaskModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add new task</div>
                     <div onClick={() => { setOpenDropdown(null); setEditMilestone({ title: "", date: "" }); setShowMilestoneModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add milestone</div>
-                    <div onClick={() => { setOpenDropdown(null); setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), owner: myUser, url: "", tags: [] }); setShowDocModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add collateral</div>
+                    <div onClick={() => { setOpenDropdown(null); setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: myUser, url: "", tags: [] }); setShowDocModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add collateral</div>
                   </div>
                 )}
               </div>
@@ -634,7 +655,8 @@ export default function App() {
                 <button onClick={() => setOpenDropdown(openDropdown === 'import' ? null : 'import')} style={{ fontSize: 13, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'import' ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>Import / Export ▾</button>
                 {openDropdown === 'import' && (
                   <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 180, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200 }}>
-                    <div onClick={() => { setOpenDropdown(null); setShowImportModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Import CSV</div>
+                    <div onClick={() => { setOpenDropdown(null); setShowImportModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Import tasks from CSV</div>
+                    <div onClick={() => { setOpenDropdown(null); setShowImportCollateralModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Import collateral from CSV</div>
                     <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "2px 0" }} />
                     <div onClick={() => { setOpenDropdown(null); exportTasksToCSV(displayProgramTasks, displayClassTasks, (viewingArchive ? viewingArchive.cycle : activeCycle)?.name); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Export tasks to CSV</div>
                   </div>
@@ -705,10 +727,7 @@ export default function App() {
               <FilterDropdown label="Owner" options={allDocOwners} value={collateralOwnerFilter} onChange={setCollateralOwnerFilter} />
               {(collateralAudienceFilter !== "All" || collateralOwnerFilter !== "All") && <button onClick={() => { setCollateralAudienceFilter("All"); setCollateralOwnerFilter("All"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
             </div>
-            <div style={{ background: "var(--color-background-primary)", borderRadius: "var(--border-radius-lg)", border: "0.5px solid var(--color-border-tertiary)", overflow: "hidden" }}>
-              {filteredDocs.length === 0 && <div style={{ padding: "16px", fontSize: 13, color: "var(--color-text-tertiary)" }}>No documents match.</div>}
-              {filteredDocs.map((d, i, arr) => <DocCard key={d.id} doc={d} readOnly={isReadOnly} onEdit={() => openDoc(d)} last={i === arr.length - 1} />)}
-            </div>
+            <CollateralView filteredDocs={filteredDocs} isReadOnly={isReadOnly} onSave={saveDoc} onDeleteSelected={deleteSelectedDocs} members={members} audiences={audiences} />
           </div>
         )}
 
@@ -721,6 +740,7 @@ export default function App() {
       {showMilestoneModal && editMilestone && <MilestoneModal milestone={editMilestone} onChange={setEditMilestone} onSave={saveMilestone} onDelete={deleteMilestone} onClose={() => { setShowMilestoneModal(false); setEditMilestone(null); }} />}
       {showCycleModal    && <CycleModal tasks={programTasks} activeCycle={activeCycle} initialDraft={draftCycle} sessions={sessions} cycleType={draftCycle?.cycleType || newCycleType} onSaveDraft={saveDraft} onLaunch={launchCycle} onClose={() => setShowCycleModal(false)} />}
       {showImportModal   && <ImportModal onImportProgram={importProgram} onImportClass={importClass} onImportRunOfShow={importROS} sessions={sessions} cycle={activeCycle} onClose={() => setShowImportModal(false)} />}
+      {showImportCollateralModal && <ImportCollateralModal onImport={importCollateral} onClose={() => setShowImportCollateralModal(false)} />}
       {showSettings      && <SettingsModal initialTab={settingsTab} members={members} setMembers={setMembersSync} departments={departments} setDepartments={setDepartmentsSync} audiences={audiences} setAudiences={setAudiencesSync} globalTags={globalTags} setGlobalTags={setGlobalTagsSync} myUser={myUser} prefs={prefs} updatePrefs={updatePrefs} onClose={() => setShowSettings(false)} />}
     </div>
   );

@@ -175,7 +175,7 @@ export function CalendarView({tasks,milestones,openTask,statusColors}) {
                 const dayMs = d ? msOnDay(d) : [];
                 const isSelected = selected===d;
                 return (
-                  <div key={di} onClick={()=>d&&setSelected(isSelected?null:d)} style={{minHeight:80,padding:"6px 6px 4px",borderRight:di===6?"none":"0.5px solid var(--color-border-tertiary)",background:isSelected?"var(--color-background-secondary)":d?"var(--color-background-primary)":"var(--color-background-tertiary)",cursor:d?"pointer":"default"}}>
+                  <div key={di} onClick={()=>d&&setSelected(isSelected?null:d)} style={{height:96,overflow:"hidden",padding:"6px 6px 4px",borderRight:di===6?"none":"0.5px solid var(--color-border-tertiary)",background:isSelected?"var(--color-background-secondary)":d?"var(--color-background-primary)":"var(--color-background-tertiary)",cursor:d?"pointer":"default"}}>
                     {d&&(
                       <div style={{width:22,height:22,borderRadius:"50%",background:isToday?"#185FA5":"transparent",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:4}}>
                         <span style={{fontSize:12,fontWeight:isToday?500:400,color:isToday?"#fff":"var(--color-text-primary)"}}>{d}</span>
