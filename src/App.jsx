@@ -50,8 +50,7 @@ export default function App() {
   const [ownerFilter,               setOwnerFilter]               = useState("All");
   const [viewingArchive,            setViewingArchive]            = useState(null);
   const [draftCycle,                setDraftCycle]                = useState(() => { try { return JSON.parse(localStorage.getItem('teamtasks_draft_cycle')); } catch { return null; } });
-  const [collateralAudienceFilter,  setCollateralAudienceFilter]  = useState("All");
-  const [collateralOwnerFilter,     setCollateralOwnerFilter]     = useState("All");
+
   const [showTaskModal,             setShowTaskModal]             = useState(false);
   const [showDocModal,              setShowDocModal]              = useState(false);
   const [showCycleModal,            setShowCycleModal]            = useState(false);
@@ -547,9 +546,6 @@ export default function App() {
   const isReadOnly          = !!viewingArchive;
   const sortByDue = ts => [...ts].sort((a, b) => { if (!a.due && !b.due) return 0; if (!a.due) return 1; if (!b.due) return -1; return a.due < b.due ? -1 : a.due > b.due ? 1 : 0; });
   const filteredTasks       = sortByDue(displayTasks.filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter));
-  const allAudiences        = ["All", ...Array.from(new Set(displayDocs.map(d => d.audience).filter(Boolean)))];
-  const allDocOwners        = ["All", ...Array.from(new Set(displayDocs.map(d => d.owner).filter(Boolean)))];
-  const filteredDocs        = displayDocs.filter(d => collateralAudienceFilter === "All" || d.audience === collateralAudienceFilter).filter(d => collateralOwnerFilter === "All" || d.owner === collateralOwnerFilter);
 
   const openTask     = t => { if (!isReadOnly) { setEditTask(t); setShowTaskModal(true); } };
   const openDoc      = d => { if (!isReadOnly) { setEditDoc(d); setShowDocModal(true); } };
@@ -721,14 +717,7 @@ export default function App() {
         {view === "calendar"   && <CalendarView tasks={displayAllTasks} milestones={milestones} openTask={openTask} statusColors={statusColors} />}
 
         {view === "collateral" && (
-          <div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-              <FilterDropdown label="Audience" options={allAudiences} value={collateralAudienceFilter} onChange={setCollateralAudienceFilter} />
-              <FilterDropdown label="Owner" options={allDocOwners} value={collateralOwnerFilter} onChange={setCollateralOwnerFilter} />
-              {(collateralAudienceFilter !== "All" || collateralOwnerFilter !== "All") && <button onClick={() => { setCollateralAudienceFilter("All"); setCollateralOwnerFilter("All"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
-            </div>
-            <CollateralView filteredDocs={filteredDocs} isReadOnly={isReadOnly} onSave={saveDoc} onDeleteSelected={deleteSelectedDocs} members={members} audiences={audiences} />
-          </div>
+          <CollateralView docs={displayDocs} isReadOnly={isReadOnly} onSave={saveDoc} onDelete={deleteDoc} onDeleteSelected={deleteSelectedDocs} members={members} audiences={audiences} globalTags={globalTags} />
         )}
 
         {view === "search" && <SearchView displayTasks={displayAllTasks} displayDocs={displayDocs} isReadOnly={isReadOnly} openTask={openTask} openDoc={openDoc} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} />}

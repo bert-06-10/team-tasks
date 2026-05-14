@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Avatar, Badge, StatusPill } from "./Primitives.jsx";
-import { fmtDate, fmtDateYear, isOverdue, avatarBg, avatarTx } from "../utils.js";
+import { Avatar, Badge, StatusPill, FilterDropdown } from "./Primitives.jsx";
+import { CollateralDetailModal } from "./Modals.jsx";
+import { fmtDate, fmtDateYear, isOverdue, avatarBg, avatarTx, addDays } from "../utils.js";
 import { DEFAULT_STATUS_COLORS } from "../constants.js";
 
 const LIST_COLS       = "1fr 70px 70px 90px 1fr 80px 130px 110px";
@@ -162,13 +163,15 @@ export function DocCard({doc,readOnly,onEdit,last}) {
 }
 
 // ── Doc List (collateral tab) ─────────────────────────────────────────────────
-const DOC_COLS     = "1.5fr 130px 130px 130px 110px 1.5fr 130px 130px 110px 115px 1fr 60px";
-const DOC_COLS_SEL = "36px 1.5fr 130px 130px 130px 110px 1.5fr 130px 130px 110px 115px 1fr 60px";
-const DOC_HEADERS  = ["Title","Owner","Content Owner","Assist","Audience","Description","Editable Link","Shareable Link","Next Update","Last Updated","Tags",""];
+const DOC_COLS     = "1.5fr 130px 130px 130px 110px 1.5fr 130px 130px 110px 115px 1fr";
+const DOC_COLS_SEL = "36px 1.5fr 130px 130px 130px 110px 1.5fr 130px 130px 110px 115px 1fr";
+const DOC_HEADERS  = ["Title","Owner","Content Owner","Assist","Audience","Description","Editable Link","Shareable Link","Next Update","Last Updated","Tags"];
 const sep = {borderRight:"1px solid var(--color-border-tertiary)"};
 const inp = {fontSize:12,width:"100%",boxSizing:"border-box",padding:"3px 6px",border:"1px solid var(--color-border-secondary)",borderRadius:4,background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"inherit"};
 
-function DocListHeader({selectable,selectedAll,someSelected,onSelectAll}) {
+const DOC_SORT_KEYS = [null,"owner","content_owner","assist","audience",null,null,null,"next_update","updated",null];
+
+function DocListHeader({selectable,selectedAll,someSelected,onSelectAll,sort,onSort}) {
   const cols = selectable ? DOC_COLS_SEL : DOC_COLS;
   return (
     <div style={{display:"grid",gridTemplateColumns:cols,borderBottom:"1px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}}>
@@ -177,66 +180,25 @@ function DocListHeader({selectable,selectedAll,someSelected,onSelectAll}) {
           <input type="checkbox" checked={selectedAll} ref={el=>{if(el)el.indeterminate=someSelected&&!selectedAll;}} onChange={onSelectAll} style={{cursor:"pointer",margin:0}}/>
         </div>
       )}
-      {DOC_HEADERS.map((h,i) => (
-        <div key={i} style={{padding:"8px 12px",fontSize:11,fontWeight:500,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em",...(i<DOC_HEADERS.length-1?sep:{})}}>{h}</div>
-      ))}
+      {DOC_HEADERS.map((h,i) => {
+        const key = DOC_SORT_KEYS[i];
+        const active = sort.col === key;
+        return (
+          <div key={i} onClick={key ? ()=>onSort(key) : undefined}
+            style={{padding:"8px 12px",fontSize:11,fontWeight:500,color:active?"var(--color-text-primary)":"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em",cursor:key?"pointer":"default",userSelect:"none",display:"flex",alignItems:"center",gap:4,...(i<DOC_HEADERS.length-1?sep:{})}}>
+            {h}
+            {key && <span style={{fontSize:10,opacity:active?1:0.35}}>{active?(sort.dir==="asc"?"▲":"▼"):"▲"}</span>}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function DocListRow({doc,last,readOnly,selectable,selected,onSelect,editing,editVal,onChange,onSave,onCancel,onStartEdit,members,audiences}) {
+function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
   const cols = selectable ? DOC_COLS_SEL : DOC_COLS;
-  const esc = e => { if (e.key === "Escape") onCancel(); };
-
-  if (editing) {
-    return (
-      <div style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",background:"var(--color-background-secondary)"}}>
-        {selectable && (
-          <div style={{padding:"8px 10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}}>
-            <input type="checkbox" checked={!!selected} onChange={()=>onSelect(doc.id)} style={{cursor:"pointer",margin:0}}/>
-          </div>
-        )}
-        <div style={{padding:"8px 8px",...sep}}><input value={editVal.title||""} onChange={e=>onChange({...editVal,title:e.target.value})} onKeyDown={esc} autoFocus style={inp}/></div>
-        <div style={{padding:"8px 8px",...sep}}>
-          <select value={editVal.owner||""} onChange={e=>onChange({...editVal,owner:e.target.value})} onKeyDown={esc} style={{...inp,padding:"2px 4px"}}>
-            <option value="">—</option>
-            {members.map(m=><option key={m}>{m}</option>)}
-          </select>
-        </div>
-        <div style={{padding:"8px 8px",...sep}}>
-          <select value={editVal.content_owner||""} onChange={e=>onChange({...editVal,content_owner:e.target.value})} onKeyDown={esc} style={{...inp,padding:"2px 4px"}}>
-            <option value="">—</option>
-            {members.map(m=><option key={m}>{m}</option>)}
-          </select>
-        </div>
-        <div style={{padding:"8px 8px",...sep}}>
-          <select value={editVal.assist||""} onChange={e=>onChange({...editVal,assist:e.target.value})} onKeyDown={esc} style={{...inp,padding:"2px 4px"}}>
-            <option value="">—</option>
-            {members.map(m=><option key={m}>{m}</option>)}
-          </select>
-        </div>
-        <div style={{padding:"8px 8px",...sep}}>
-          <select value={editVal.audience||""} onChange={e=>onChange({...editVal,audience:e.target.value})} onKeyDown={esc} style={{...inp,padding:"2px 4px"}}>
-            <option value="">—</option>
-            {audiences.map(a=><option key={a}>{a}</option>)}
-          </select>
-        </div>
-        <div style={{padding:"8px 8px",...sep}}><input value={editVal.description||""} onChange={e=>onChange({...editVal,description:e.target.value})} onKeyDown={esc} style={inp}/></div>
-        <div style={{padding:"8px 8px",...sep}}><input value={editVal.url||""} onChange={e=>onChange({...editVal,url:e.target.value})} onKeyDown={esc} placeholder="https://..." style={inp}/></div>
-        <div style={{padding:"8px 8px",...sep}}><input value={editVal.shareable_link||""} onChange={e=>onChange({...editVal,shareable_link:e.target.value})} onKeyDown={esc} placeholder="https://..." style={inp}/></div>
-        <div style={{padding:"8px 8px",...sep}}><input type="date" value={editVal.next_update||""} onChange={e=>onChange({...editVal,next_update:e.target.value})} onKeyDown={esc} style={inp}/></div>
-        <div style={{padding:"8px 8px",...sep}}><input type="date" value={editVal.updated||""} onChange={e=>onChange({...editVal,updated:e.target.value})} onKeyDown={esc} style={inp}/></div>
-        <div style={{padding:"8px 8px",...sep}}><input value={(editVal.tags||[]).join(", ")} onChange={e=>onChange({...editVal,tags:e.target.value.split(",").map(t=>t.trim()).filter(Boolean)})} onKeyDown={esc} placeholder="tag1, tag2" style={inp}/></div>
-        <div style={{padding:"8px 8px",display:"flex",flexDirection:"column",gap:4,alignItems:"center"}} onClick={e=>e.stopPropagation()}>
-          <button onClick={onSave} style={{fontSize:11,padding:"2px 8px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>✓</button>
-          <button onClick={onCancel} style={{fontSize:11,padding:"2px 8px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>✕</button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div onClick={!readOnly ? onStartEdit : undefined} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",background:selected?"var(--color-background-secondary)":"transparent",cursor:readOnly?"default":"pointer"}}>
+    <div onClick={()=>onOpen(doc)} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",background:selected?"var(--color-background-secondary)":"transparent",cursor:"pointer"}}>
       {selectable && (
         <div style={{padding:"11px 10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}} onClick={e=>e.stopPropagation()}>
           <input type="checkbox" checked={!!selected} onChange={()=>onSelect(doc.id)} style={{cursor:"pointer",margin:0}}/>
@@ -273,68 +235,108 @@ function DocListRow({doc,last,readOnly,selectable,selected,onSelect,editing,edit
           ? doc.tags.map(t=><span key={t} style={{fontSize:11,padding:"2px 7px",borderRadius:10,background:"var(--color-background-secondary)",color:"var(--color-text-secondary)",whiteSpace:"nowrap"}}>{t}</span>)
           : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div/>
     </div>
   );
 }
 
-export function CollateralView({filteredDocs,isReadOnly,onSave,onDeleteSelected,members,audiences}) {
+const BLANK_FILTERS = { owner:"All", contentOwner:"All", assist:"All", audience:"All", nextUpdate:"All", lastUpdated:"All" };
+const DATE_FILTER_OPTS      = ["All","Has date","No date","Overdue","Next 30 days"];
+const LAST_UPDATED_OPTS     = ["All","Has date","No date","Past 30 days","Past 90 days"];
+
+export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected,members,audiences,globalTags}) {
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [editingId,   setEditingId]   = useState(null);
-  const [editVal,     setEditVal]     = useState(null);
+  const [detailDoc,   setDetailDoc]   = useState(null);
+  const [filters,     setFilters]     = useState(BLANK_FILTERS);
+  const [sort,        setSort]        = useState({col:null,dir:"asc"});
   const selectable = !isReadOnly;
 
-  const toggleSelect = id => setSelectedIds(prev => {
-    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
+  const today = new Date().toISOString().slice(0,10);
+
+  const uniq = field => ["All",...Array.from(new Set(docs.map(d=>d[field]).filter(Boolean))).sort()];
+  const ownerOpts        = uniq("owner");
+  const contentOwnerOpts = uniq("content_owner");
+  const assistOpts       = uniq("assist");
+  const audienceOpts     = uniq("audience");
+
+  const applyDateFilter = (val, dateStr, opts) => {
+    if (val==="All")         return true;
+    if (val==="Has date")    return !!dateStr;
+    if (val==="No date")     return !dateStr;
+    if (val==="Overdue")     return !!dateStr && dateStr < today;
+    if (val==="Next 30 days") return !!dateStr && dateStr >= today && dateStr <= addDays(today,30);
+    if (val==="Past 30 days") return !!dateStr && dateStr >= addDays(today,-30);
+    if (val==="Past 90 days") return !!dateStr && dateStr >= addDays(today,-90);
+    return true;
+  };
+
+  const filteredDocs = docs.filter(d => {
+    if (filters.owner        !== "All" && d.owner         !== filters.owner)        return false;
+    if (filters.contentOwner !== "All" && d.content_owner !== filters.contentOwner) return false;
+    if (filters.assist       !== "All" && d.assist        !== filters.assist)       return false;
+    if (filters.audience     !== "All" && d.audience      !== filters.audience)     return false;
+    if (!applyDateFilter(filters.nextUpdate,  d.next_update)) return false;
+    if (!applyDateFilter(filters.lastUpdated, d.updated))     return false;
+    return true;
   });
 
-  const visibleIds = filteredDocs.map(d => d.id);
-  const visibleSelected = visibleIds.filter(id => selectedIds.has(id));
-  const selectedAll = visibleIds.length > 0 && visibleSelected.length === visibleIds.length;
-  const someSelected = visibleSelected.length > 0 && !selectedAll;
+  const displayDocs = sort.col ? [...filteredDocs].sort((a,b) => {
+    const av = a[sort.col]||"", bv = b[sort.col]||"";
+    const cmp = av<bv?-1:av>bv?1:0;
+    return sort.dir==="asc"?cmp:-cmp;
+  }) : filteredDocs;
 
-  const handleSelectAll = () => setSelectedIds(selectedAll ? new Set() : new Set(visibleIds));
+  const toggleSort = col => setSort(s => s.col===col ? {col,dir:s.dir==="asc"?"desc":"asc"} : {col,dir:"asc"});
+  const setFilter  = (key,val) => setFilters(f=>({...f,[key]:val}));
+  const anyFilter  = Object.values(filters).some(v=>v!=="All");
 
-  const handleDelete = async () => {
-    if (!visibleSelected.length) return;
-    await onDeleteSelected(visibleSelected);
-    setSelectedIds(new Set());
-  };
+  const toggleSelect  = id => setSelectedIds(prev => { const next=new Set(prev); next.has(id)?next.delete(id):next.add(id); return next; });
+  const visibleIds    = displayDocs.map(d=>d.id);
+  const visibleSelected = visibleIds.filter(id=>selectedIds.has(id));
+  const selectedAll   = visibleIds.length>0 && visibleSelected.length===visibleIds.length;
+  const someSelected  = visibleSelected.length>0 && !selectedAll;
+  const handleSelectAll = () => setSelectedIds(selectedAll?new Set():new Set(visibleIds));
+  const handleDelete  = async () => { if(!visibleSelected.length)return; await onDeleteSelected(visibleSelected); setSelectedIds(new Set()); };
 
-  const startEdit = doc => { setEditingId(doc.id); setEditVal({...doc}); };
-  const cancelEdit = () => { setEditingId(null); setEditVal(null); };
-  const saveEdit = async () => {
-    if (!editVal) return;
-    await onSave(editVal);
-    setEditingId(null);
-    setEditVal(null);
-  };
+  const handleDetailSave = async doc => { await onSave(doc); setDetailDoc(null); };
 
   return (
     <>
-      {visibleSelected.length > 0 && (
+      <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center",flexWrap:"wrap"}}>
+        <FilterDropdown label="Owner"         options={ownerOpts}         value={filters.owner}        onChange={v=>setFilter("owner",v)}/>
+        <FilterDropdown label="Content Owner" options={contentOwnerOpts}  value={filters.contentOwner} onChange={v=>setFilter("contentOwner",v)}/>
+        <FilterDropdown label="Assist"        options={assistOpts}        value={filters.assist}       onChange={v=>setFilter("assist",v)}/>
+        <FilterDropdown label="Audience"      options={audienceOpts}      value={filters.audience}     onChange={v=>setFilter("audience",v)}/>
+        <FilterDropdown label="Next Update"   options={DATE_FILTER_OPTS}  value={filters.nextUpdate}   onChange={v=>setFilter("nextUpdate",v)}/>
+        <FilterDropdown label="Last Updated"  options={LAST_UPDATED_OPTS} value={filters.lastUpdated}  onChange={v=>setFilter("lastUpdated",v)}/>
+        {anyFilter && <button onClick={()=>setFilters(BLANK_FILTERS)} style={{fontSize:12,padding:"5px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>}
+      </div>
+      {visibleSelected.length>0 && (
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
           <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{visibleSelected.length} selected</span>
           <button onClick={handleDelete} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer"}}>
-            Delete {visibleSelected.length === 1 ? "item" : `${visibleSelected.length} items`}
+            Delete {visibleSelected.length===1?"item":`${visibleSelected.length} items`}
           </button>
           <button onClick={()=>setSelectedIds(new Set())} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>
         </div>
       )}
       <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"hidden"}}>
-        {filteredDocs.length === 0
-          ? <div style={{padding:"16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No documents match.</div>
+        {displayDocs.length===0
+          ? <div style={{padding:"16px",fontSize:13,color:"var(--color-text-tertiary)"}}>{anyFilter?"No documents match the current filters.":"No documents."}</div>
           : <>
-              <DocListHeader selectable={selectable} selectedAll={selectedAll} someSelected={someSelected} onSelectAll={handleSelectAll}/>
-              {filteredDocs.map((d,i,arr) => (
+              <DocListHeader selectable={selectable} selectedAll={selectedAll} someSelected={someSelected} onSelectAll={handleSelectAll} sort={sort} onSort={toggleSort}/>
+              {displayDocs.map((d,i,arr)=>(
                 <DocListRow key={d.id} doc={d} last={i===arr.length-1}
-                  readOnly={isReadOnly} selectable={selectable} selected={selectedIds.has(d.id)} onSelect={toggleSelect}
-                  editing={editingId===d.id} editVal={editVal} onChange={setEditVal}
-                  onSave={saveEdit} onCancel={cancelEdit} onStartEdit={()=>startEdit(d)}
-                  members={members} audiences={audiences}/>
+                  selectable={selectable} selected={selectedIds.has(d.id)} onSelect={toggleSelect}
+                  onOpen={setDetailDoc}/>
               ))}
             </>}
       </div>
+      {detailDoc && (
+        <CollateralDetailModal
+          doc={detailDoc} members={members} audiences={audiences} globalTags={globalTags}
+          onSave={handleDetailSave} onDelete={onDelete}
+          onClose={()=>setDetailDoc(null)} isReadOnly={isReadOnly}/>
+      )}
     </>
   );
 }
