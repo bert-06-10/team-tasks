@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Modal, Field, TagInput } from "./Primitives.jsx";
 import { STATUSES, DOC_TYPES, DEFAULT_CLASS_TASKS } from "../constants.js";
-import { fmtDate, fmtDateYear, addDays, isFlagged, nextBusinessDay, parseCSV, parseClassTasksCSV, parseProgramTasksCSV, parseRunOfShowCSV, parseCollateralCSV, avatarBg, avatarTx } from "../utils.js";
+import { fmtDate, fmtDateYear, addDays, isFlagged, nextBusinessDay, isWeekend, closestBusinessDay, parseCSV, parseClassTasksCSV, parseProgramTasksCSV, parseRunOfShowCSV, parseCollateralCSV, avatarBg, avatarTx } from "../utils.js";
 
 function gcalUrl(title, date, details = "") {
   if (!date || !title) return null;
@@ -81,7 +81,10 @@ export function TaskModal({task,tasks,docs,members,departments,globalTags,prefs,
               {departments.map(d=><option key={d}>{d}</option>)}
             </select>
           </Field>
-          <Field label="Due date"><input type="date" value={task.due} onChange={e=>onChange({...task,due:e.target.value})}/></Field>
+          <Field label="Due date">
+            <input type="date" value={task.due} onChange={e=>{const d=closestBusinessDay(e.target.value);onChange({...task,due:d});}}/>
+            {task.due&&isWeekend(task.due)===false&&closestBusinessDay(task.due)!==task.due&&<span style={{fontSize:11,color:"var(--color-text-tertiary)",marginTop:2,display:"block"}}>Adjusted to nearest weekday</span>}
+          </Field>
         </div>
       )}
       {task.type==="program"&&task.due&&task.title&&(

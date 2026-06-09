@@ -89,8 +89,8 @@ export function StatusPill({status,onChange,readOnly,statusColors}) {
     document.addEventListener("mousedown",h);
     return () => document.removeEventListener("mousedown",h);
   },[]);
-  const colors = statusColors||DEFAULT_STATUS_COLORS;
-  const s = colors[status]||DEFAULT_STATUS_COLORS["To Do"];
+  const colors = { ...DEFAULT_STATUS_COLORS, ...(statusColors || {}) };
+  const s = colors[status] || DEFAULT_STATUS_COLORS["To Do"];
   if(readOnly) {
     return <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:s.bg,color:s.color,border:`1px solid ${s.border}`,whiteSpace:"nowrap",fontWeight:500}}>{status}</span>;
   }
@@ -104,9 +104,9 @@ export function StatusPill({status,onChange,readOnly,statusColors}) {
           {STATUSES.map(opt => {
             const os = colors[opt]||DEFAULT_STATUS_COLORS[opt];
             return (
-              <div key={opt} onClick={()=>{onChange(opt);setOpen(false);}} style={{padding:"8px 12px",cursor:"pointer",display:"flex",alignItems:"center",gap:8,background:opt===status?"var(--color-background-secondary)":"transparent"}}>
+              <div key={opt} onClick={()=>{onChange(opt);setOpen(false);}} style={{padding:"8px 12px",paddingLeft:opt===status?"9px":"12px",cursor:"pointer",display:"flex",alignItems:"center",gap:8,background:opt===status?os.bg:"transparent",borderLeft:opt===status?`3px solid ${os.color}`:"3px solid transparent"}}>
                 <span style={{fontSize:11,padding:"2px 10px",borderRadius:20,background:os.bg,color:os.color,border:`1px solid ${os.border}`,fontWeight:500,whiteSpace:"nowrap"}}>{opt}</span>
-                {opt===status&&<span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>✓</span>}
+                {opt===status&&<span style={{fontSize:11,color:os.color}}>✓</span>}
               </div>
             );
           })}

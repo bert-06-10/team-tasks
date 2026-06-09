@@ -33,7 +33,7 @@ export function TaskCard({task,tasks,docs,readOnly,onEdit,onStatus,getBlockedSta
   return (
     <div onClick={onEdit} style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",padding:"12px 14px",cursor:readOnly?"default":"pointer",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
       {task.type==="class"&&<div style={{fontSize:10,padding:"1px 7px",borderRadius:8,background:"#FAEEDA",color:"#854F0B",display:"inline-block",marginBottom:6}}>{task.sessionName||"Class task"}</div>}
-      <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",marginBottom:4}}>{task.title}</div>
+      <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",marginBottom:4,textDecoration:task.status==="Done"?"line-through":"none",opacity:task.status==="Done"?0.5:1}}>{task.title}</div>
       {showGroup&&task.department&&<div style={{fontSize:11,color:"var(--color-text-tertiary)",marginBottom:4}}>{task.department}</div>}
       {task.notes&&<div style={{fontSize:12,color:"var(--color-text-secondary)",marginBottom:8,lineHeight:1.5}}>{task.notes}</div>}
       {(task.tags||[]).length>0&&(
@@ -74,7 +74,7 @@ export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlocke
       )}
       {/* Task */}
       <div style={{padding:"11px 12px",minWidth:0,...sep}}>
-        <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{task.title}</div>
+        <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textDecoration:task.status==="Done"?"line-through":"none",opacity:task.status==="Done"?0.5:1}}>{task.title}</div>
         <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
           {task.type==="class"&&<span style={{fontSize:10,padding:"1px 6px",borderRadius:8,background:"#FAEEDA",color:"#854F0B"}}>{task.sessionName||"class"}</span>}
           {task.department&&<span style={{fontSize:11,padding:"1px 7px",borderRadius:10,background:"var(--color-background-secondary)",color:"var(--color-text-tertiary)"}}>{task.department}</span>}
@@ -243,7 +243,7 @@ const BLANK_FILTERS = { owner:"All", contentOwner:"All", assist:"All", audience:
 const DATE_FILTER_OPTS      = ["All","Has date","No date","Overdue","Next 30 days"];
 const LAST_UPDATED_OPTS     = ["All","Has date","No date","Past 30 days","Past 90 days"];
 
-export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected,members,audiences,globalTags}) {
+export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected,onAddDoc,members,audiences,globalTags}) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [detailDoc,   setDetailDoc]   = useState(null);
   const [filters,     setFilters]     = useState(BLANK_FILTERS);
@@ -301,14 +301,17 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
 
   return (
     <>
-      <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center",flexWrap:"wrap"}}>
-        <FilterDropdown label="Owner"         options={ownerOpts}         value={filters.owner}        onChange={v=>setFilter("owner",v)}/>
-        <FilterDropdown label="Content Owner" options={contentOwnerOpts}  value={filters.contentOwner} onChange={v=>setFilter("contentOwner",v)}/>
-        <FilterDropdown label="Assist"        options={assistOpts}        value={filters.assist}       onChange={v=>setFilter("assist",v)}/>
-        <FilterDropdown label="Audience"      options={audienceOpts}      value={filters.audience}     onChange={v=>setFilter("audience",v)}/>
-        <FilterDropdown label="Next Update"   options={DATE_FILTER_OPTS}  value={filters.nextUpdate}   onChange={v=>setFilter("nextUpdate",v)}/>
-        <FilterDropdown label="Last Updated"  options={LAST_UPDATED_OPTS} value={filters.lastUpdated}  onChange={v=>setFilter("lastUpdated",v)}/>
-        {anyFilter && <button onClick={()=>setFilters(BLANK_FILTERS)} style={{fontSize:12,padding:"5px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>}
+      <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
+        {!isReadOnly && onAddDoc && <button onClick={onAddDoc} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",fontWeight:500,flexShrink:0}}>+ Add collateral</button>}
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginLeft:"auto"}}>
+          <FilterDropdown label="Owner"         options={ownerOpts}         value={filters.owner}        onChange={v=>setFilter("owner",v)}/>
+          <FilterDropdown label="Content Owner" options={contentOwnerOpts}  value={filters.contentOwner} onChange={v=>setFilter("contentOwner",v)}/>
+          <FilterDropdown label="Assist"        options={assistOpts}        value={filters.assist}       onChange={v=>setFilter("assist",v)}/>
+          <FilterDropdown label="Audience"      options={audienceOpts}      value={filters.audience}     onChange={v=>setFilter("audience",v)}/>
+          <FilterDropdown label="Next Update"   options={DATE_FILTER_OPTS}  value={filters.nextUpdate}   onChange={v=>setFilter("nextUpdate",v)}/>
+          <FilterDropdown label="Last Updated"  options={LAST_UPDATED_OPTS} value={filters.lastUpdated}  onChange={v=>setFilter("lastUpdated",v)}/>
+          {anyFilter && <button onClick={()=>setFilters(BLANK_FILTERS)} style={{fontSize:12,padding:"5px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>}
+        </div>
       </div>
       {visibleSelected.length>0 && (
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>

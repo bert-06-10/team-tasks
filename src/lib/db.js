@@ -67,6 +67,8 @@ function taskFromRow(row, sessions = []) {
     flagged:        row.flagged || false,
     sessionId:      row.session_id || '',
     sessionName:    session?.name || '',
+    professor:      session?.professor || '',
+    cohort:         session?.cohort    || '',
     deps:           (row.task_deps || []).map(d => d.depends_on_id),
     collateralDeps: (row.task_collateral_deps || []).map(d => d.doc_id),
     attachedDocs:   [],
@@ -249,7 +251,43 @@ export async function deleteActiveCycle(cycleId) {
 export async function fetchSessions() {
   const { data, error } = await supabase.from('sessions').select('*').order('number')
   if (error) throw error
-  return data.map(r => ({ id: r.id, name: r.name, date: r.date, number: r.number }))
+  return data.map(r => ({
+    id:        r.id,
+    name:      r.name,
+    date:      r.date,
+    number:    r.number,
+    professor: r.professor || '',
+    cohort:    r.cohort    || '',
+  }))
+}
+
+export async function saveSession(session) {
+  const fullRow = {
+    name:      session.name      || session.professor || '',
+    date:      session.date,
+    number:    session.number    || 1,
+    professor: session.professor || '',
+    cohort:    session.cohort    || '',
+  }
+  const basicRow = { name: fullRow.name, date: fullRow.date, number: fullRow.number }
+
+  if (session.id) {
+    const { error } = await supabase.from('sessions').update(fullRow).eq('id', session.id)
+    if (error) {
+      const { error: e2 } = await supabase.from('sessions').update(basicRow).eq('id', session.id)
+      if (e2) throw e2
+    }
+    return session
+  }
+
+  const { data, error } = await supabase.from('sessions').insert(fullRow).select().single()
+  if (error) {
+    // Retry without professor/cohort if those columns don't exist yet
+    const { data: d2, error: e2 } = await supabase.from('sessions').insert(basicRow).select().single()
+    if (e2) throw e2
+    return { ...session, id: d2.id, name: fullRow.name }
+  }
+  return { ...session, id: data.id, name: fullRow.name }
 }
 
 // ── Tasks ─────────────────────────────────────────────────────────────────────
@@ -302,6 +340,11 @@ export async function saveTask(task, sessions = []) {
 
 export async function updateTaskStatus(id, status) {
   const { error } = await supabase.from('tasks').update({ status }).eq('id', id)
+  if (error) throw error
+}
+
+export async function updateTaskDue(id, due) {
+  const { error } = await supabase.from('tasks').update({ due_date: due || null }).eq('id', id)
   if (error) throw error
 }
 

@@ -12,6 +12,13 @@ const etNoon = s => new Date(s + "T12:00:00Z");
 const todayET = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // en-CA → YYYY-MM-DD
 
 export const isOverdue = d => !!d && d < todayET();
+export const closestBusinessDay = s => {
+  if (!s) return s;
+  const wd = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short"}).format(etNoon(s));
+  if (wd === "Sat") return addDays(s, -1); // Saturday → Friday
+  if (wd === "Sun") return addDays(s,  1); // Sunday → Monday
+  return s;
+};
 export const addDays = (s,n) => { const [y,m,d]=s.split("-").map(Number); return new Date(Date.UTC(y,m-1,d+n)).toISOString().slice(0,10); };
 export const isWeekend = s => { const wd=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short"}).format(etNoon(s)); return wd==="Sun"||wd==="Sat"; };
 export const isFlagged = (s,hols) => isWeekend(s)||(hols||[]).includes(s);
@@ -19,12 +26,16 @@ export const nextBusinessDay = (s,hols) => { let d=s; while(isFlagged(d,hols)) d
 export const fmtDate = s => { if(!s)return""; return new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",month:"short",day:"numeric"}).format(etNoon(s)); };
 export const fmtDateYear = s => { if(!s)return""; return new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",month:"short",day:"numeric",year:"numeric"}).format(etNoon(s)); };
 
-export const genClassTasks = sessions => {
+export const genClassTasks = (sessions, template) => {
   let id = 1000;
   const tasks = [];
+  const items = (template && template.length > 0)
+    ? template
+    : DEFAULT_CLASS_TASKS.map(title => ({ title, offset: 0 }));
   sessions.forEach(s => {
-    DEFAULT_CLASS_TASKS.forEach(title => {
-      tasks.push({id:id++,title,assignee:INIT_MEMBERS[0],assist:"",due:s.date,status:"To Do",notes:"",deps:[],collateralDeps:[],attachedDocs:[],tags:["class"],offset:0,department:"",type:"class",sessionId:s.id,sessionName:s.name});
+    items.forEach(item => {
+      const due = closestBusinessDay(item.offset ? addDays(s.date, item.offset) : s.date);
+      tasks.push({id:id++,title:item.title,assignee:item.assignee||"",assist:item.assist||"",notes:item.notes||"",due,status:"To Do",deps:[],collateralDeps:[],attachedDocs:[],tags:["class"],offset:item.offset||0,department:"",type:"class",sessionId:s.id,sessionName:s.name});
     });
   });
   return tasks;

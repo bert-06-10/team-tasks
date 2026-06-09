@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BoardView, ListView, CalendarView, SearchView } from "./components/MainViews.jsx";
+import { BoardView, ListView, CalendarView, SearchView, ClassesView } from "./components/MainViews.jsx";
 import { RunOfShowView, ListHeader, ListRow, DocCard, CollateralView } from "./components/TaskViews.jsx";
 import { FilterDropdown } from "./components/Primitives.jsx";
 import { SettingsModal } from "./components/Settings.jsx";
 import { MilestoneModal, TaskModal, DocModal, ImportModal, ImportCollateralModal, CycleModal } from "./components/Modals.jsx";
 import { AuthScreen } from "./components/AuthScreen.jsx";
 import { VIEWS, VIEW_LABELS, DEFAULT_STATUS_COLORS, DEFAULT_PREFS } from "./constants.js";
-import { avatarBg, avatarTx, initials, isOverdue, addDays, isFlagged, genClassTasks, exportTasksToCSV } from "./utils.js";
+import { avatarBg, avatarTx, initials, isOverdue, isWeekend, addDays, isFlagged, closestBusinessDay, genClassTasks, exportTasksToCSV, fmtDate } from "./utils.js";
 import { supabase } from "./supabaseClient.js";
 import * as db from "./lib/db.js";
 
@@ -48,8 +48,10 @@ export default function App() {
   const [listGroup,                 setListGroup]                 = useState("none");
   const [deptFilter,                setDeptFilter]                = useState("All");
   const [ownerFilter,               setOwnerFilter]               = useState("All");
+  const [sessionFilter,             setSessionFilter]             = useState("all");
   const [viewingArchive,            setViewingArchive]            = useState(null);
   const [draftCycle,                setDraftCycle]                = useState(() => { try { return JSON.parse(localStorage.getItem('teamtasks_draft_cycle')); } catch { return null; } });
+  const [classTaskTemplate,         setClassTaskTemplate]         = useState(() => { try { const s = localStorage.getItem('teamtasks_class_task_template'); return s ? JSON.parse(s) : null; } catch { return null; } });
 
   const [showTaskModal,             setShowTaskModal]             = useState(false);
   const [showDocModal,              setShowDocModal]              = useState(false);
@@ -63,6 +65,7 @@ export default function App() {
   const [renameValue,               setRenameValue]               = useState('');
   const [openDropdown,              setOpenDropdown]              = useState(null);
   const [settingsTab,               setSettingsTab]               = useState("owners");
+  const [classesSessionId,          setClassesSessionId]          = useState(null);
   const [editTask,      setEditTask]      = useState(null);
   const [editDoc,       setEditDoc]       = useState(null);
   const [editMilestone, setEditMilestone] = useState(null);
@@ -92,7 +95,7 @@ export default function App() {
 
   // ── Derived ─────────────────────────────────────────────────────────────────
   const prefs        = userPrefs || DEFAULT_USER_PREFS;
-  const statusColors = prefs.statusColors || DEFAULT_STATUS_COLORS;
+  const statusColors = { ...DEFAULT_STATUS_COLORS, ...(prefs.statusColors || {}) };
 
   useEffect(() => {
     document.documentElement.style.colorScheme = prefs.darkMode ? "dark" : "light";
@@ -160,8 +163,21 @@ export default function App() {
         db.fetchMilestones(), db.fetchDocs(),
       ]);
 
-      setProgramTasks(taskData.programTasks);
-      setClassTasks(taskData.classTasks);
+      // Migrate any existing weekend due dates to nearest business day
+      const fixDue = t => t.due && isWeekend(t.due) ? { ...t, due: closestBusinessDay(t.due) } : t;
+      const fixedProgram = taskData.programTasks.map(fixDue);
+      const fixedClass   = taskData.classTasks.map(fixDue);
+      const weekendFixed = [
+        ...fixedProgram.filter((t, i) => t.due !== taskData.programTasks[i].due),
+        ...fixedClass.filter((t, i)   => t.due !== taskData.classTasks[i].due),
+      ];
+      if (weekendFixed.length) {
+        Promise.all(weekendFixed.map(t => db.updateTaskDue(t.id, t.due)))
+          .catch(e => console.error("Weekend date migration error:", e));
+      }
+
+      setProgramTasks(fixedProgram);
+      setClassTasks(fixedClass);
       setRunOfShow(rosData);
       setMilestones(milestonesData);
       setDocs(docsData);
@@ -529,6 +545,64 @@ export default function App() {
   const handleSaveRunOfShowRow   = async (sessionId, row) => db.saveRunOfShowRow(sessionId, row);
   const handleDeleteRunOfShowRow = async id => db.deleteRunOfShowRow(id);
 
+  // ── Session handlers ────────────────────────────────────────────────────────
+  const navigateToClasses = (sessionId) => {
+    setClassesSessionId(sessionId);
+    setView("classes");
+  };
+
+  const navigateToList = () => {
+    setTaskTypeFilter("class");
+    setView("list");
+  };
+
+  const updateSession = async (sessionData) => {
+    try {
+      const saved = await db.saveSession(sessionData);
+      setSessions(prev => prev.map(s => s.id === saved.id ? { ...s, ...saved } : s));
+      toast("Session updated.");
+    } catch (e) {
+      console.error("updateSession error:", e);
+      toast("Failed to update session: " + (e?.message || "unknown error"));
+      throw e;
+    }
+  };
+
+  const saveClassTaskTemplate = (template) => {
+    setClassTaskTemplate(template);
+    localStorage.setItem('teamtasks_class_task_template', JSON.stringify(template));
+  };
+
+  const saveSession = async (sessionData) => {
+    try {
+      const nextNumber = sessions.length > 0 ? Math.max(...sessions.map(s => s.number || 0)) + 1 : 1;
+      const toSave = { ...sessionData, number: nextNumber };
+      const saved = await db.saveSession(toSave);
+      const updatedSessions = [...sessions, saved].sort((a, b) => a.date < b.date ? -1 : 1);
+      setSessions(updatedSessions);
+      const newTasks = await db.bulkInsertTasks(genClassTasks([saved], classTaskTemplate), updatedSessions);
+      setClassTasks(prev => [...prev, ...newTasks]);
+      toast(`Session added for ${saved.professor || saved.name}.`);
+    } catch (e) {
+      console.error("saveSession error:", e);
+      toast("Failed to save session: " + (e?.message || "unknown error"));
+      throw e;
+    }
+  };
+
+  const applyTemplateToSession = async (sessionId) => {
+    const sess = sessions.find(s => s.id === sessionId);
+    if (!sess) return;
+    try {
+      const newTasks = await db.bulkInsertTasks(genClassTasks([sess], classTaskTemplate), sessions);
+      setClassTasks(prev => [...prev, ...newTasks]);
+      toast(`${newTasks.length} tasks added to ${sess.professor || sess.name}.`);
+    } catch (e) {
+      console.error("applyTemplateToSession error:", e);
+      toast("Failed to apply template: " + (e?.message || "unknown error"));
+    }
+  };
+
   // ── Misc ────────────────────────────────────────────────────────────────────
   const getBlockedStatus = task => {
     if (!task.deps?.length) return null;
@@ -545,8 +619,8 @@ export default function App() {
   const displayDocs         = viewingArchive ? viewingArchive.docs : docs;
   const isReadOnly          = !!viewingArchive;
   const sortByDue = ts => [...ts].sort((a, b) => { if (!a.due && !b.due) return 0; if (!a.due) return 1; if (!b.due) return -1; return a.due < b.due ? -1 : a.due > b.due ? 1 : 0; });
-  const filteredTasks       = sortByDue(displayTasks.filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter));
-  const myFilteredTasks     = sortByDue(displayTasks.filter(t => t.assignee === myUser || t.assist === myUser).filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter));
+  const filteredTasks       = sortByDue(displayTasks.filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter));
+  const myFilteredTasks     = sortByDue(displayTasks.filter(t => t.assignee === myUser || t.assist === myUser).filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter));
 
   const openTask     = t => { if (!isReadOnly) { setEditTask(t); setShowTaskModal(true); } };
   const openDoc      = d => { if (!isReadOnly) { setEditDoc(d); setShowDocModal(true); } };
@@ -695,7 +769,23 @@ export default function App() {
           <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
             <FilterDropdown label="Department" options={["All", ...departments]} value={deptFilter} onChange={setDeptFilter} />
             <FilterDropdown label="Owner" options={["All", ...members]} value={ownerFilter} onChange={setOwnerFilter} />
-            {(deptFilter !== "All" || ownerFilter !== "All") && <button onClick={() => { setDeptFilter("All"); setOwnerFilter("All"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
+            {taskTypeFilter === "class" && sessions.length > 0 && (() => {
+              const sorted = [...sessions].sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+              const sessionLabel = s => { const prof = s.professor || s.name || "Session"; const cohort = s.cohort ? ` — ${s.cohort}` : ""; const date = s.date ? ` · ${fmtDate(s.date)}` : ""; return `${prof}${cohort}${date}`; };
+              const labelToId = Object.fromEntries(sorted.map(s => [sessionLabel(s), s.id]));
+              const idToLabel = Object.fromEntries(sorted.map(s => [s.id, sessionLabel(s)]));
+              const sessionOptions = ["All", ...sorted.map(sessionLabel)];
+              const sessionValue = sessionFilter === "all" ? "All" : (idToLabel[sessionFilter] ?? "All");
+              return (
+                <FilterDropdown
+                  label="Session"
+                  options={sessionOptions}
+                  value={sessionValue}
+                  onChange={v => setSessionFilter(v === "All" ? "all" : labelToId[v])}
+                />
+              );
+            })()}
+            {(deptFilter !== "All" || ownerFilter !== "All" || sessionFilter !== "all") && <button onClick={() => { setDeptFilter("All"); setOwnerFilter("All"); setSessionFilter("all"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
           </div>
         )}
 
@@ -704,14 +794,16 @@ export default function App() {
         )}
 
         {view === "board" && showTaskList && <BoardView filteredTasks={filteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} boardGroup={boardGroup} setBoardGroup={setBoardGroup} openTask={openTask} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} />}
-        {view === "list"  && showTaskList && <ListView  filteredTasks={filteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} />}
+        {view === "list"  && showTaskList && <ListView  filteredTasks={filteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} onAddTask={() => { setEditTask({...newTaskBase}); setShowTaskModal(true); }} onAddMilestone={() => { setEditMilestone({ title: "", date: "" }); setShowMilestoneModal(true); }} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} sessions={taskTypeFilter === "class" ? sessions : undefined} onNavigateToClasses={taskTypeFilter === "class" ? navigateToClasses : undefined} />}
 
-        {view === "mytasks" && showTaskList && <ListView filteredTasks={myFilteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} />}
+        {view === "mytasks" && showTaskList && <ListView filteredTasks={myFilteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} onAddTask={() => { setEditTask({...newTaskBase}); setShowTaskModal(true); }} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} sessions={taskTypeFilter === "class" ? sessions : undefined} onNavigateToClasses={taskTypeFilter === "class" ? navigateToClasses : undefined} />}
+
+        {view === "classes"    && <ClassesView displayClassTasks={displayClassTasks} sessions={sessions} members={members} isReadOnly={isReadOnly} openTask={openTask} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} initialSessionId={classesSessionId} onSessionIdConsumed={() => setClassesSessionId(null)} onNavigateToList={navigateToList} onSaveSession={saveSession} onUpdateSession={updateSession} classTaskTemplate={classTaskTemplate} onSaveTemplate={saveClassTaskTemplate} onApplyTemplate={applyTemplateToSession} />}
 
         {view === "calendar"   && <CalendarView tasks={displayAllTasks} milestones={milestones} openTask={openTask} statusColors={statusColors} />}
 
         {view === "collateral" && (
-          <CollateralView docs={displayDocs} isReadOnly={isReadOnly} onSave={saveDoc} onDelete={deleteDoc} onDeleteSelected={deleteSelectedDocs} members={members} audiences={audiences} globalTags={globalTags} />
+          <CollateralView docs={displayDocs} isReadOnly={isReadOnly} onSave={saveDoc} onDelete={deleteDoc} onDeleteSelected={deleteSelectedDocs} onAddDoc={() => { setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: myUser, content_owner: "", assist: "", url: "", shareable_link: "", tags: [] }); setShowDocModal(true); }} members={members} audiences={audiences} globalTags={globalTags} />
         )}
 
         {view === "search" && <SearchView displayTasks={displayAllTasks} displayDocs={displayDocs} isReadOnly={isReadOnly} openTask={openTask} openDoc={openDoc} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} />}
