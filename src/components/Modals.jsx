@@ -3,6 +3,36 @@ import { Modal, Field, TagInput } from "./Primitives.jsx";
 import { STATUSES, DOC_TYPES, DEFAULT_CLASS_TASKS } from "../constants.js";
 import { fmtDate, fmtDateYear, addDays, isFlagged, nextBusinessDay, isWeekend, closestBusinessDay, parseCSV, parseClassTasksCSV, parseProgramTasksCSV, parseRunOfShowCSV, parseCollateralCSV, avatarBg, avatarTx } from "../utils.js";
 
+function SearchablePicker({options, onSelect, placeholder="Search…"}) {
+  const [query, setQuery]   = useState("");
+  const [open,  setOpen]    = useState(false);
+  const filtered = options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()));
+  return (
+    <div style={{position:"relative"}}>
+      <input
+        value={query}
+        onChange={e=>{setQuery(e.target.value);setOpen(true);}}
+        onFocus={()=>setOpen(true)}
+        onBlur={()=>setTimeout(()=>setOpen(false),150)}
+        placeholder={placeholder}
+        style={{width:"100%",fontSize:13,padding:"5px 8px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",boxSizing:"border-box"}}
+      />
+      {open && filtered.length > 0 && (
+        <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",boxShadow:"0 4px 12px rgba(0,0,0,0.1)",zIndex:300,maxHeight:200,overflowY:"auto"}}>
+          {filtered.map(o => (
+            <div key={o.value} onMouseDown={()=>{onSelect(o.value);setQuery("");setOpen(false);}} style={{padding:"7px 10px",fontSize:13,cursor:"pointer",color:"var(--color-text-primary)"}} onMouseEnter={e=>e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e=>e.currentTarget.style.background=""}>
+              {o.label}
+            </div>
+          ))}
+        </div>
+      )}
+      {open && query && filtered.length === 0 && (
+        <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",padding:"8px 10px",fontSize:13,color:"var(--color-text-tertiary)",zIndex:300}}>No matches</div>
+      )}
+    </div>
+  );
+}
+
 function gcalUrl(title, date, details = "") {
   if (!date || !title) return null;
   const start = date.replace(/-/g, "");
@@ -26,10 +56,14 @@ function AddToCalendarLink({ title, date, details }) {
 }
 
 // ── Milestone Modal ───────────────────────────────────────────────────────────
-export function MilestoneModal({milestone,onChange,onSave,onDelete,onClose}) {
+export function MilestoneModal({milestone,onChange,onSave,onDelete,onClose,tasks=[]}) {
   const isNew = !milestone.id;
+  const deps = milestone.deps || [];
+  const addDep = id => { if (id && !deps.includes(id)) onChange({...milestone, deps: [...deps, id]}); };
+  const removeDep = id => onChange({...milestone, deps: deps.filter(d => d !== id)});
+  const eligible = tasks.filter(t => !deps.includes(t.id));
   return (
-    <Modal onClose={onClose} title={isNew?"New milestone":"Edit milestone"}>
+    <Modal onClose={onClose} title={isNew?"New milestone":"Edit milestone"} minHeight="520px">
       <Field label="Milestone name"><input value={milestone.title} onChange={e=>onChange({...milestone,title:e.target.value})} placeholder="e.g. Mid-cycle review"/></Field>
       <Field label="Date"><input type="date" value={milestone.date} onChange={e=>onChange({...milestone,date:e.target.value})}/></Field>
       {milestone.date && milestone.title && (
@@ -37,6 +71,32 @@ export function MilestoneModal({milestone,onChange,onSave,onDelete,onClose}) {
           <AddToCalendarLink title={milestone.title} date={milestone.date} />
         </div>
       )}
+      <Field label="Required tasks">
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {deps.length > 0 && (
+            <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              {deps.map(depId => {
+                const t = tasks.find(x => x.id === depId);
+                if (!t) return null;
+                const done = t.status === "Done";
+                return (
+                  <div key={depId} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:13}}>
+                    <span style={{color:done?"#0F6E56":"var(--color-text-tertiary)",fontSize:12,flexShrink:0}}>{done?"✓":"○"}</span>
+                    <span style={{flex:1,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
+                    <span style={{fontSize:11,color:"var(--color-text-tertiary)",flexShrink:0}}>{t.status}</span>
+                    <button onClick={()=>removeDep(depId)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <SearchablePicker
+            placeholder="Search tasks to add…"
+            options={eligible.map(t => ({value: t.id, label: `${t.title} (${t.status})`}))}
+            onSelect={id => addDep(id)}
+          />
+        </div>
+      </Field>
       <div style={{display:"flex",gap:8,marginTop:8,justifyContent:"flex-end"}}>
         {!isNew&&<button onClick={()=>onDelete(milestone.id)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-danger)",cursor:"pointer",marginRight:"auto"}}>Delete</button>}
         <button onClick={onClose} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
@@ -47,7 +107,7 @@ export function MilestoneModal({milestone,onChange,onSave,onDelete,onClose}) {
 }
 
 // ── Task Modal ────────────────────────────────────────────────────────────────
-export function TaskModal({task,tasks,docs,members,departments,globalTags,prefs,sessions,onChange,onSave,onDelete,onClose}) {
+export function TaskModal({task,tasks,docs,milestones=[],members,departments,globalTags,prefs,sessions,onChange,onSave,onDelete,onClose}) {
   const isNew = !task.id;
   return (
     <Modal onClose={onClose} title={isNew?(task.type==="class"?"New class task":"New program task"):(task.type==="class"?"Edit class task":"Edit program task")}>
@@ -109,33 +169,65 @@ export function TaskModal({task,tasks,docs,members,departments,globalTags,prefs,
       </Field>
       <Field label="Notes"><textarea value={task.notes} onChange={e=>onChange({...task,notes:e.target.value})} rows={3} style={{resize:"vertical"}}/></Field>
       <Field label="Tags"><TagInput tags={task.tags||[]} suggestions={globalTags} onChange={tags=>onChange({...task,tags})}/></Field>
-      {task.type==="program"&&(
-        <Field label="Task dependencies">
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {(task.deps||[]).length>0&&(
-              <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                {(task.deps||[]).map(depId=>{
-                  const dep=tasks.find(t=>t.id===depId);
-                  if(!dep) return null;
-                  return (
-                    <div key={depId} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 8px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:13}}>
-                      <span style={{color:"var(--color-text-primary)"}}>{dep.title}</span>
-                      <span style={{fontSize:11,color:"var(--color-text-secondary)",marginLeft:8}}>({dep.status})</span>
-                      <button onClick={()=>onChange({...task,deps:(task.deps||[]).filter(d=>d!==depId)})} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 8px",lineHeight:1}}>×</button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <select value="" onChange={e=>{const id=parseInt(e.target.value);if(id&&!(task.deps||[]).includes(id))onChange({...task,deps:[...(task.deps||[]),id]});}} style={{fontSize:13}}>
-              <option value="">Add dependency…</option>
-              {tasks.filter(t=>t.id!==task.id&&t.type==="program"&&!(task.deps||[]).includes(t.id)).map(t=>(
-                <option key={t.id} value={t.id}>{t.title} ({t.status})</option>
-              ))}
-            </select>
+      {task.type==="program"&&(()=>{
+        const dependentTasks = tasks.filter(t => t.id !== task.id && (t.deps||[]).includes(task.id));
+        const dependentMilestones = milestones.filter(m => (m.deps||[]).includes(task.id));
+        const depChip = (label, status, done, onRemove) => (
+          <div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:13}}>
+            <span style={{color:done?"#0F6E56":"var(--color-text-tertiary)",fontSize:11,flexShrink:0}}>{done?"✓":"○"}</span>
+            <span style={{flex:1,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</span>
+            <span style={{fontSize:11,color:"var(--color-text-tertiary)",flexShrink:0}}>{status}</span>
+            {onRemove&&<button onClick={onRemove} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>}
           </div>
-        </Field>
-      )}
+        );
+        return (
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {/* Blocked by — tasks this task depends on */}
+            <Field label="Blocked by">
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {(task.deps||[]).length>0&&(
+                  <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                    {(task.deps||[]).map(depId=>{
+                      const dep=tasks.find(t=>t.id===depId);
+                      if(!dep) return null;
+                      return <div key={depId}>{depChip(dep.title, dep.status, dep.status==="Done", ()=>onChange({...task,deps:(task.deps||[]).filter(d=>d!==depId)}))}</div>;
+                    })}
+                  </div>
+                )}
+                <SearchablePicker
+                  placeholder="Search tasks to add…"
+                  options={tasks.filter(t=>t.id!==task.id&&t.type==="program"&&!(task.deps||[]).includes(t.id)).map(t=>({value:t.id,label:`${t.title} (${t.status})`}))}
+                  onSelect={id=>{if(id&&!(task.deps||[]).includes(id))onChange({...task,deps:[...(task.deps||[]),id]});}}
+                />
+              </div>
+            </Field>
+            {/* Task dependencies — tasks that depend on this task */}
+            <Field label="Task dependencies">
+              {dependentTasks.length === 0
+                ? <span style={{fontSize:13,color:"var(--color-text-tertiary)"}}>No tasks depend on this task.</span>
+                : <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                    {dependentTasks.map(t => <div key={t.id}>{depChip(t.title, t.status, t.status==="Done", null)}</div>)}
+                  </div>
+              }
+            </Field>
+            {/* Milestone dependencies — milestones that depend on this task */}
+            <Field label="Milestone dependencies">
+              {dependentMilestones.length === 0
+                ? <span style={{fontSize:13,color:"var(--color-text-tertiary)"}}>No milestones depend on this task.</span>
+                : <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                    {dependentMilestones.map(m => (
+                      <div key={m.id} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:"var(--border-radius-md)",background:"#E6F1FB",border:"0.5px solid #B5D4F4",fontSize:13}}>
+                        <span style={{color:"#185FA5",fontSize:11,flexShrink:0}}>◆</span>
+                        <span style={{flex:1,color:"#185FA5",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.title}</span>
+                        <span style={{fontSize:11,color:"#185FA5",opacity:0.7,flexShrink:0}}>{fmtDate(m.date)}</span>
+                      </div>
+                    ))}
+                  </div>
+              }
+            </Field>
+          </div>
+        );
+      })()}
       <Field label="Required collateral">
         <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:100,overflowY:"auto"}}>
           {docs.map(d => (
@@ -205,8 +297,8 @@ export function DocModal({doc,members,audiences,globalTags,prefs,onChange,onSave
 }
 
 // ── Import Modal ──────────────────────────────────────────────────────────────
-export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,sessions,cycle,onClose}) {
-  const [importType,setImportType] = useState("program");
+export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,sessions,cycle,importHistory,onReverseImport,onClose,initialTab="program"}) {
+  const [importType,setImportType] = useState(initialTab);
   const [csvText,setCsvText] = useState("");
   const [preview,setPreview] = useState(null);
   const [error,setError] = useState("");
@@ -214,6 +306,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
   const [manualCycleStart,setManualCycleStart] = useState(cycle?.start||"");
   const [newCycleType,setNewCycleType] = useState("spring");
   const [newCycleName,setNewCycleName] = useState("");
+  const [reversing,setReversing] = useState(null);
   const fileRef = useRef();
 
   const effectiveCycleStart = cycle?.start || manualCycleStart;
@@ -268,9 +361,11 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
   const schemaHint = {
     program:   "task, owner, alternate_owner, due_date, days_from_cycle_start, status, notes, links",
     class:     "task, owner, alternate_owner, due_date, days_from_cycle_start, status, notes, links",
-    runofshow: "cohort, time, event, owner, assist, notes",
+    runofshow: "time, event, owner, assist, notes",
   };
-  const typeLabels = [["program","Program tasks"],["class","Class tasks"],["runofshow","Run of show"]];
+  const typeLabels = [["program","Program tasks"],["class","Class tasks"],["runofshow","Run of show"],["history","History"]];
+
+  const typeDisplayLabels = { program: "Program tasks", class: "Class tasks", runofshow: "Run of show" };
 
   return (
     <Modal onClose={onClose} title="Import from CSV">
@@ -279,6 +374,36 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
           <button key={t} onClick={()=>{setImportType(t);setPreview(null);setError("");}} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"none",background:importType===t?"var(--color-background-primary)":"transparent",color:importType===t?"var(--color-text-primary)":"var(--color-text-secondary)",cursor:"pointer",fontWeight:importType===t?500:400,boxShadow:importType===t?"0 1px 3px rgba(0,0,0,0.08)":"none"}}>{l}</button>
         ))}
       </div>
+
+      {importType === "history" ? (
+        <div>
+          {(!importHistory || importHistory.length === 0) ? (
+            <div style={{fontSize:13,color:"var(--color-text-tertiary)",padding:"32px 0",textAlign:"center"}}>No import history yet.</div>
+          ) : (
+            importHistory.map(entry => (
+              <div key={entry.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",marginBottom:8,background:"var(--color-background-secondary)"}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",marginBottom:2}}>{entry.label}</div>
+                  <div style={{fontSize:11,color:"var(--color-text-tertiary)"}}>
+                    {new Date(entry.timestamp).toLocaleString()} · {typeDisplayLabels[entry.type] || entry.type}{entry.sessionLabel ? ` — ${entry.sessionLabel}` : ""}
+                  </div>
+                </div>
+                <button
+                  onClick={async () => { setReversing(entry.id); await onReverseImport(entry); setReversing(null); }}
+                  disabled={reversing === entry.id}
+                  style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FEF2F2",color:"#A32D2D",cursor:reversing===entry.id?"default":"pointer",opacity:reversing===entry.id?0.6:1,whiteSpace:"nowrap",flexShrink:0,marginLeft:16}}
+                >
+                  {reversing === entry.id ? "Reversing…" : "Reverse"}
+                </button>
+              </div>
+            ))
+          )}
+          <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
+            <button onClick={onClose} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Close</button>
+          </div>
+        </div>
+      ) : (<>
+
       <div style={{marginBottom:16,padding:"10px 14px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:12,color:"var(--color-text-secondary)",lineHeight:1.7}}>
         Expected columns: <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>{schemaHint[importType]}</code>
         {(importType==="program"||importType==="class")&&(
@@ -330,7 +455,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                 <thead>
                   <tr style={{background:"var(--color-background-secondary)"}}>
-                    {["Cohort","Time","Event","Owner","Assist","Notes"].map((h,i,arr) => (
+                    {["Time","Event","Owner","Assist","Notes"].map((h,i,arr) => (
                       <th key={h} style={{padding:"6px 10px",textAlign:"left",fontWeight:500,color:"var(--color-text-secondary)",borderBottom:"1px solid var(--color-border-secondary)",borderRight:i<arr.length-1?"0.5px solid var(--color-border-tertiary)":"none",whiteSpace:"nowrap"}}>{h}</th>
                     ))}
                   </tr>
@@ -338,7 +463,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
                 <tbody>
                   {preview.map((row,i) => (
                     <tr key={i} style={{borderBottom:i===preview.length-1?"none":"0.5px solid var(--color-border-tertiary)"}}>
-                      {[row.cohort,row.time,row.event,row.owner,row.assist,row.notes].map((v,j,arr) => (
+                      {[row.time,row.event,row.owner,row.assist,row.notes].map((v,j,arr) => (
                         <td key={j} style={{padding:"6px 10px",color:v?"var(--color-text-primary)":"var(--color-text-tertiary)",borderRight:j<arr.length-1?"0.5px solid var(--color-border-tertiary)":"none",maxWidth:180,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v||"—"}</td>
                       ))}
                     </tr>
@@ -374,6 +499,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
         {!preview&&<button onClick={handlePreview} disabled={!csvText.trim()} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:csvText.trim()?"var(--color-background-secondary)":"transparent",color:csvText.trim()?"var(--color-text-primary)":"var(--color-text-tertiary)",cursor:csvText.trim()?"pointer":"default"}}>Preview</button>}
         {preview&&<button onClick={handleImport} disabled={needsCycle&&(!newCycleName.trim()||!manualCycleStart)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:(needsCycle&&(!newCycleName.trim()||!manualCycleStart))?"transparent":"#E1F5EE",color:(needsCycle&&(!newCycleName.trim()||!manualCycleStart))?"var(--color-text-tertiary)":"#0F6E56",cursor:(needsCycle&&(!newCycleName.trim()||!manualCycleStart))?"default":"pointer",fontWeight:500}}>{needsCycle?`Create cycle & import ${preview.length} rows`:`Import ${preview.length} rows`}</button>}
       </div>
+      </>)}
     </Modal>
   );
 }

@@ -15,6 +15,7 @@ export const DEFAULT_STATUS_COLORS = {
 export const DEFAULT_PREFS = {
   darkMode:false,
   defaultView:"board",
+  timezone:"America/New_York",
   statusColors:DEFAULT_STATUS_COLORS,
   notifications:{
     dependencyResolved:{inApp:true,email:false},

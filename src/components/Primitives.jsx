@@ -26,10 +26,10 @@ export function Toggle({value,onChange}) {
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
-export function Modal({children,title,onClose}) {
+export function Modal({children,title,onClose,minHeight}) {
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500}}>
-      <div style={{background:"var(--color-background-primary)",borderRadius:12,border:"1px solid var(--color-border-secondary)",width:"100%",maxWidth:520,maxHeight:"88vh",overflowY:"auto",boxSizing:"border-box"}}>
+      <div style={{background:"var(--color-background-primary)",borderRadius:12,border:"1px solid var(--color-border-secondary)",width:"100%",maxWidth:520,maxHeight:"88vh",overflowY:"auto",boxSizing:"border-box",...(minHeight?{minHeight}:{})}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 24px 16px",borderBottom:"1px solid var(--color-border-tertiary)"}}>
           <span style={{fontSize:16,fontWeight:500,color:"var(--color-text-primary)"}}>{title}</span>
           <button onClick={onClose} style={{background:"var(--color-background-secondary)",border:"none",borderRadius:6,width:28,height:28,fontSize:16,color:"var(--color-text-secondary)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
@@ -117,7 +117,7 @@ export function StatusPill({status,onChange,readOnly,statusColors}) {
 }
 
 // ── FilterDropdown ────────────────────────────────────────────────────────────
-export function FilterDropdown({label,options,value,onChange}) {
+export function FilterDropdown({label,options,value,onChange,align="left"}) {
   const [open,setOpen] = useState(false);
   const ref = useRef();
   useEffect(() => {
@@ -134,7 +134,7 @@ export function FilterDropdown({label,options,value,onChange}) {
         <span style={{fontSize:10,color:"var(--color-text-tertiary)",marginLeft:2}}>{open?"▲":"▼"}</span>
       </button>
       {open&&(
-        <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,minWidth:160,background:"var(--color-background-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",zIndex:400,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.12)"}}>
+        <div style={{position:"absolute",top:"calc(100% + 4px)",[align==="right"?"right":"left"]:0,minWidth:160,background:"var(--color-background-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",zIndex:400,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.12)"}}>
           {options.map(o => (
             <div key={o} onClick={()=>{onChange(o);setOpen(false);}} style={{padding:"8px 14px",fontSize:13,cursor:"pointer",background:value===o?"var(--color-background-secondary)":"var(--color-background-primary)",color:"var(--color-text-primary)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
               {o}{value===o&&<span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>✓</span>}

@@ -7,24 +7,30 @@ export const avatarTx = n => AVATAR_TX[memberIdx(n)%7];
 export const typeIcon = t => ({"Google Drive":"G","PDF":"P","Web Link":"W"}[t]||"D");
 export const typeColor = t => ({"Google Drive":"#185FA5","PDF":"#A32D2D","Web Link":"#0F6E56"}[t]||"#5F5E5A");
 export const typeBg = t => ({"Google Drive":"#E6F1FB","PDF":"#FCEBEB","Web Link":"#EAF3DE"}[t]||"#F1EFE8");
-// Represent a date-only string as noon UTC so Eastern day is always stable (ET is UTC-4/5, never crosses midnight at noon UTC)
+// Represent a date-only string as noon UTC — stable reference point for any timezone (UTC-12 to UTC+14 never crosses date boundary at noon UTC)
 const etNoon = s => new Date(s + "T12:00:00Z");
-const todayET = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // en-CA → YYYY-MM-DD
 
-export const isOverdue = d => !!d && d < todayET();
+// Module-level timezone — set once after prefs load; affects all date display and business-day logic
+let _tz = "America/New_York";
+export const setDefaultTimezone = tz => { _tz = tz || "America/New_York"; };
+export const getDefaultTimezone = () => _tz;
+
+const todayTz = () => new Date().toLocaleDateString("en-CA", { timeZone: _tz }); // en-CA → YYYY-MM-DD
+
+export const isOverdue = d => !!d && d < todayTz();
 export const closestBusinessDay = s => {
   if (!s) return s;
-  const wd = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short"}).format(etNoon(s));
+  const wd = new Intl.DateTimeFormat("en-US",{timeZone:_tz,weekday:"short"}).format(etNoon(s));
   if (wd === "Sat") return addDays(s, -1); // Saturday → Friday
   if (wd === "Sun") return addDays(s,  1); // Sunday → Monday
   return s;
 };
 export const addDays = (s,n) => { const [y,m,d]=s.split("-").map(Number); return new Date(Date.UTC(y,m-1,d+n)).toISOString().slice(0,10); };
-export const isWeekend = s => { const wd=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short"}).format(etNoon(s)); return wd==="Sun"||wd==="Sat"; };
+export const isWeekend = s => { const wd=new Intl.DateTimeFormat("en-US",{timeZone:_tz,weekday:"short"}).format(etNoon(s)); return wd==="Sun"||wd==="Sat"; };
 export const isFlagged = (s,hols) => isWeekend(s)||(hols||[]).includes(s);
 export const nextBusinessDay = (s,hols) => { let d=s; while(isFlagged(d,hols)) d=addDays(d,1); return d; };
-export const fmtDate = s => { if(!s)return""; return new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",month:"short",day:"numeric"}).format(etNoon(s)); };
-export const fmtDateYear = s => { if(!s)return""; return new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",month:"short",day:"numeric",year:"numeric"}).format(etNoon(s)); };
+export const fmtDate = s => { if(!s)return""; return new Intl.DateTimeFormat("en-US",{timeZone:_tz,month:"short",day:"numeric"}).format(etNoon(s)); };
+export const fmtDateYear = s => { if(!s)return""; return new Intl.DateTimeFormat("en-US",{timeZone:_tz,month:"short",day:"numeric",year:"numeric"}).format(etNoon(s)); };
 
 export const genClassTasks = (sessions, template) => {
   let id = 1000;
@@ -182,12 +188,11 @@ export function exportTasksToCSV(programTasks, classTasks, cycleName) {
 export function parseRunOfShowCSV(rows) {
   return rows.map((row,i) => ({
     id: "ri"+Date.now()+i,
-    cohort: row.cohort||"",
-    time: row.time||"",
-    event: row.event||row.title||"",
-    owner: row.owner||"",
-    assist: row.assist||row.alternate_owner||"",
-    notes: row.notes||row.description||"",
+    time: row.time||row.start_time||row.scheduled_time||row.event_time||row.start||"",
+    event: row.event||row.event_name||row.title||row.description||"",
+    owner: row.owner||row.lead||row.facilitator||"",
+    assist: row.assist||row.alternate_owner||row.co_lead||"",
+    notes: row.notes||row.note||row.comments||"",
   }));
 }
 

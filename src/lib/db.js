@@ -29,11 +29,12 @@ export async function fetchUserPrefs(userId) {
     googleDrive:          data.google_drive,
     statusColors:         data.status_colors,
     notifications:        data.notifications,
+    timezone:             data.timezone || null,
   }
 }
 
 export async function saveUserPrefs(userId, prefs) {
-  const { error } = await supabase.from('user_preferences').upsert({
+  const baseRow = {
     user_id:               userId,
     dark_mode:             prefs.darkMode             ?? false,
     default_view:          prefs.defaultView          ?? 'board',
@@ -42,8 +43,16 @@ export async function saveUserPrefs(userId, prefs) {
     google_drive:          prefs.googleDrive          ?? false,
     status_colors:         prefs.statusColors         ?? {},
     notifications:         prefs.notifications        ?? {},
+  }
+  const { error } = await supabase.from('user_preferences').upsert({
+    ...baseRow,
+    timezone: prefs.timezone || null,
   })
-  if (error) throw error
+  if (error) {
+    // Retry without timezone if the column doesn't exist yet
+    const { error: e2 } = await supabase.from('user_preferences').upsert(baseRow)
+    if (e2) throw e2
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -290,6 +299,12 @@ export async function saveSession(session) {
   return { ...session, id: data.id, name: fullRow.name }
 }
 
+export async function deleteSession(sessionId) {
+  await supabase.from('tasks').delete().eq('session_id', sessionId)
+  const { error } = await supabase.from('sessions').delete().eq('id', sessionId)
+  if (error) throw error
+}
+
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 
 export async function fetchTasks(sessions = []) {
@@ -379,20 +394,27 @@ export async function bulkInsertTasks(tasks, sessions = []) {
 export async function fetchMilestones() {
   const { data, error } = await supabase.from('milestones').select('*').order('date')
   if (error) throw error
-  return data.map(r => ({ id: r.id, title: r.title, date: r.date }))
+  return data.map(r => ({ id: r.id, title: r.title, date: r.date, deps: r.deps || [] }))
 }
 
 export async function saveMilestone(milestone) {
+  const base = { title: milestone.title, date: milestone.date }
+  const withDeps = { ...base, deps: milestone.deps || [] }
   if (milestone.id) {
-    const { error } = await supabase.from('milestones')
-      .update({ title: milestone.title, date: milestone.date }).eq('id', milestone.id)
-    if (error) throw error
-    return milestone
+    const { error } = await supabase.from('milestones').update(withDeps).eq('id', milestone.id)
+    if (error) {
+      const { error: e2 } = await supabase.from('milestones').update(base).eq('id', milestone.id)
+      if (e2) throw e2
+    }
+    return { ...milestone, deps: milestone.deps || [] }
   }
-  const { data, error } = await supabase.from('milestones')
-    .insert({ title: milestone.title, date: milestone.date }).select().single()
-  if (error) throw error
-  return { title: milestone.title, date: milestone.date, id: data.id }
+  const { data, error } = await supabase.from('milestones').insert(withDeps).select().single()
+  if (error) {
+    const { data: d2, error: e2 } = await supabase.from('milestones').insert(base).select().single()
+    if (e2) throw e2
+    return { ...base, id: d2.id, deps: [] }
+  }
+  return { ...base, id: data.id, deps: milestone.deps || [] }
 }
 
 export async function deleteMilestone(id) {

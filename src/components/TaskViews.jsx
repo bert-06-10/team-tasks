@@ -119,16 +119,26 @@ export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlocke
 }
 
 // ── Milestone Bar ─────────────────────────────────────────────────────────────
-export function MilestoneBar({milestones}) {
+export function MilestoneBar({milestones, tasks=[], onEdit}) {
   return (
     <div style={{marginBottom:16,display:"flex",gap:8,flexWrap:"wrap"}}>
-      {milestones.map(m => (
-        <div key={m.id} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #B5D4F4",background:"#E6F1FB"}}>
-          <span style={{color:"#185FA5",fontSize:12}}>◆</span>
-          <span style={{fontSize:12,fontWeight:500,color:"#185FA5"}}>{m.title}</span>
-          <span style={{fontSize:11,color:"#185FA5",opacity:0.7}}>{fmtDate(m.date)}</span>
-        </div>
-      ))}
+      {milestones.map(m => {
+        const deps = (m.deps||[]).map(id => tasks.find(t=>t.id===id)).filter(Boolean);
+        const doneCount = deps.filter(t=>t.status==="Done").length;
+        const allDone = deps.length > 0 && doneCount === deps.length;
+        return (
+          <div key={m.id} onClick={onEdit?()=>onEdit(m):undefined} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:"var(--border-radius-md)",border:`1px solid ${allDone?"#9FE1CB":"#B5D4F4"}`,background:allDone?"#E1F5EE":"#E6F1FB",cursor:onEdit?"pointer":"default"}}>
+            <span style={{color:allDone?"#0F6E56":"#185FA5",fontSize:12}}>◆</span>
+            <span style={{fontSize:12,fontWeight:500,color:allDone?"#0F6E56":"#185FA5"}}>{m.title}</span>
+            <span style={{fontSize:11,color:allDone?"#0F6E56":"#185FA5",opacity:0.7}}>{fmtDate(m.date)}</span>
+            {deps.length > 0 && (
+              <span style={{fontSize:11,padding:"1px 6px",borderRadius:10,background:allDone?"#C6F0E0":"#D0E8FC",color:allDone?"#0F6E56":"#185FA5",fontWeight:500}}>
+                {doneCount}/{deps.length}
+              </span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -239,7 +249,7 @@ function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
   );
 }
 
-const BLANK_FILTERS = { owner:"All", contentOwner:"All", assist:"All", audience:"All", nextUpdate:"All", lastUpdated:"All" };
+const BLANK_FILTERS = { owner:"All", contentOwner:"All", assist:"All", audience:"All", nextUpdate:"All", lastUpdated:"All", tag:"All" };
 const DATE_FILTER_OPTS      = ["All","Has date","No date","Overdue","Next 30 days"];
 const LAST_UPDATED_OPTS     = ["All","Has date","No date","Past 30 days","Past 90 days"];
 
@@ -257,6 +267,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
   const contentOwnerOpts = uniq("content_owner");
   const assistOpts       = uniq("assist");
   const audienceOpts     = uniq("audience");
+  const tagOpts          = ["All", ...Array.from(new Set(docs.flatMap(d => d.tags||[]))).sort()];
 
   const applyDateFilter = (val, dateStr, opts) => {
     if (val==="All")         return true;
@@ -276,6 +287,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
     if (filters.audience     !== "All" && d.audience      !== filters.audience)     return false;
     if (!applyDateFilter(filters.nextUpdate,  d.next_update)) return false;
     if (!applyDateFilter(filters.lastUpdated, d.updated))     return false;
+    if (filters.tag !== "All" && !(d.tags||[]).includes(filters.tag)) return false;
     return true;
   });
 
@@ -310,6 +322,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
           <FilterDropdown label="Audience"      options={audienceOpts}      value={filters.audience}     onChange={v=>setFilter("audience",v)}/>
           <FilterDropdown label="Next Update"   options={DATE_FILTER_OPTS}  value={filters.nextUpdate}   onChange={v=>setFilter("nextUpdate",v)}/>
           <FilterDropdown label="Last Updated"  options={LAST_UPDATED_OPTS} value={filters.lastUpdated}  onChange={v=>setFilter("lastUpdated",v)}/>
+          {tagOpts.length > 1 && <FilterDropdown label="Tag" options={tagOpts} value={filters.tag} onChange={v=>setFilter("tag",v)} align="right"/>}
           {anyFilter && <button onClick={()=>setFilters(BLANK_FILTERS)} style={{fontSize:12,padding:"5px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>}
         </div>
       </div>
@@ -346,106 +359,222 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
 
 // ── Run of Show View ──────────────────────────────────────────────────────────
 export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDeleteRow,members,isReadOnly}) {
-  const [selectedSession,setSelectedSession] = useState(sessions[0]?.id||"");
-  const [editingRow,setEditingRow] = useState(null);
-  const [editVal,setEditVal] = useState({});
+  const [selectedSession, setSelectedSession] = useState(sessions[0]?.id||"");
+  const [editingRow,  setEditingRow]  = useState(null);
+  const [editVal,     setEditVal]     = useState({});
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [doneRows,    setDoneRows]    = useState(new Set());
+  const [expandedRow, setExpandedRow] = useState(null);
 
   const rows = runOfShow[selectedSession]||[];
 
+  const switchSession = id => {
+    setSelectedSession(id);
+    setEditingRow(null);
+    setEditVal({});
+    setExpandedRow(null);
+    setSelectedIds(new Set());
+  };
+
   const newRow = () => {
     const id = "ri"+Date.now();
-    const row = {id,cohort:"",time:"",event:"",owner:"",assist:"",notes:""};
+    const row = {id,time:"",event:"",owner:"",assist:"",notes:""};
     setRunOfShow(prev => ({...prev,[selectedSession]:[...(prev[selectedSession]||[]),row]}));
     setEditingRow(id);
     setEditVal(row);
+    setExpandedRow(id);
   };
 
-  const startEdit = row => { setEditingRow(row.id); setEditVal({...row}); };
+  const startEdit = (row, e) => {
+    e?.stopPropagation();
+    setEditingRow(row.id);
+    setEditVal({...row});
+    setExpandedRow(row.id);
+  };
 
   const saveEdit = async () => {
     try {
       const saved = await onSaveRow(selectedSession, {...editVal});
       setRunOfShow(prev => ({...prev,[selectedSession]:(prev[selectedSession]||[]).map(r=>r.id===editingRow?saved:r)}));
-      setEditingRow(null); setEditVal({});
+      setEditingRow(null);
+      setEditVal({});
     } catch(e) { console.error('Failed to save row', e); }
   };
 
-  const deleteRow = async id => {
+  const deleteRow = async (id, e) => {
+    e?.stopPropagation();
     setRunOfShow(prev => ({...prev,[selectedSession]:(prev[selectedSession]||[]).filter(r=>r.id!==id)}));
+    if (expandedRow===id) setExpandedRow(null);
     try { await onDeleteRow(id); } catch(e) { console.error('Failed to delete row', e); }
   };
 
-  const cols = ["cohort","time","event","owner","assist","notes"];
-  const colLabels = ["Cohort","Time","Event","Owner","Assist","Notes"];
-  const colWidths = ["110px","90px","1fr","130px","130px","1fr"];
+  const toggleSelect = (id, e) => {
+    e.stopPropagation();
+    setSelectedIds(prev => { const next=new Set(prev); next.has(id)?next.delete(id):next.add(id); return next; });
+  };
+
+  const toggleDone = (id, e) => {
+    e.stopPropagation();
+    setDoneRows(prev => { const next=new Set(prev); next.has(id)?next.delete(id):next.add(id); return next; });
+  };
+
+  const allSelected  = rows.length > 0 && rows.every(r => selectedIds.has(r.id));
+  const someSelected = rows.some(r => selectedIds.has(r.id));
+  const selCount     = rows.filter(r => selectedIds.has(r.id)).length;
+
+  const handleSelectAll = () => {
+    if (allSelected) setSelectedIds(new Set());
+    else setSelectedIds(new Set(rows.map(r => r.id)));
+  };
+
+  const deleteSelected = async () => {
+    const ids = rows.filter(r => selectedIds.has(r.id)).map(r => r.id);
+    setRunOfShow(prev => ({...prev, [selectedSession]: (prev[selectedSession]||[]).filter(r => !ids.includes(r.id))}));
+    setSelectedIds(new Set());
+    if (expandedRow && ids.includes(expandedRow)) setExpandedRow(null);
+    try { await Promise.all(ids.map(id => onDeleteRow(id))); } catch(e) { console.error('Failed to delete rows', e); }
+  };
+
+  const colLabels = ["Time","Event","Owner","Assist"];
+  const gridCols  = `36px 90px 1fr 130px 130px 36px`;
+  const sep = {borderRight:"1px solid var(--color-border-tertiary)"};
 
   return (
     <div>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
-        <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>Session:</span>
-        <div style={{display:"flex",gap:4}}>
-          {sessions.map(s => (
-            <button key={s.id} onClick={()=>setSelectedSession(s.id)} style={{fontSize:13,padding:"5px 12px",borderRadius:"var(--border-radius-md)",border:selectedSession===s.id?"0.5px solid var(--color-border-primary)":"0.5px solid var(--color-border-tertiary)",background:selectedSession===s.id?"var(--color-background-secondary)":"transparent",color:selectedSession===s.id?"var(--color-text-primary)":"var(--color-text-secondary)",cursor:"pointer"}}>
-              {s.name} <span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>{fmtDate(s.date)}</span>
-            </button>
-          ))}
-        </div>
-        {!isReadOnly&&<button onClick={newRow} style={{marginLeft:"auto",fontSize:13,padding:"5px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer"}}>+ Add row</button>}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <span style={{fontSize:13,color:"var(--color-text-secondary)",flexShrink:0}}>Session:</span>
+        {sessions.length === 0
+          ? <span style={{fontSize:13,color:"var(--color-text-tertiary)"}}>No sessions yet.</span>
+          : <select value={selectedSession} onChange={e=>switchSession(e.target.value)} style={{fontSize:13,padding:"6px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",minWidth:220,maxWidth:400}}>
+              {sessions.map(s => {
+                const label = [s.professor||s.name, s.cohort?`— ${s.cohort}`:"", s.date?`· ${fmtDate(s.date)}`:""].filter(Boolean).join(" ");
+                return <option key={s.id} value={s.id}>{label}</option>;
+              })}
+            </select>
+        }
+        {!isReadOnly && <button onClick={newRow} style={{marginLeft:"auto",fontSize:13,padding:"5px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer"}}>+ Add row</button>}
       </div>
 
+      {!isReadOnly && rows.length > 0 && (
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+          {someSelected ? (
+            <>
+              <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{selCount} of {rows.length} selected</span>
+              {!allSelected && <button onClick={handleSelectAll} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Select all {rows.length}</button>}
+              <button onClick={deleteSelected} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer"}}>Delete {selCount === 1 ? "row" : `${selCount} rows`}</button>
+              <button onClick={()=>setSelectedIds(new Set())} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>
+            </>
+          ) : (
+            <button onClick={handleSelectAll} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Select all</button>
+          )}
+        </div>
+      )}
+
       <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"hidden"}}>
-        <div style={{display:"grid",gridTemplateColumns:colWidths.join(" "),borderBottom:"1px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}}>
+        {/* Header */}
+        <div style={{display:"grid",gridTemplateColumns:gridCols,borderBottom:"1px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}}>
+          <div style={{padding:"8px 10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}}>
+            {!isReadOnly && rows.length > 0 && <input type="checkbox" checked={allSelected} ref={el=>{if(el)el.indeterminate=someSelected&&!allSelected;}} onChange={handleSelectAll} style={{cursor:"pointer",margin:0}}/>}
+          </div>
           {colLabels.map((l,i) => (
-            <div key={l} style={{padding:"8px 12px",fontSize:11,fontWeight:500,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em",borderRight:i<colLabels.length-1?"1px solid var(--color-border-tertiary)":"none"}}>{l}</div>
+            <div key={l} style={{padding:"8px 12px",fontSize:11,fontWeight:500,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em",...sep}}>{l}</div>
           ))}
+          <div/>
         </div>
 
-        {rows.length===0&&<div style={{padding:"16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No run of show entries for this session yet.</div>}
+        {rows.length===0 && <div style={{padding:"16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No run of show entries for this session yet.</div>}
 
-        {rows.map((row,ri) => (
-          <div key={row.id} style={{borderBottom:ri===rows.length-1?"none":"1px solid var(--color-border-tertiary)"}}>
-            {editingRow===row.id ? (
-              <div style={{display:"grid",gridTemplateColumns:colWidths.join(" "),alignItems:"center"}}>
-                {cols.map((col,ci) => (
-                  <div key={col} style={{padding:"6px 8px",borderRight:ci<cols.length-1?"1px solid var(--color-border-tertiary)":"none"}}>
-                    {col==="owner"||col==="assist" ? (
-                      <select value={editVal[col]||""} onChange={e=>setEditVal(v=>({...v,[col]:e.target.value}))} style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}>
-                        <option value="">—</option>
-                        {members.map(m=><option key={m}>{m}</option>)}
-                      </select>
-                    ) : (
-                      <input value={editVal[col]||""} onChange={e=>setEditVal(v=>({...v,[col]:e.target.value}))} style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",boxSizing:"border-box"}}/>
-                    )}
+        {rows.map((row, ri) => {
+          const selected = selectedIds.has(row.id);
+          const done     = doneRows.has(row.id);
+          const editing  = editingRow === row.id;
+          const expanded = expandedRow === row.id;
+          const isLast   = ri === rows.length - 1;
+          const doneStyle = done ? {textDecoration:"line-through", opacity:0.45} : {};
+
+          return (
+            <div key={row.id} style={{borderBottom:isLast?"none":"1px solid var(--color-border-tertiary)",background:selected?"#F5F3FF":"transparent"}}>
+              {/* Main row */}
+              {editing ? (
+                <div style={{display:"grid",gridTemplateColumns:gridCols,alignItems:"center"}}>
+                  <div style={{padding:"6px 10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}}>
+                    <input type="checkbox" checked={selected} onChange={e=>toggleSelect(row.id,e)} style={{cursor:"pointer",margin:0}}/>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{display:"grid",gridTemplateColumns:colWidths.join(" "),alignItems:"center"}} onDoubleClick={()=>!isReadOnly&&startEdit(row)}>
-                {cols.map((col,ci) => (
-                  <div key={col} style={{padding:"10px 12px",fontSize:13,color:"var(--color-text-primary)",borderRight:ci<cols.length-1?"1px solid var(--color-border-tertiary)":"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                    {col==="owner"||col==="assist"
-                      ? (row[col]?<div style={{display:"flex",alignItems:"center",gap:6}}><Avatar name={row[col]} size={20}/><span style={{fontSize:12}}>{row[col]}</span></div>:<span style={{color:"var(--color-text-tertiary)"}}>—</span>)
-                      : (row[col]||<span style={{color:"var(--color-text-tertiary)"}}>—</span>)
-                    }
+                  <div style={{padding:"6px 8px",...sep}}>
+                    <input value={editVal.time||""} onChange={e=>setEditVal(v=>({...v,time:e.target.value}))} placeholder="Time" style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",boxSizing:"border-box",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}/>
                   </div>
-                ))}
-              </div>
-            )}
-            {editingRow===row.id&&!isReadOnly&&(
-              <div style={{display:"flex",gap:8,padding:"6px 12px",borderTop:"1px solid var(--color-border-tertiary)",background:"var(--color-background-secondary)"}}>
-                <button onClick={saveEdit} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer"}}>Save</button>
-                <button onClick={()=>setEditingRow(null)} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
-                <button onClick={()=>deleteRow(row.id)} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer",marginLeft:"auto"}}>Delete</button>
-              </div>
-            )}
-            {editingRow!==row.id&&!isReadOnly&&(
-              <div style={{display:"flex",gap:6,padding:"4px 12px",background:"var(--color-background-secondary)",borderTop:"0.5px solid var(--color-border-tertiary)"}}>
-                <button onClick={()=>startEdit(row)} style={{fontSize:11,padding:"2px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Edit</button>
-                <button onClick={()=>deleteRow(row.id)} style={{fontSize:11,padding:"2px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"transparent",color:"#A32D2D",cursor:"pointer"}}>Delete</button>
-              </div>
-            )}
-          </div>
-        ))}
+                  <div style={{padding:"6px 8px",...sep}}>
+                    <input value={editVal.event||""} onChange={e=>setEditVal(v=>({...v,event:e.target.value}))} placeholder="Event" style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",boxSizing:"border-box",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}/>
+                  </div>
+                  <div style={{padding:"6px 8px",...sep}}>
+                    <select value={editVal.owner||""} onChange={e=>setEditVal(v=>({...v,owner:e.target.value}))} style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}>
+                      <option value="">—</option>
+                      {members.map(m=><option key={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div style={{padding:"6px 8px",...sep}}>
+                    <select value={editVal.assist||""} onChange={e=>setEditVal(v=>({...v,assist:e.target.value}))} style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}>
+                      <option value="">—</option>
+                      {members.map(m=><option key={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div/>
+                </div>
+              ) : (
+                <div style={{display:"grid",gridTemplateColumns:gridCols,alignItems:"center",cursor:"pointer",background:expanded?"var(--color-background-secondary)":"transparent"}} onClick={()=>setExpandedRow(expanded?null:row.id)}>
+                  <div style={{padding:"10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}} onClick={e=>e.stopPropagation()}>
+                    <input type="checkbox" checked={selected} onChange={e=>toggleSelect(row.id,e)} style={{cursor:"pointer",margin:0}}/>
+                  </div>
+                  <div style={{padding:"10px 12px",fontSize:13,color:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",...sep,...doneStyle}}>{row.time||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+                  <div style={{padding:"10px 12px",fontSize:13,color:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",...sep,...doneStyle}}>{row.event||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+                  <div style={{padding:"10px 12px",...sep}}>
+                    {row.owner ? <div style={{display:"flex",alignItems:"center",gap:6,...doneStyle}}><Avatar name={row.owner} size={20}/><span style={{fontSize:12}}>{row.owner}</span></div> : <span style={{color:"var(--color-text-tertiary)"}}>—</span>}
+                  </div>
+                  <div style={{padding:"10px 12px",...sep}}>
+                    {row.assist ? <div style={{display:"flex",alignItems:"center",gap:6,...doneStyle}}><Avatar name={row.assist} size={20}/><span style={{fontSize:12}}>{row.assist}</span></div> : <span style={{color:"var(--color-text-tertiary)"}}>—</span>}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center"}} onClick={e=>toggleDone(row.id,e)}>
+                    <span title={done?"Mark incomplete":"Mark complete"} style={{fontSize:16,lineHeight:1,cursor:"pointer",color:done?"#0F6E56":"var(--color-border-secondary)",userSelect:"none"}}>✓</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Expanded / edit panel */}
+              {(editing || expanded) && (
+                <div style={{padding:"10px 14px 12px 48px",background:"var(--color-background-secondary)",borderTop:"0.5px solid var(--color-border-tertiary)"}}>
+                  {editing ? (
+                    <>
+                      <textarea
+                        value={editVal.notes||""}
+                        onChange={e=>setEditVal(v=>({...v,notes:e.target.value}))}
+                        placeholder="Notes…"
+                        rows={2}
+                        style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"6px 8px",boxSizing:"border-box",resize:"vertical",fontFamily:"inherit",background:"var(--color-background-primary)",color:"var(--color-text-primary)",marginBottom:8}}
+                      />
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={saveEdit} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer"}}>Save</button>
+                        <button onClick={()=>{setEditingRow(null);setEditVal({});}} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
+                        <button onClick={e=>deleteRow(row.id,e)} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer",marginLeft:"auto"}}>Delete</button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{fontSize:13,color:row.notes?"var(--color-text-secondary)":"var(--color-text-tertiary)",fontStyle:row.notes?"normal":"italic",lineHeight:1.5,marginBottom:!isReadOnly?8:0}}>
+                        {row.notes||"No notes."}
+                      </div>
+                      {!isReadOnly && (
+                        <div style={{display:"flex",gap:6}}>
+                          <button onClick={e=>startEdit(row,e)} style={{fontSize:11,padding:"2px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Edit</button>
+                          <button onClick={e=>deleteRow(row.id,e)} style={{fontSize:11,padding:"2px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"transparent",color:"#A32D2D",cursor:"pointer"}}>Delete</button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

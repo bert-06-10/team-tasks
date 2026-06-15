@@ -1,6 +1,34 @@
 import { useState } from "react";
 import { Toggle } from "./Primitives.jsx";
 import { STATUSES, DEFAULT_STATUS_COLORS, VIEWS, VIEW_LABELS, DEFAULT_PREFS } from "../constants.js";
+
+const TIMEZONES = [
+  { value: "America/New_York",       label: "Eastern Time (ET) — New York" },
+  { value: "America/Chicago",        label: "Central Time (CT) — Chicago" },
+  { value: "America/Denver",         label: "Mountain Time (MT) — Denver" },
+  { value: "America/Los_Angeles",    label: "Pacific Time (PT) — Los Angeles" },
+  { value: "America/Anchorage",      label: "Alaska Time (AKT)" },
+  { value: "Pacific/Honolulu",       label: "Hawaii Time (HST)" },
+  { value: "America/Puerto_Rico",    label: "Atlantic Time (AST) — Puerto Rico" },
+  { value: "America/Toronto",        label: "Eastern Time (ET) — Toronto" },
+  { value: "America/Vancouver",      label: "Pacific Time (PT) — Vancouver" },
+  { value: "America/Sao_Paulo",      label: "Brasília Time (BRT)" },
+  { value: "Europe/London",          label: "London (GMT/BST)" },
+  { value: "Europe/Paris",           label: "Central European (CET) — Paris" },
+  { value: "Europe/Berlin",          label: "Central European (CET) — Berlin" },
+  { value: "Europe/Moscow",          label: "Moscow Time (MSK)" },
+  { value: "Africa/Johannesburg",    label: "South Africa (SAST)" },
+  { value: "Asia/Dubai",             label: "Gulf Time (GST) — Dubai" },
+  { value: "Asia/Kolkata",           label: "India (IST)" },
+  { value: "Asia/Bangkok",           label: "Indochina Time (ICT)" },
+  { value: "Asia/Singapore",         label: "Singapore (SGT)" },
+  { value: "Asia/Shanghai",          label: "China (CST)" },
+  { value: "Asia/Tokyo",             label: "Japan (JST)" },
+  { value: "Asia/Seoul",             label: "Korea (KST)" },
+  { value: "Australia/Sydney",       label: "Sydney (AEST)" },
+  { value: "Pacific/Auckland",       label: "New Zealand (NZST)" },
+  { value: "UTC",                    label: "UTC" },
+];
 import { avatarBg, avatarTx, initials } from "../utils.js";
 
 // ── Section Head ──────────────────────────────────────────────────────────────
@@ -62,6 +90,11 @@ export function UserPreferences({myUser,prefs,updatePrefs}) {
       <PrefRow label="Default view">
         <select value={prefs.defaultView} onChange={e=>updatePrefs("defaultView",e.target.value)} style={{fontSize:13,border:"1px solid #787878",borderRadius:6,padding:"4px 8px",color:"#1a1a18",background:"#fff",width:"auto"}}>
           {VIEWS.map(v => <option key={v} value={v}>{VIEW_LABELS[v]}</option>)}
+        </select>
+      </PrefRow>
+      <PrefRow label="Time zone">
+        <select value={prefs.timezone || "America/New_York"} onChange={e=>updatePrefs("timezone",e.target.value)} style={{fontSize:13,border:"1px solid #787878",borderRadius:6,padding:"4px 8px",color:"#1a1a18",background:"#fff",width:"auto",maxWidth:260}}>
+          {TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
         </select>
       </PrefRow>
       <SectionHead>Status colors</SectionHead>
