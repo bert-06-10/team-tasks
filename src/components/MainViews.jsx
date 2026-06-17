@@ -174,11 +174,39 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
   }
 
   if(listGroup==="none") {
+    const taskItems = visibleTasks.map(t => ({ type:'task', date:t.due||'', item:t }));
+    const msItems   = milestones.map(m   => ({ type:'milestone', date:m.date||'', item:m }));
+    const combined  = [...taskItems, ...msItems].sort((a,b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+    });
     return (
       <div>
         <Toolbar/>
-        {milestones.length>0&&<MilestoneBar milestones={milestones} tasks={displayTasks} onEdit={onEditMilestone}/>}
-        {renderList(visibleTasks)}
+        <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"hidden",marginBottom:16}}>
+          <ListHeader selectable={selectable} selectedAll={selectedAll} someSelected={someSelected} onSelectAll={handleSelectAll}/>
+          {combined.length===0&&<div style={{padding:"12px 16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No tasks.</div>}
+          {combined.map((entry,i,arr) => {
+            const last = i===arr.length-1;
+            if (entry.type==='milestone') {
+              const m = entry.item;
+              const deps = (m.deps||[]).map(id=>displayTasks.find(t=>t.id===id)).filter(Boolean);
+              const doneCount = deps.filter(t=>t.status==="Done").length;
+              const allDone = deps.length>0&&doneCount===deps.length;
+              return (
+                <div key={`ms-${m.id}`} onClick={()=>onEditMilestone?.(m)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",background:allDone?"#F0FAF6":"#EEF5FC",cursor:onEditMilestone?"pointer":"default"}}>
+                  <span style={{fontSize:14,color:allDone?"#0F6E56":"#185FA5",flexShrink:0}}>◆</span>
+                  <span style={{fontSize:13,fontWeight:600,color:allDone?"#0F6E56":"#185FA5",flex:1}}>{m.title}</span>
+                  {m.date&&<span style={{fontSize:12,color:allDone?"#0F6E56":"#185FA5",opacity:0.75,flexShrink:0}}>{fmtDate(m.date)}</span>}
+                  {deps.length>0&&<span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:10,background:allDone?"#C6F0E0":"#D0E8FC",color:allDone?"#0F6E56":"#185FA5",flexShrink:0}}>{doneCount}/{deps.length}</span>}
+                </div>
+              );
+            }
+            return <ListRow key={entry.item.id} task={entry.item} tasks={displayTasks} docs={displayDocs} last={last} readOnly={isReadOnly} onEdit={()=>openTask(entry.item)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} selectable={selectable} selected={selectedIds.has(entry.item.id)} onSelect={toggleSelect}/>;
+          })}
+        </div>
       </div>
     );
   }
