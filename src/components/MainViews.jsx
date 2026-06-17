@@ -4,7 +4,7 @@ import { DEFAULT_STATUS_COLORS, STATUSES, MONTHS, DAYS } from "../constants.js";
 import { fmtDate, fmtDateYear } from "../utils.js";
 
 // ── Board View ────────────────────────────────────────────────────────────────
-export function BoardView({filteredTasks,displayTasks,displayDocs,milestones,isReadOnly,boardGroup,setBoardGroup,openTask,updateStatus,getBlockedStatus,statusColors}) {
+export function BoardView({filteredTasks,displayTasks,displayDocs,milestones,isReadOnly,boardGroup,setBoardGroup,openTask,onViewMilestone,updateStatus,getBlockedStatus,statusColors}) {
   const [dragId,setDragId] = useState(null);
   const groupBy = (ts,key) => { const g={}; ts.forEach(t=>{const k=t[key]||"Unassigned";if(!g[k])g[k]=[];g[k].push(t);}); return g; };
   const boardGroups = boardGroup==="status"
@@ -29,7 +29,7 @@ export function BoardView({filteredTasks,displayTasks,displayDocs,milestones,isR
               {k.toUpperCase()} · {(boardGroups[k]||[]).length}
             </div>
             {boardGroup==="status"&&k==="To Do"&&[...milestones].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0).map(m => (
-              <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #B5D4F4",background:"#E6F1FB",marginBottom:8}}>
+              <div key={m.id} onClick={onViewMilestone?()=>onViewMilestone(m):undefined} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #B5D4F4",background:"#E6F1FB",marginBottom:8,cursor:onViewMilestone?"pointer":"default"}}>
                 <span style={{fontSize:13,color:"#185FA5"}}>◆</span>
                 <div style={{flex:1}}>
                   <div style={{fontSize:12,fontWeight:500,color:"#185FA5"}}>{m.title}</div>

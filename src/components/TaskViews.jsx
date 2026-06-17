@@ -122,7 +122,7 @@ export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlocke
 export function MilestoneBar({milestones, tasks=[], onEdit}) {
   return (
     <div style={{marginBottom:16,display:"flex",gap:8,flexWrap:"wrap"}}>
-      {milestones.map(m => {
+      {[...milestones].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0).map(m => {
         const deps = (m.deps||[]).map(id => tasks.find(t=>t.id===id)).filter(Boolean);
         const doneCount = deps.filter(t=>t.status==="Done").length;
         const allDone = deps.length > 0 && doneCount === deps.length;

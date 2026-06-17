@@ -55,6 +55,71 @@ function AddToCalendarLink({ title, date, details }) {
   );
 }
 
+// ── Milestone helpers ─────────────────────────────────────────────────────────
+function suggestDeps(title, tasks, existingDeps) {
+  if (!title || title.trim().length < 3) return [];
+  const words = title.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  if (!words.length) return [];
+  return tasks
+    .filter(t => !existingDeps.includes(t.id))
+    .map(t => ({ task: t, score: words.reduce((n, w) => n + (t.title.toLowerCase().includes(w) ? 1 : 0), 0) }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map(x => x.task);
+}
+
+function DepChip({t, onRemove}) {
+  const done = t.status === "Done";
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:13}}>
+      <span style={{color:done?"#0F6E56":"var(--color-text-tertiary)",fontSize:12,flexShrink:0}}>{done?"✓":"○"}</span>
+      <span style={{flex:1,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
+      <span style={{fontSize:11,color:"var(--color-text-tertiary)",flexShrink:0}}>{t.status}</span>
+      {onRemove && <button onClick={onRemove} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>}
+    </div>
+  );
+}
+
+// ── Milestone Detail Modal ────────────────────────────────────────────────────
+export function MilestoneDetailModal({milestone, tasks=[], onEdit, onClose}) {
+  const deps = (milestone.deps||[]).map(id => tasks.find(t => t.id === id)).filter(Boolean);
+  const doneCount = deps.filter(t => t.status === "Done").length;
+  const allDone = deps.length > 0 && doneCount === deps.length;
+  return (
+    <Modal onClose={onClose} title="Milestone">
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 16px",borderRadius:"var(--border-radius-lg)",background:allDone?"#E1F5EE":"#E6F1FB",border:`1px solid ${allDone?"#9FE1CB":"#B5D4F4"}`,marginBottom:16}}>
+        <span style={{fontSize:20,color:allDone?"#0F6E56":"#185FA5",marginTop:2}}>◆</span>
+        <div style={{flex:1}}>
+          <div style={{fontSize:15,fontWeight:600,color:allDone?"#0F6E56":"#185FA5",marginBottom:2}}>{milestone.title}</div>
+          <div style={{fontSize:12,color:allDone?"#0F6E56":"#185FA5",opacity:0.75}}>{fmtDateYear(milestone.date)}</div>
+        </div>
+        {deps.length > 0 && (
+          <span style={{fontSize:12,fontWeight:600,padding:"2px 8px",borderRadius:10,background:allDone?"#C6F0E0":"#D0E8FC",color:allDone?"#0F6E56":"#185FA5",flexShrink:0}}>
+            {doneCount}/{deps.length} done
+          </span>
+        )}
+      </div>
+      {/* Deps */}
+      {deps.length > 0 ? (
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:11,fontWeight:500,color:"var(--color-text-tertiary)",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>Required tasks</div>
+          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            {deps.map(t => <DepChip key={t.id} t={t}/>)}
+          </div>
+        </div>
+      ) : (
+        <div style={{fontSize:13,color:"var(--color-text-tertiary)",marginBottom:16}}>No required tasks set.</div>
+      )}
+      <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
+        <button onClick={onClose} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Close</button>
+        <button onClick={()=>onEdit(milestone)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",cursor:"pointer"}}>Edit</button>
+      </div>
+    </Modal>
+  );
+}
+
 // ── Milestone Modal ───────────────────────────────────────────────────────────
 export function MilestoneModal({milestone,onChange,onSave,onDelete,onClose,tasks=[]}) {
   const isNew = !milestone.id;
@@ -62,6 +127,7 @@ export function MilestoneModal({milestone,onChange,onSave,onDelete,onClose,tasks
   const addDep = id => { if (id && !deps.includes(id)) onChange({...milestone, deps: [...deps, id]}); };
   const removeDep = id => onChange({...milestone, deps: deps.filter(d => d !== id)});
   const eligible = tasks.filter(t => !deps.includes(t.id));
+  const suggestions = suggestDeps(milestone.title, eligible, deps);
   return (
     <Modal onClose={onClose} title={isNew?"New milestone":"Edit milestone"} minHeight="520px">
       <Field label="Milestone name"><input value={milestone.title} onChange={e=>onChange({...milestone,title:e.target.value})} placeholder="e.g. Mid-cycle review"/></Field>
@@ -78,15 +144,7 @@ export function MilestoneModal({milestone,onChange,onSave,onDelete,onClose,tasks
               {deps.map(depId => {
                 const t = tasks.find(x => x.id === depId);
                 if (!t) return null;
-                const done = t.status === "Done";
-                return (
-                  <div key={depId} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:13}}>
-                    <span style={{color:done?"#0F6E56":"var(--color-text-tertiary)",fontSize:12,flexShrink:0}}>{done?"✓":"○"}</span>
-                    <span style={{flex:1,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
-                    <span style={{fontSize:11,color:"var(--color-text-tertiary)",flexShrink:0}}>{t.status}</span>
-                    <button onClick={()=>removeDep(depId)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>
-                  </div>
-                );
+                return <DepChip key={depId} t={t} onRemove={()=>removeDep(depId)}/>;
               })}
             </div>
           )}
@@ -95,6 +153,18 @@ export function MilestoneModal({milestone,onChange,onSave,onDelete,onClose,tasks
             options={eligible.map(t => ({value: t.id, label: `${t.title} (${t.status})`}))}
             onSelect={id => addDep(id)}
           />
+          {suggestions.length > 0 && (
+            <div>
+              <div style={{fontSize:11,color:"var(--color-text-tertiary)",marginBottom:4}}>Suggested</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                {suggestions.map(t => (
+                  <button key={t.id} onClick={()=>addDep(t.id)} style={{fontSize:12,padding:"3px 10px",borderRadius:20,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",cursor:"pointer"}}>
+                    + {t.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </Field>
       <div style={{display:"flex",gap:8,marginTop:8,justifyContent:"flex-end"}}>
