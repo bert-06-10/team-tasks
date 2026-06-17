@@ -394,27 +394,36 @@ export async function bulkInsertTasks(tasks, sessions = []) {
 export async function fetchMilestones() {
   const { data, error } = await supabase.from('milestones').select('*').order('date')
   if (error) throw error
-  return data.map(r => ({ id: r.id, title: r.title, date: r.date, deps: r.deps || [] }))
+  return data.map(r => ({ id: r.id, title: r.title, date: r.date, deps: r.deps || [], collateralDeps: r.collateral_deps || [] }))
 }
 
 export async function saveMilestone(milestone) {
   const base = { title: milestone.title, date: milestone.date }
-  const withDeps = { ...base, deps: milestone.deps || [] }
+  const withDeps    = { ...base, deps: milestone.deps || [] }
+  const withAll     = { ...withDeps, collateral_deps: milestone.collateralDeps || [] }
+  const ret = { ...milestone, deps: milestone.deps || [], collateralDeps: milestone.collateralDeps || [] }
   if (milestone.id) {
-    const { error } = await supabase.from('milestones').update(withDeps).eq('id', milestone.id)
+    const { error } = await supabase.from('milestones').update(withAll).eq('id', milestone.id)
     if (error) {
-      const { error: e2 } = await supabase.from('milestones').update(base).eq('id', milestone.id)
-      if (e2) throw e2
+      const { error: e2 } = await supabase.from('milestones').update(withDeps).eq('id', milestone.id)
+      if (e2) {
+        const { error: e3 } = await supabase.from('milestones').update(base).eq('id', milestone.id)
+        if (e3) throw e3
+      }
     }
-    return { ...milestone, deps: milestone.deps || [] }
+    return ret
   }
-  const { data, error } = await supabase.from('milestones').insert(withDeps).select().single()
+  const { data, error } = await supabase.from('milestones').insert(withAll).select().single()
   if (error) {
-    const { data: d2, error: e2 } = await supabase.from('milestones').insert(base).select().single()
-    if (e2) throw e2
-    return { ...base, id: d2.id, deps: [] }
+    const { data: d2, error: e2 } = await supabase.from('milestones').insert(withDeps).select().single()
+    if (e2) {
+      const { data: d3, error: e3 } = await supabase.from('milestones').insert(base).select().single()
+      if (e3) throw e3
+      return { ...base, id: d3.id, deps: [], collateralDeps: [] }
+    }
+    return { ...base, id: d2.id, deps: milestone.deps || [], collateralDeps: [] }
   }
-  return { ...base, id: data.id, deps: milestone.deps || [] }
+  return { ...base, id: data.id, deps: milestone.deps || [], collateralDeps: milestone.collateralDeps || [] }
 }
 
 export async function deleteMilestone(id) {
