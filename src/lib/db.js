@@ -405,8 +405,10 @@ export async function saveMilestone(milestone) {
   if (milestone.id) {
     const { error } = await supabase.from('milestones').update(withAll).eq('id', milestone.id)
     if (error) {
+      console.warn('saveMilestone: collateral_deps column missing, retrying without it', error.message)
       const { error: e2 } = await supabase.from('milestones').update(withDeps).eq('id', milestone.id)
       if (e2) {
+        console.warn('saveMilestone: deps column missing, retrying without it', e2.message)
         const { error: e3 } = await supabase.from('milestones').update(base).eq('id', milestone.id)
         if (e3) throw e3
       }
@@ -415,8 +417,10 @@ export async function saveMilestone(milestone) {
   }
   const { data, error } = await supabase.from('milestones').insert(withAll).select().single()
   if (error) {
+    console.warn('saveMilestone: collateral_deps column missing, retrying without it', error.message)
     const { data: d2, error: e2 } = await supabase.from('milestones').insert(withDeps).select().single()
     if (e2) {
+      console.warn('saveMilestone: deps column missing, retrying without it', e2.message)
       const { data: d3, error: e3 } = await supabase.from('milestones').insert(base).select().single()
       if (e3) throw e3
       return { ...base, id: d3.id, deps: [], collateralDeps: [] }
