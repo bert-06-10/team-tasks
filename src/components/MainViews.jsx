@@ -146,7 +146,6 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
     return (
       <div>
         <Toolbar/>
-        {milestones.length>0&&<MilestoneBar milestones={milestones} tasks={displayTasks} onEdit={onEditMilestone}/>}
         {sortedKeys.map(key => {
           const sess = sessions.find(s => s.id === key);
           const prof = sess?.professor || sess?.name || "No session";
@@ -174,6 +173,51 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
   }
 
   if(listGroup==="none") {
+    // Class tasks: group by session sorted by date, no milestones
+    if (hasSessionGrouping) {
+      const sessionGroups = {};
+      visibleTasks.forEach(t => {
+        const key = t.sessionId || "__none__";
+        if (!sessionGroups[key]) sessionGroups[key] = [];
+        sessionGroups[key].push(t);
+      });
+      const sortedKeys = Object.keys(sessionGroups).sort((a, b) => {
+        const sa = sessions.find(s => s.id === a);
+        const sb = sessions.find(s => s.id === b);
+        if (!sa && !sb) return 0;
+        if (!sa) return 1;
+        if (!sb) return -1;
+        return sa.date < sb.date ? -1 : sa.date > sb.date ? 1 : 0;
+      });
+      return (
+        <div>
+          <Toolbar/>
+          {sortedKeys.map(key => {
+            const sess = sessions.find(s => s.id === key);
+            const prof = sess?.professor || sess?.name || "No session";
+            const cohortPart = sess?.cohort ? ` — ${sess.cohort}` : "";
+            const datePart   = sess?.date   ? ` · ${fmtDate(sess.date)}` : "";
+            const label      = `${prof}${cohortPart}${datePart}`;
+            return (
+              <div key={key}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                  <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",letterSpacing:"0.04em"}}>
+                    {label.toUpperCase()} · {sessionGroups[key].length}
+                  </div>
+                  {sess && onNavigateToClasses && (
+                    <button onClick={() => onNavigateToClasses(sess.id)} style={{fontSize:12,padding:"3px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+                      View in Classes <span style={{fontSize:11}}>→</span>
+                    </button>
+                  )}
+                </div>
+                {renderList(sessionGroups[key])}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    // Program tasks: interleave milestones chronologically
     const taskItems = visibleTasks.map(t => ({ type:'task', date:t.due||'', item:t }));
     const msItems   = milestones.map(m   => ({ type:'milestone', date:m.date||'', item:m }));
     const combined  = [...taskItems, ...msItems].sort((a,b) => {
@@ -214,7 +258,7 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
   return (
     <div>
       <Toolbar/>
-      {milestones.length>0&&<MilestoneBar milestones={milestones} tasks={displayTasks} onEdit={onEditMilestone}/>}
+      {!hasSessionGrouping&&milestones.length>0&&<MilestoneBar milestones={milestones} tasks={displayTasks} onEdit={onEditMilestone}/>}
       {Object.keys(listGroups).sort().map(k => (
         <div key={k}>
           <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",letterSpacing:"0.04em",marginBottom:8}}>{k.toUpperCase()} · {listGroups[k].length}</div>
