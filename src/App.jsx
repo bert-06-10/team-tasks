@@ -880,34 +880,34 @@ export default function App() {
       {/* Main content */}
       <div style={{ flex: 1, padding: 24 }}>
         {(view === "board" || view === "list" || view === "mytasks") && (
-          <div style={{ display: "flex", gap: 4, marginBottom: 16, padding: "4px", background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-lg)", width: "fit-content" }}>
-            {taskTypeOptions.map(([t, l]) => (
-              <button key={t} onClick={() => setTaskTypeFilter(t)} style={{ fontSize: 13, padding: "5px 14px", borderRadius: "var(--border-radius-md)", border: "none", background: taskTypeFilter === t ? "var(--color-background-primary)" : "transparent", color: taskTypeFilter === t ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", fontWeight: taskTypeFilter === t ? 500 : 400, boxShadow: taskTypeFilter === t ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>{l}</button>
-            ))}
-          </div>
-        )}
-
-        {(view === "board" || view === "list" || view === "mytasks") && showTaskList && (
           <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-            <FilterDropdown label="Department" options={["All", ...departments]} value={deptFilter} onChange={setDeptFilter} />
-            <FilterDropdown label="Owner" options={["All", ...members]} value={ownerFilter} onChange={setOwnerFilter} />
-            {taskTypeFilter === "class" && sessions.length > 0 && (() => {
-              const sorted = [...sessions].sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
-              const sessionLabel = s => { const prof = s.professor || s.name || "Session"; const cohort = s.cohort ? ` — ${s.cohort}` : ""; const date = s.date ? ` · ${fmtDate(s.date)}` : ""; return `${prof}${cohort}${date}`; };
-              const labelToId = Object.fromEntries(sorted.map(s => [sessionLabel(s), s.id]));
-              const idToLabel = Object.fromEntries(sorted.map(s => [s.id, sessionLabel(s)]));
-              const sessionOptions = ["All", ...sorted.map(sessionLabel)];
-              const sessionValue = sessionFilter === "all" ? "All" : (idToLabel[sessionFilter] ?? "All");
-              return (
-                <FilterDropdown
-                  label="Session"
-                  options={sessionOptions}
-                  value={sessionValue}
-                  onChange={v => setSessionFilter(v === "All" ? "all" : labelToId[v])}
-                />
-              );
-            })()}
-            {(deptFilter !== "All" || ownerFilter !== "All" || sessionFilter !== "all") && <button onClick={() => { setDeptFilter("All"); setOwnerFilter("All"); setSessionFilter("all"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
+            <div style={{ display: "flex", gap: 4, padding: "4px", background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-lg)", flexShrink: 0 }}>
+              {taskTypeOptions.map(([t, l]) => (
+                <button key={t} onClick={() => setTaskTypeFilter(t)} style={{ fontSize: 13, padding: "5px 14px", borderRadius: "var(--border-radius-md)", border: "none", background: taskTypeFilter === t ? "var(--color-background-primary)" : "transparent", color: taskTypeFilter === t ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", fontWeight: taskTypeFilter === t ? 500 : 400, boxShadow: taskTypeFilter === t ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>{l}</button>
+              ))}
+            </div>
+            {showTaskList && <>
+              <div style={{ width: "0.5px", height: 20, background: "var(--color-border-tertiary)", flexShrink: 0 }} />
+              <FilterDropdown label="Department" options={["All", ...departments]} value={deptFilter} onChange={setDeptFilter} />
+              <FilterDropdown label="Owner" options={["All", ...members]} value={ownerFilter} onChange={setOwnerFilter} />
+              {taskTypeFilter === "class" && sessions.length > 0 && (() => {
+                const sorted = [...sessions].sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+                const sessionLabel = s => { const prof = s.professor || s.name || "Session"; const cohort = s.cohort ? ` — ${s.cohort}` : ""; const date = s.date ? ` · ${fmtDate(s.date)}` : ""; return `${prof}${cohort}${date}`; };
+                const labelToId = Object.fromEntries(sorted.map(s => [sessionLabel(s), s.id]));
+                const idToLabel = Object.fromEntries(sorted.map(s => [s.id, sessionLabel(s)]));
+                const sessionOptions = ["All", ...sorted.map(sessionLabel)];
+                const sessionValue = sessionFilter === "all" ? "All" : (idToLabel[sessionFilter] ?? "All");
+                return (
+                  <FilterDropdown
+                    label="Session"
+                    options={sessionOptions}
+                    value={sessionValue}
+                    onChange={v => setSessionFilter(v === "All" ? "all" : labelToId[v])}
+                  />
+                );
+              })()}
+              {(deptFilter !== "All" || ownerFilter !== "All" || sessionFilter !== "all") && <button onClick={() => { setDeptFilter("All"); setOwnerFilter("All"); setSessionFilter("all"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
+            </>}
           </div>
         )}
 
