@@ -54,6 +54,7 @@ export default function App() {
   const [deptFilter,                setDeptFilter]                = useState("All");
   const [ownerFilter,               setOwnerFilter]               = useState("All");
   const [sessionFilter,             setSessionFilter]             = useState("all");
+  const [dateFilter,                setDateFilter]                = useState("All");
   const [viewingArchive,            setViewingArchive]            = useState(null);
   const [draftCycle,                setDraftCycle]                = useState(() => { try { return JSON.parse(localStorage.getItem('teamtasks_draft_cycle')); } catch { return null; } });
   const [classTaskTemplate,         setClassTaskTemplate]         = useState(() => { try { const s = localStorage.getItem('teamtasks_class_task_template'); return s ? JSON.parse(s) : null; } catch { return null; } });
@@ -743,8 +744,18 @@ export default function App() {
   const displayDocs         = viewingArchive ? viewingArchive.docs : docs;
   const isReadOnly          = !!viewingArchive;
   const sortByDue = ts => [...ts].sort((a, b) => { if (!a.due && !b.due) return 0; if (!a.due) return 1; if (!b.due) return -1; return a.due < b.due ? -1 : a.due > b.due ? 1 : 0; });
-  const filteredTasks       = sortByDue(displayTasks.filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter));
-  const myFilteredTasks     = sortByDue(displayTasks.filter(t => t.assignee === myUser || t.assist === myUser).filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter));
+  const _today = new Date().toISOString().slice(0, 10);
+  const applyDateFilter = t => {
+    if (dateFilter === "All")          return true;
+    if (dateFilter === "Overdue")      return !!t.due && t.due < _today && t.status !== "Done";
+    if (dateFilter === "Due today")    return t.due === _today;
+    if (dateFilter === "Next 7 days")  return !!t.due && t.due >= _today && t.due <= addDays(_today, 7);
+    if (dateFilter === "Next 30 days") return !!t.due && t.due >= _today && t.due <= addDays(_today, 30);
+    if (dateFilter === "No due date")  return !t.due;
+    return true;
+  };
+  const filteredTasks       = sortByDue(displayTasks.filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter).filter(applyDateFilter));
+  const myFilteredTasks     = sortByDue(displayTasks.filter(t => t.assignee === myUser || t.assist === myUser).filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter).filter(applyDateFilter));
 
   const openTask     = t => { if (!isReadOnly) { setEditTask(t); setShowTaskModal(true); } };
   const openDoc      = d => { if (!isReadOnly) { setEditDoc(d); setShowDocModal(true); } };
@@ -909,7 +920,8 @@ export default function App() {
                   />
                 );
               })()}
-              {(deptFilter !== "All" || ownerFilter !== "All" || sessionFilter !== "all") && <button onClick={() => { setDeptFilter("All"); setOwnerFilter("All"); setSessionFilter("all"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
+              <FilterDropdown label="Due date" options={["All","Overdue","Due today","Next 7 days","Next 30 days","No due date"]} value={dateFilter} onChange={setDateFilter} />
+              {(deptFilter !== "All" || ownerFilter !== "All" || sessionFilter !== "all" || dateFilter !== "All") && <button onClick={() => { setDeptFilter("All"); setOwnerFilter("All"); setSessionFilter("all"); setDateFilter("All"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
             </>}
           </div>
         )}
