@@ -46,7 +46,8 @@ export default function App() {
 
   // ── UI state ────────────────────────────────────────────────────────────────
   const [toasts,                    setToasts]                    = useState([]);
-  const [view,                      setView]                      = useState("board");
+  const [view, setViewRaw] = useState(() => sessionStorage.getItem('teamtasks_view') || 'board');
+  const setView = useCallback((v) => { setViewRaw(v); sessionStorage.setItem('teamtasks_view', v); }, []);
   const [taskTypeFilter,            setTaskTypeFilter]            = useState("program");
   const [boardGroup,                setBoardGroup]                = useState("status");
   const [listGroup,                 setListGroup]                 = useState("none");
@@ -144,7 +145,7 @@ export default function App() {
         ? { ...DEFAULT_USER_PREFS, ...savedPrefs, statusColors: savedPrefs.statusColors || DEFAULT_STATUS_COLORS, notifications: savedPrefs.notifications || DEFAULT_PREFS.notifications }
         : DEFAULT_USER_PREFS;
       setUserPrefs(resolvedPrefs);
-      if (resolvedPrefs.defaultView) setView(resolvedPrefs.defaultView);
+      if (resolvedPrefs.defaultView && !sessionStorage.getItem('teamtasks_view')) setView(resolvedPrefs.defaultView);
       const tz = resolvedPrefs.timezone || DEFAULT_USER_PREFS.timezone;
       setDefaultTimezone(tz);
       localStorage.setItem('teamtasks_timezone', tz);
