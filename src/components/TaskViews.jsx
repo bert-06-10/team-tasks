@@ -59,14 +59,14 @@ export function TaskCard({task,tasks,docs,readOnly,onEdit,onStatus,getBlockedSta
 }
 
 // ── List Row ──────────────────────────────────────────────────────────────────
-export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlockedStatus,statusColors,selectable,selected,onSelect}) {
+export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlockedStatus,statusColors,selectable,selected,onSelect,rowBg}) {
   const bs = getBlockedStatus(task);
   const overdue = task.status!=="Done"&&isOverdue(task.due);
   const cols = selectable ? LIST_COLS_SEL : LIST_COLS;
   const isUrl = s => /^https?:\/\//i.test(s);
   const sep = {borderRight:"1px solid var(--color-border-tertiary)"};
   return (
-    <div onClick={onEdit} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",cursor:readOnly?"default":"pointer",background:selected?"var(--color-background-secondary)":"transparent"}}>
+    <div onClick={onEdit} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",cursor:readOnly?"default":"pointer",background:selected?"var(--color-background-secondary)":rowBg||"transparent"}}>
       {selectable && (
         <div style={{padding:"11px 10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}}>
           <input type="checkbox" checked={!!selected} onChange={() => onSelect(task.id)} onClick={e=>e.stopPropagation()} style={{cursor:"pointer",margin:0}} />

@@ -220,11 +220,17 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
     // Program tasks: interleave milestones chronologically
     const taskItems = visibleTasks.map(t => ({ type:'task', date:t.due||'', item:t }));
     const msItems   = milestones.map(m   => ({ type:'milestone', date:m.date||'', item:m }));
-    const combined  = [...taskItems, ...msItems].sort((a,b) => {
+    const sorted    = [...taskItems, ...msItems].sort((a,b) => {
       if (!a.date && !b.date) return 0;
       if (!a.date) return 1;
       if (!b.date) return -1;
       return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+    });
+    // Assign alternating band per date group so same-day tasks share a shade
+    let band = 0, prevDate = null;
+    const combined = sorted.map(entry => {
+      if (entry.date !== prevDate) { if (prevDate !== null) band = 1 - band; prevDate = entry.date; }
+      return { ...entry, band };
     });
     return (
       <div>
@@ -248,7 +254,7 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
                 </div>
               );
             }
-            return <ListRow key={entry.item.id} task={entry.item} tasks={displayTasks} docs={displayDocs} last={last} readOnly={isReadOnly} onEdit={()=>openTask(entry.item)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} selectable={selectable} selected={selectedIds.has(entry.item.id)} onSelect={toggleSelect}/>;
+            return <ListRow key={entry.item.id} task={entry.item} tasks={displayTasks} docs={displayDocs} last={last} readOnly={isReadOnly} onEdit={()=>openTask(entry.item)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} selectable={selectable} selected={selectedIds.has(entry.item.id)} onSelect={toggleSelect} rowBg={entry.band===1?"var(--color-background-tertiary)":undefined}/>;
           })}
         </div>
       </div>
