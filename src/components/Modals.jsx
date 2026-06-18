@@ -867,10 +867,6 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, onSa
           <span style={{fontSize:16,fontWeight:500,color:"var(--color-text-primary)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{editing ? val.title : doc.title}</span>
           <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
             {!isReadOnly && !editing && <button onClick={()=>setEditing(true)} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",cursor:"pointer"}}>Edit</button>}
-            {editing && <>
-              <button onClick={handleSave} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>Save</button>
-              <button onClick={handleCancel} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
-            </>}
             <button onClick={onClose} style={{background:"var(--color-background-secondary)",border:"none",borderRadius:6,width:28,height:28,fontSize:16,color:"var(--color-text-secondary)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
           </div>
         </div>
@@ -908,11 +904,15 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, onSa
               </div>
               <LabeledField label="Description"><textarea value={val.description||""} onChange={e=>setVal(v=>({...v,description:e.target.value}))} rows={3} style={{...inp,resize:"vertical"}}/></LabeledField>
               <LabeledField label="Tags"><TagInput tags={val.tags||[]} suggestions={globalTags||[]} onChange={tags=>setVal(v=>({...v,tags}))}/></LabeledField>
-              {!isReadOnly && onDelete && (
-                <div style={{paddingTop:16,borderTop:"1px solid var(--color-border-tertiary)"}}>
-                  <button onClick={()=>{onDelete(doc.id);onClose();}} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-danger)",cursor:"pointer"}}>Delete</button>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:16,borderTop:"1px solid var(--color-border-tertiary)"}}>
+                <div>
+                  {!isReadOnly && onDelete && <button onClick={()=>{onDelete(doc.id);onClose();}} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-danger)",cursor:"pointer"}}>Delete</button>}
                 </div>
-              )}
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={handleCancel} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
+                  <button onClick={handleSave} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>Save</button>
+                </div>
+              </div>
             </>
           ) : (
             <>
