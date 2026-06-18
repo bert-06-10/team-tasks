@@ -55,7 +55,7 @@ export function TagInput({tags,suggestions,onChange}) {
   const [input,setInput] = useState("");
   const [showSugg,setShowSugg] = useState(false);
   const filtered = (suggestions||[]).filter(s=>s.toLowerCase().includes(input.toLowerCase())&&!tags.includes(s));
-  const add = val => { const t=(val||input).trim().toLowerCase(); if(t&&!tags.includes(t))onChange([...tags,t]); setInput(""); setShowSugg(false); };
+  const add = val => { const t=(val||input).trim(); if(t&&!tags.includes(t))onChange([...tags,t]); setInput(""); setShowSugg(false); };
   return (
     <div>
       <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
