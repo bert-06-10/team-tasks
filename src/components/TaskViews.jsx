@@ -258,6 +258,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
   const [detailDoc,   setDetailDoc]   = useState(null);
   const [filters,     setFilters]     = useState(BLANK_FILTERS);
   const [sort,        setSort]        = useState({col:null,dir:"asc"});
+  const [search,      setSearch]      = useState("");
   const selectable = !isReadOnly;
 
   const today = new Date().toISOString().slice(0,10);
@@ -280,6 +281,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
     return true;
   };
 
+  const sq = search.trim().toLowerCase();
   const filteredDocs = docs.filter(d => {
     if (filters.owner        !== "All" && d.owner         !== filters.owner)        return false;
     if (filters.contentOwner !== "All" && d.content_owner !== filters.contentOwner) return false;
@@ -288,6 +290,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
     if (!applyDateFilter(filters.nextUpdate,  d.next_update)) return false;
     if (!applyDateFilter(filters.lastUpdated, d.updated))     return false;
     if (filters.tag !== "All" && !(d.tags||[]).includes(filters.tag)) return false;
+    if (sq && ![d.title,d.description,d.owner,d.content_owner,d.assist,d.audience,...(d.tags||[])].some(v=>v&&v.toLowerCase().includes(sq))) return false;
     return true;
   });
 
@@ -315,6 +318,11 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
     <>
       <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
         {!isReadOnly && onAddDoc && <button onClick={onAddDoc} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",fontWeight:500,flexShrink:0}}>+ Add collateral</button>}
+        <div style={{position:"relative",flexShrink:0}}>
+          <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search collateral…" style={{fontSize:13,padding:"5px 10px 5px 28px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:200}}/>
+          {search && <button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",lineHeight:1,padding:0}}>×</button>}
+        </div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginLeft:"auto"}}>
           <FilterDropdown label="Owner"         options={ownerOpts}         value={filters.owner}        onChange={v=>setFilter("owner",v)}/>
           <FilterDropdown label="Content Owner" options={contentOwnerOpts}  value={filters.contentOwner} onChange={v=>setFilter("contentOwner",v)}/>
