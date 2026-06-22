@@ -215,21 +215,34 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
       if (!b.date) return -1;
       return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
     });
-    // Group by date and insert date header rows
+    // Group by work week (Mon–Fri) and insert week header rows
+    const SHORT_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const getMondayOfWeek = dateStr => {
+      if (!dateStr) return '';
+      const d = new Date(dateStr + 'T12:00:00Z');
+      const day = d.getUTCDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      const mon = new Date(d);
+      mon.setUTCDate(d.getUTCDate() + diff);
+      return mon.toISOString().slice(0, 10);
+    };
+    const fmtWeekHeader = mondayStr => {
+      if (!mondayStr) return "No date";
+      const mon = new Date(mondayStr + 'T12:00:00Z');
+      const fri = new Date(mon);
+      fri.setUTCDate(mon.getUTCDate() + 4);
+      const fmt = d => `${SHORT_MONTHS[d.getUTCMonth()].toUpperCase()} ${d.getUTCDate()}`;
+      return `${fmt(mon)} – ${fmt(fri)}`;
+    };
     const groupMap = new Map();
     sorted.forEach(entry => {
-      if (!groupMap.has(entry.date)) groupMap.set(entry.date, []);
-      groupMap.get(entry.date).push(entry);
+      const weekKey = getMondayOfWeek(entry.date);
+      if (!groupMap.has(weekKey)) groupMap.set(weekKey, []);
+      groupMap.get(weekKey).push(entry);
     });
-    const SHORT_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const fmtHeaderDate = d => {
-      if (!d) return "No date";
-      const p = d.split("-");
-      return `${SHORT_MONTHS[parseInt(p[1],10)-1].toUpperCase()} ${parseInt(p[2],10)}`;
-    };
     const displayList = [];
-    groupMap.forEach((entries, date) => {
-      displayList.push({ type:'date-header', date, count:entries.length });
+    groupMap.forEach((entries, weekKey) => {
+      displayList.push({ type:'date-header', date: weekKey, count: entries.length });
       entries.forEach(e => displayList.push(e));
     });
     return (
@@ -242,7 +255,7 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
             if (entry.type==='date-header') {
               return (
                 <div key={`dh-${entry.date}-${i}`} style={{padding:"5px 14px",background:"var(--color-background-secondary)",borderBottom:"1px solid var(--color-border-tertiary)",display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:11,fontWeight:600,color:"var(--color-text-secondary)",letterSpacing:"0.05em"}}>{fmtHeaderDate(entry.date)}</span>
+                  <span style={{fontSize:11,fontWeight:600,color:"var(--color-text-secondary)",letterSpacing:"0.05em"}}>{fmtWeekHeader(entry.date)}</span>
                   <span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>{entry.count} {entry.count===1?"item":"items"}</span>
                 </div>
               );
