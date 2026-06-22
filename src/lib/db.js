@@ -479,7 +479,7 @@ export async function fetchRunOfShow() {
   const result = {}
   data.forEach(r => {
     if (!result[r.session_id]) result[r.session_id] = []
-    result[r.session_id].push({ id: r.id, cohort: r.cohort, time: r.time, event: r.event, owner: r.owner, assist: r.assist, notes: r.notes })
+    result[r.session_id].push({ id: r.id, cohort: r.cohort, time: r.time, event: r.event, owner: r.owner, assist: r.assist, notes: r.notes, done: r.done || false })
   })
   return result
 }
@@ -489,6 +489,7 @@ export async function saveRunOfShowRow(sessionId, row) {
   const dbRow = {
     session_id: sessionId, cohort: row.cohort || '', time: row.time || '',
     event: row.event || '', owner: row.owner || '', assist: row.assist || '', notes: row.notes || '',
+    done: row.done || false,
   }
   if (!isTemp) {
     const { error } = await supabase.from('run_of_show').update(dbRow).eq('id', row.id)
@@ -498,6 +499,11 @@ export async function saveRunOfShowRow(sessionId, row) {
   const { data, error } = await supabase.from('run_of_show').insert(dbRow).select().single()
   if (error) throw error
   return { ...row, id: data.id }
+}
+
+export async function updateRunOfShowDone(id, done) {
+  const { error } = await supabase.from('run_of_show').update({ done }).eq('id', id)
+  if (error) throw error
 }
 
 export async function deleteRunOfShowRow(id) {

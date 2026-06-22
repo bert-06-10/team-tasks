@@ -48,7 +48,9 @@ export default function App() {
   const [toasts,                    setToasts]                    = useState([]);
   const [view, setViewRaw] = useState(() => sessionStorage.getItem('teamtasks_view') || 'board');
   const setView = useCallback((v) => { setViewRaw(v); sessionStorage.setItem('teamtasks_view', v); }, []);
-  const [taskTypeFilter,            setTaskTypeFilter]            = useState("program");
+  const [taskTypeFilter, setTaskTypeFilterRaw] = useState(() => sessionStorage.getItem('teamtasks_type') || 'program');
+  const setTaskTypeFilter = useCallback((v) => { setTaskTypeFilterRaw(v); sessionStorage.setItem('teamtasks_type', v); }, []);
+  const [taskSearch,                setTaskSearch]                = useState("");
   const [boardGroup,                setBoardGroup]                = useState("status");
   const [listGroup,                 setListGroup]                 = useState("none");
   const [deptFilter,                setDeptFilter]                = useState("All");
@@ -81,6 +83,10 @@ export default function App() {
   const [editTask,      setEditTask]      = useState(null);
   const [editDoc,       setEditDoc]       = useState(null);
   const [editMilestone, setEditMilestone] = useState(null);
+
+  // Keep a ref so realtime handlers always see current sessions without stale closure
+  const sessionsRef = useRef([]);
+  useEffect(() => { sessionsRef.current = sessions; }, [sessions]);
 
   // ── Dropdown click-outside handler ──────────────────────────────────────────
   const dropdownsRef = useRef(null);
@@ -256,6 +262,88 @@ export default function App() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const signOut = () => supabase.auth.signOut();
+
+  // ── Realtime sync ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!session) return;
+
+    const channel = supabase
+      .channel('db-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, ({ eventType, new: r, old }) => {
+        if (eventType === 'DELETE') {
+          setProgramTasks(p => p.filter(t => t.id !== old.id));
+          setClassTasks(p => p.filter(t => t.id !== old.id));
+          return;
+        }
+        const patch = {
+          title: r.title, type: r.type,
+          assignee: r.assignee || '', assist: r.assist || '',
+          due: r.due_date || '', status: r.status,
+          notes: r.notes || '', links: r.links || '',
+          tags: r.tags || [], offset: r.offset_days || 0,
+          fallOffset: r.fall_offset_days ?? r.offset_days ?? 0,
+          department: r.department || '', flagged: r.flagged || false,
+          sessionId: r.session_id || '',
+        };
+        if (eventType === 'UPDATE') {
+          // Preserve deps/collateralDeps — they live in join tables not returned by realtime
+          const apply = prev => prev.map(t => t.id === r.id ? { ...t, ...patch } : t);
+          setProgramTasks(apply);
+          setClassTasks(apply);
+        } else { // INSERT from another user
+          const setter = r.type === 'program' ? setProgramTasks : setClassTasks;
+          setter(prev => {
+            if (prev.some(t => t.id === r.id)) return prev; // already added by local save
+            const sess = sessionsRef.current.find(s => s.id === r.session_id);
+            return [...prev, {
+              ...patch, id: r.id,
+              sessionName: sess?.name || '',
+              professor: sess?.professor || '',
+              cohort: sess?.cohort || '',
+              deps: [], collateralDeps: [], attachedDocs: [],
+            }];
+          });
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'milestones' }, ({ eventType, new: r, old }) => {
+        if (eventType === 'DELETE') {
+          setMilestones(p => p.filter(m => m.id !== old.id));
+        } else {
+          const m = { id: r.id, title: r.title, date: r.date, deps: r.deps || [], collateralDeps: r.collateral_deps || [] };
+          if (eventType === 'UPDATE') setMilestones(p => p.map(x => x.id === m.id ? m : x));
+          else setMilestones(p => p.some(x => x.id === m.id) ? p : [...p, m]);
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'docs' }, ({ eventType, new: r, old }) => {
+        if (eventType === 'DELETE') {
+          setDocs(p => p.filter(d => d.id !== old.id));
+        } else {
+          const d = {
+            id: r.id, title: r.title, type: r.type, url: r.url || '',
+            audience: r.audience || '', description: r.description || '',
+            owner: r.owner || '', content_owner: r.content_owner || '',
+            assist: r.assist || '', shareable_link: r.shareable_link || '',
+            updated: r.updated_date || '', tags: r.tags || [],
+            next_update: r.next_update || '',
+          };
+          if (eventType === 'UPDATE') setDocs(p => p.map(x => x.id === d.id ? d : x));
+          else setDocs(p => p.some(x => x.id === d.id) ? p : [...p, d]);
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => {
+        db.fetchSessions().then(setSessions).catch(console.error);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'run_of_show' }, ({ new: r }) => {
+        setRunOfShow(prev => {
+          const sid = r.session_id;
+          if (!prev[sid]) return prev;
+          return { ...prev, [sid]: prev[sid].map(row => row.id === r.id ? { ...row, done: r.done || false } : row) };
+        });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Config list sync helper ─────────────────────────────────────────────────
   const syncList = useCallback(async (setter, ref, newItems, addFn, removeFn, updateFn) => {
@@ -612,6 +700,9 @@ export default function App() {
   // ── Run of show handlers ────────────────────────────────────────────────────
   const handleSaveRunOfShowRow   = async (sessionId, row) => db.saveRunOfShowRow(sessionId, row);
   const handleDeleteRunOfShowRow = async id => db.deleteRunOfShowRow(id);
+  const handleToggleRunOfShowDone = (id, done) => {
+    db.updateRunOfShowDone(id, done).catch(() => toast("Failed to save completion state"));
+  };
 
   // ── Session handlers ────────────────────────────────────────────────────────
   const navigateToClasses = (sessionId) => {
@@ -754,8 +845,10 @@ export default function App() {
     if (dateFilter === "No due date")  return !t.due;
     return true;
   };
-  const filteredTasks       = sortByDue(displayTasks.filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter).filter(applyDateFilter));
-  const myFilteredTasks     = sortByDue(displayTasks.filter(t => t.assignee === myUser || t.assist === myUser).filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter).filter(applyDateFilter));
+  const _tsq = taskSearch.trim().toLowerCase();
+  const matchesTaskSearch = t => !_tsq || (t.title||"").toLowerCase().includes(_tsq) || (t.assignee||"").toLowerCase().includes(_tsq) || (t.notes||"").toLowerCase().includes(_tsq) || (t.tags||[]).some(g => g.toLowerCase().includes(_tsq));
+  const filteredTasks       = sortByDue(displayTasks.filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter).filter(applyDateFilter).filter(matchesTaskSearch));
+  const myFilteredTasks     = sortByDue(displayTasks.filter(t => t.assignee === myUser || t.assist === myUser).filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter).filter(applyDateFilter).filter(matchesTaskSearch));
 
   const openTask     = t => { if (!isReadOnly) { setEditTask(t); setShowTaskModal(true); } };
   const openDoc      = d => { if (!isReadOnly) { setEditDoc(d); setShowDocModal(true); } };
@@ -896,7 +989,7 @@ export default function App() {
         {(view === "board" || view === "list" || view === "mytasks") && (
           <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ display: "flex", gap: 4, padding: "4px", background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-lg)", flexShrink: 0 }}>
-              {taskTypeOptions.map(([t, l]) => (
+              {taskTypeOptions.filter(([t]) => view !== "board" || t !== "class").map(([t, l]) => (
                 <button key={t} onClick={() => setTaskTypeFilter(t)} style={{ fontSize: 13, padding: "5px 14px", borderRadius: "var(--border-radius-md)", border: "none", background: taskTypeFilter === t ? "var(--color-background-primary)" : "transparent", color: taskTypeFilter === t ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", fontWeight: taskTypeFilter === t ? 500 : 400, boxShadow: taskTypeFilter === t ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>{l}</button>
               ))}
             </div>
@@ -922,16 +1015,21 @@ export default function App() {
               })()}
               <FilterDropdown label="Due date" options={["All","Overdue","Due today","Next 7 days","Next 30 days","No due date"]} value={dateFilter} onChange={setDateFilter} />
               {(deptFilter !== "All" || ownerFilter !== "All" || sessionFilter !== "all" || dateFilter !== "All") && <button onClick={() => { setDeptFilter("All"); setOwnerFilter("All"); setSessionFilter("all"); setDateFilter("All"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
+              <div style={{ position: "relative", marginLeft: "auto" }}>
+                <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--color-text-tertiary)", pointerEvents: "none" }}>⌕</span>
+                <input value={taskSearch} onChange={e => setTaskSearch(e.target.value)} placeholder="Search..." style={{ fontSize: 13, padding: "5px 10px 5px 26px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", width: 180 }} />
+                {taskSearch && <button onClick={() => setTaskSearch("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", fontSize: 14, color: "var(--color-text-tertiary)", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>}
+              </div>
             </>}
           </div>
         )}
 
         <div style={{display:(view==="board"||view==="list"||view==="mytasks")&&taskTypeFilter==="runofshow"?"":"none"}}>
-          <RunOfShowView sessions={sessions} runOfShow={runOfShow} setRunOfShow={setRunOfShow} onSaveRow={handleSaveRunOfShowRow} onDeleteRow={handleDeleteRunOfShowRow} members={members} isReadOnly={isReadOnly} />
+          <RunOfShowView sessions={sessions} runOfShow={runOfShow} setRunOfShow={setRunOfShow} onSaveRow={handleSaveRunOfShowRow} onDeleteRow={handleDeleteRunOfShowRow} onToggleDone={handleToggleRunOfShowDone} members={members} isReadOnly={isReadOnly} />
         </div>
 
         <div style={{display:view==="board"&&showTaskList?"":"none"}}>
-          <BoardView filteredTasks={filteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} boardGroup={boardGroup} setBoardGroup={setBoardGroup} openTask={openTask} onViewMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} />
+          <BoardView filteredTasks={filteredTasks.filter(t=>t.type==="program")} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} boardGroup={boardGroup} setBoardGroup={setBoardGroup} openTask={openTask} onViewMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} />
         </div>
 
         <div style={{display:view==="list"&&showTaskList?"":"none"}}>

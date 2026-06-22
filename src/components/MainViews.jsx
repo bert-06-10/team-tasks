@@ -28,15 +28,6 @@ export function BoardView({filteredTasks,displayTasks,displayDocs,milestones,isR
             <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",margin:"0 0 12px",letterSpacing:"0.04em",paddingTop:4}}>
               {k.toUpperCase()} · {(boardGroups[k]||[]).length}
             </div>
-            {boardGroup==="status"&&k==="To Do"&&[...milestones].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0).map(m => (
-              <div key={m.id} onClick={onViewMilestone?()=>onViewMilestone(m):undefined} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #B5D4F4",background:"#E6F1FB",marginBottom:8,cursor:onViewMilestone?"pointer":"default"}}>
-                <span style={{fontSize:13,color:"#185FA5"}}>◆</span>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:12,fontWeight:500,color:"#185FA5"}}>{m.title}</div>
-                  <div style={{fontSize:11,color:"#185FA5",opacity:0.7}}>{fmtDate(m.date)}</div>
-                </div>
-              </div>
-            ))}
             <div style={{display:"flex",flexDirection:"column",gap:10}}>
               {(boardGroups[k]||[]).map(t => (
                 <div key={t.id} draggable={!isReadOnly&&boardGroup==="status"} onDragStart={e=>onDragStart(e,t.id)} onDragEnd={()=>setDragId(null)} style={{opacity:dragId===t.id?0.4:1,cursor:"grab"}}>
@@ -87,7 +78,7 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
   const groupBy = (ts,key) => { const g={}; ts.forEach(t=>{const k=t[key]||"Unassigned";if(!g[k])g[k]=[];g[k].push(t);}); return g; };
 
   const renderList = ts => (
-    <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"hidden",marginBottom:16}}>
+    <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"clip",marginBottom:16}}>
       <ListHeader selectable={selectable} selectedAll={selectedAll} someSelected={someSelected} onSelectAll={handleSelectAll}/>
       {ts.length===0&&<div style={{padding:"12px 16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No tasks.</div>}
       {ts.map((t,i,arr) => (
@@ -116,7 +107,6 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
           {!isReadOnly && visibleIds.length > 0 && <button onClick={handleSelectAll} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Select all</button>}
           {!isReadOnly && onAddTask && <button onClick={onAddTask} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",fontWeight:500}}>+ Add task</button>}
-          {!isReadOnly && onAddMilestone && <button onClick={onAddMilestone} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",fontWeight:500}}>+ Add milestone</button>}
         </div>
       )}
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -217,44 +207,48 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
         </div>
       );
     }
-    // Program tasks: interleave milestones chronologically
+    // Program tasks: group by date with date headers
     const taskItems = visibleTasks.map(t => ({ type:'task', date:t.due||'', item:t }));
-    const msItems   = milestones.map(m   => ({ type:'milestone', date:m.date||'', item:m }));
-    const sorted    = [...taskItems, ...msItems].sort((a,b) => {
+    const sorted    = [...taskItems].sort((a,b) => {
       if (!a.date && !b.date) return 0;
       if (!a.date) return 1;
       if (!b.date) return -1;
       return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
     });
-    // Assign alternating band per date group so same-day tasks share a shade
-    let band = 0, prevDate = null;
-    const combined = sorted.map(entry => {
-      if (entry.date !== prevDate) { if (prevDate !== null) band = 1 - band; prevDate = entry.date; }
-      return { ...entry, band };
+    // Group by date and insert date header rows
+    const groupMap = new Map();
+    sorted.forEach(entry => {
+      if (!groupMap.has(entry.date)) groupMap.set(entry.date, []);
+      groupMap.get(entry.date).push(entry);
+    });
+    const SHORT_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const fmtHeaderDate = d => {
+      if (!d) return "No date";
+      const p = d.split("-");
+      return `${SHORT_MONTHS[parseInt(p[1],10)-1].toUpperCase()} ${parseInt(p[2],10)}`;
+    };
+    const displayList = [];
+    groupMap.forEach((entries, date) => {
+      displayList.push({ type:'date-header', date, count:entries.length });
+      entries.forEach(e => displayList.push(e));
     });
     return (
       <div>
         <Toolbar/>
-        <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"hidden",marginBottom:16}}>
+        <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"clip",marginBottom:16}}>
           <ListHeader selectable={selectable} selectedAll={selectedAll} someSelected={someSelected} onSelectAll={handleSelectAll}/>
-          {combined.length===0&&<div style={{padding:"12px 16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No tasks.</div>}
-          {combined.map((entry,i,arr) => {
-            const last = i===arr.length-1;
-            if (entry.type==='milestone') {
-              const m = entry.item;
-              const deps = (m.deps||[]).map(id=>displayTasks.find(t=>t.id===id)).filter(Boolean);
-              const doneCount = deps.filter(t=>t.status==="Done").length;
-              const allDone = deps.length>0&&doneCount===deps.length;
+          {displayList.length===0&&<div style={{padding:"12px 16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No tasks.</div>}
+          {displayList.map((entry,i,arr) => {
+            if (entry.type==='date-header') {
               return (
-                <div key={`ms-${m.id}`} onClick={()=>onEditMilestone?.(m)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",background:allDone?"#F0FAF6":"#EEF5FC",cursor:onEditMilestone?"pointer":"default"}}>
-                  <span style={{fontSize:14,color:allDone?"#0F6E56":"#185FA5",flexShrink:0}}>◆</span>
-                  <span style={{fontSize:13,fontWeight:600,color:allDone?"#0F6E56":"#185FA5",flex:1}}>{m.title}</span>
-                  {m.date&&<span style={{fontSize:12,color:allDone?"#0F6E56":"#185FA5",opacity:0.75,flexShrink:0}}>{fmtDate(m.date)}</span>}
-                  {deps.length>0&&<span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:10,background:allDone?"#C6F0E0":"#D0E8FC",color:allDone?"#0F6E56":"#185FA5",flexShrink:0}}>{doneCount}/{deps.length}</span>}
+                <div key={`dh-${entry.date}-${i}`} style={{padding:"5px 14px",background:"var(--color-background-secondary)",borderBottom:"1px solid var(--color-border-tertiary)",display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:11,fontWeight:600,color:"var(--color-text-secondary)",letterSpacing:"0.05em"}}>{fmtHeaderDate(entry.date)}</span>
+                  <span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>{entry.count} {entry.count===1?"item":"items"}</span>
                 </div>
               );
             }
-            return <ListRow key={entry.item.id} task={entry.item} tasks={displayTasks} docs={displayDocs} last={last} readOnly={isReadOnly} onEdit={()=>openTask(entry.item)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} selectable={selectable} selected={selectedIds.has(entry.item.id)} onSelect={toggleSelect} rowBg={entry.band===1?"var(--color-background-tertiary)":undefined}/>;
+            const last = i===arr.length-1 || arr[i+1]?.type==='date-header';
+            return <ListRow key={entry.item.id} task={entry.item} tasks={displayTasks} docs={displayDocs} last={last} readOnly={isReadOnly} onEdit={()=>openTask(entry.item)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} selectable={selectable} selected={selectedIds.has(entry.item.id)} onSelect={toggleSelect}/>;
           })}
         </div>
       </div>
@@ -264,7 +258,6 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
   return (
     <div>
       <Toolbar/>
-      {!hasSessionGrouping&&milestones.length>0&&<MilestoneBar milestones={milestones} tasks={displayTasks} onEdit={onEditMilestone}/>}
       {Object.keys(listGroups).sort().map(k => (
         <div key={k}>
           <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",letterSpacing:"0.04em",marginBottom:8}}>{k.toUpperCase()} · {listGroups[k].length}</div>
@@ -281,6 +274,7 @@ export function CalendarView({tasks,milestones,openTask,statusColors}) {
   const [month,setMonth] = useState(today.getMonth());
   const [year,setYear] = useState(today.getFullYear());
   const [selected,setSelected] = useState(null);
+  const [search,setSearch] = useState("");
   const firstDay = new Date(year,month,1).getDay();
   const daysInMonth = new Date(year,month+1,0).getDate();
   const cells = [];
@@ -288,8 +282,11 @@ export function CalendarView({tasks,milestones,openTask,statusColors}) {
   for(let d=1;d<=daysInMonth;d++) cells.push(d);
   while(cells.length%7!==0) cells.push(null);
   const dateStr = d => `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-  const tasksOnDay = d => tasks.filter(t=>t.due===dateStr(d));
-  const msOnDay = d => milestones.filter(m=>m.date===dateStr(d));
+  const sq = search.trim().toLowerCase();
+  const matchT = t => !sq||(t.title||"").toLowerCase().includes(sq)||(t.assignee||"").toLowerCase().includes(sq)||(t.tags||[]).some(g=>g.toLowerCase().includes(sq));
+  const matchM = m => !sq||(m.title||"").toLowerCase().includes(sq);
+  const tasksOnDay = d => tasks.filter(t=>t.due===dateStr(d)).filter(matchT);
+  const msOnDay = d => milestones.filter(m=>m.date===dateStr(d)).filter(matchM);
   const typeChip = t => t.type==="class"
     ? {bg:"#FAEEDA",color:"#854F0B"}
     : {bg:"#E6F1FB",color:"#185FA5"};
@@ -303,6 +300,11 @@ export function CalendarView({tasks,milestones,openTask,statusColors}) {
           <span style={{fontSize:15,fontWeight:500,color:"var(--color-text-primary)",minWidth:160,textAlign:"center"}}>{MONTHS[month]} {year}</span>
           <button onClick={()=>{if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);}} style={{fontSize:16,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-primary)",padding:"4px 8px"}}>›</button>
           <button onClick={()=>{setMonth(today.getMonth());setYear(today.getFullYear());}} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-secondary)",cursor:"pointer",marginLeft:4}}>Today</button>
+          <div style={{position:"relative",marginLeft:8}}>
+            <span style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{fontSize:12,padding:"4px 10px 4px 26px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:160}}/>
+            {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",padding:0,lineHeight:1}}>×</button>}
+          </div>
           <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:"auto"}}>
             <span style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#185FA5"}}><span style={{width:10,height:10,borderRadius:2,background:"#E6F1FB",border:"1px solid #B5D4F4",display:"inline-block"}}/>Program</span>
             <span style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#854F0B"}}><span style={{width:10,height:10,borderRadius:2,background:"#FAEEDA",border:"1px solid #F0C97A",display:"inline-block"}}/>Class</span>
@@ -400,6 +402,7 @@ export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, 
   const [showTaskPicker,    setShowTaskPicker]    = useState(false);
   const [pickerSelected,    setPickerSelected]    = useState(new Set());
   const [addingTasks,       setAddingTasks]       = useState(false);
+  const [search,            setSearch]            = useState("");
 
   // Consume an inbound sessionId from List → Classes navigation
   useEffect(() => {
@@ -436,8 +439,10 @@ export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, 
         })
     : [];
 
-  const beforeClass = sessionTasks.filter(t => !t.due || !classDate || t.due <= classDate);
-  const afterClass  = sessionTasks.filter(t => t.due && classDate && t.due > classDate);
+  const csq = search.trim().toLowerCase();
+  const searchedTasks = csq ? sessionTasks.filter(t => (t.title||"").toLowerCase().includes(csq)||(t.assignee||"").toLowerCase().includes(csq)||(t.notes||"").toLowerCase().includes(csq)) : sessionTasks;
+  const beforeClass = searchedTasks.filter(t => !t.due || !classDate || t.due <= classDate);
+  const afterClass  = searchedTasks.filter(t => t.due && classDate && t.due > classDate);
   const doneCount   = sessionTasks.filter(t => t.status === "Done").length;
   const pct         = sessionTasks.length ? Math.round((doneCount / sessionTasks.length) * 100) : 0;
 
@@ -530,7 +535,7 @@ export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, 
         <div style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)", letterSpacing: "0.04em", marginBottom: 8 }}>
           {title.toUpperCase()} · {tasks.length}
         </div>
-        <div style={{ background: "var(--color-background-primary)", borderRadius: "var(--border-radius-lg)", border: "0.5px solid var(--color-border-tertiary)", overflow: "hidden" }}>
+        <div style={{ background: "var(--color-background-primary)", borderRadius: "var(--border-radius-lg)", border: "0.5px solid var(--color-border-tertiary)", overflow: "clip" }}>
           <ListHeader />
           {tasks.map((t, i, arr) => (
             <ListRow key={t.id} task={t} tasks={displayClassTasks} docs={[]} last={i === arr.length - 1} readOnly={isReadOnly} onEdit={() => openTask(t)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} />
@@ -548,7 +553,7 @@ export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, 
   return (
     <div>
       {/* Toolbar row */}
-      <div style={{ display: "flex", gap: 16, marginBottom: 20, alignItems: "flex-end", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 16, marginBottom: 20, alignItems: "flex-end", flexWrap: "wrap", justifyContent: "space-between" }}>
         <div>
           <div style={labelStyle}>PROFESSOR</div>
           <select value={selectedProfessor} onChange={e => handleProfessorChange(e.target.value)} style={selectStyle}>
@@ -584,6 +589,11 @@ export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, 
             </button>
           </div>
         )}
+        <div style={{ position: "relative", alignSelf: "flex-end" }}>
+          <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--color-text-tertiary)", pointerEvents: "none" }}>⌕</span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks..." style={{ fontSize: 13, padding: "6px 10px 6px 26px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", width: 180 }} />
+          {search && <button onClick={() => setSearch("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", fontSize: 14, color: "var(--color-text-tertiary)", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>}
+        </div>
       </div>
 
       {/* Add session inline form */}
@@ -886,7 +896,7 @@ export function SearchView({displayTasks,displayDocs,isReadOnly,openTask,openDoc
       {committedQ&&tr.length>0&&(
         <div style={{marginBottom:24}}>
           <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",letterSpacing:"0.04em",marginBottom:10}}>TASKS · {tr.length}</div>
-          <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"hidden"}}>
+          <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"clip"}}>
             <ListHeader/>
             {tr.map((t,i,arr) => <ListRow key={t.id} task={t} tasks={displayTasks} docs={displayDocs} last={i===arr.length-1} readOnly={isReadOnly} onEdit={()=>openTask(t)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors}/>)}
           </div>

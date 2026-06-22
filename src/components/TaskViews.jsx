@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Avatar, Badge, StatusPill, FilterDropdown } from "./Primitives.jsx";
 import { CollateralDetailModal } from "./Modals.jsx";
 import { fmtDate, fmtDateYear, isOverdue, avatarBg, avatarTx, addDays } from "../utils.js";
@@ -12,7 +12,7 @@ const LIST_HEADERS    = ["Task","Owner","Assist","Due date","Notes","Links","Dep
 export function ListHeader({selectable, selectedAll, someSelected, onSelectAll}) {
   const cols = selectable ? LIST_COLS_SEL : LIST_COLS;
   return (
-    <div style={{display:"grid",gridTemplateColumns:cols,borderBottom:"1px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}}>
+    <div style={{display:"grid",gridTemplateColumns:cols,borderBottom:"1px solid var(--color-border-secondary)",background:"var(--color-background-secondary)",position:"sticky",top:0,zIndex:2}}>
       {selectable && (
         <div style={{padding:"8px 10px",display:"flex",alignItems:"center",justifyContent:"center",borderRight:"0.5px solid var(--color-border-tertiary)"}}>
           <input type="checkbox" checked={selectedAll} ref={el => { if (el) el.indeterminate = someSelected && !selectedAll; }} onChange={onSelectAll} style={{cursor:"pointer",margin:0}} />
@@ -176,17 +176,17 @@ export function DocCard({doc,readOnly,onEdit,last}) {
 const DOC_COLS     = "1.5fr 130px 130px 130px 110px 1.5fr 130px 130px 110px 115px 1fr";
 const DOC_COLS_SEL = "36px 1.5fr 130px 130px 130px 110px 1.5fr 130px 130px 110px 115px 1fr";
 const DOC_HEADERS  = ["Title","Owner","Content Owner","Assist","Audience","Description","Editable Link","Shareable Link","Next Update","Last Updated","Tags"];
-const sep = {borderRight:"1px solid var(--color-border-tertiary)"};
-const inp = {fontSize:12,width:"100%",boxSizing:"border-box",padding:"3px 6px",border:"1px solid var(--color-border-secondary)",borderRadius:4,background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"inherit"};
+const sep = {borderRight:"1px solid var(--color-border-secondary)"};
+const inp ={fontSize:12,width:"100%",boxSizing:"border-box",padding:"3px 6px",border:"1px solid var(--color-border-secondary)",borderRadius:4,background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"inherit"};
 
 const DOC_SORT_KEYS = [null,"owner","content_owner","assist","audience",null,null,null,"next_update","updated",null];
 
 function DocListHeader({selectable,selectedAll,someSelected,onSelectAll,sort,onSort}) {
-  const cols = selectable ? DOC_COLS_SEL : DOC_COLS;
+  const hCell = {background:"var(--color-background-secondary)",borderBottom:"1px solid var(--color-border-secondary)",position:"sticky",top:0,zIndex:2,display:"flex",alignItems:"center"};
   return (
-    <div style={{display:"grid",gridTemplateColumns:cols,borderBottom:"1px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}}>
+    <div style={{display:"contents"}}>
       {selectable && (
-        <div style={{padding:"8px 10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}}>
+        <div style={{...hCell,padding:"8px 10px",justifyContent:"center",...sep}}>
           <input type="checkbox" checked={selectedAll} ref={el=>{if(el)el.indeterminate=someSelected&&!selectedAll;}} onChange={onSelectAll} style={{cursor:"pointer",margin:0}}/>
         </div>
       )}
@@ -194,10 +194,10 @@ function DocListHeader({selectable,selectedAll,someSelected,onSelectAll,sort,onS
         const key = DOC_SORT_KEYS[i];
         const active = sort.col === key;
         return (
-          <div key={i} onClick={key ? ()=>onSort(key) : undefined}
-            style={{padding:"8px 12px",fontSize:11,fontWeight:500,color:active?"var(--color-text-primary)":"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em",cursor:key?"pointer":"default",userSelect:"none",display:"flex",alignItems:"center",gap:4,...(i<DOC_HEADERS.length-1?sep:{})}}>
+          <div key={i} onClick={key?()=>onSort(key):undefined}
+            style={{...hCell,padding:"8px 12px",fontSize:11,fontWeight:500,color:active?"var(--color-text-primary)":"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em",cursor:key?"pointer":"default",userSelect:"none",gap:4,...(i<DOC_HEADERS.length-1?sep:{})}}>
             {h}
-            {key && <span style={{fontSize:10,opacity:active?1:0.35}}>{active?(sort.dir==="asc"?"▲":"▼"):"▲"}</span>}
+            {key&&<span style={{fontSize:10,opacity:active?1:0.35}}>{active?(sort.dir==="asc"?"▲":"▼"):"▲"}</span>}
           </div>
         );
       })}
@@ -206,44 +206,41 @@ function DocListHeader({selectable,selectedAll,someSelected,onSelectAll,sort,onS
 }
 
 function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
-  const cols = selectable ? DOC_COLS_SEL : DOC_COLS;
+  const bb = last?"none":"1px solid var(--color-border-secondary)";
+  const bg = selected?"var(--color-background-secondary)":"transparent";
+  const c  = (extra={}) => ({background:bg,borderBottom:bb,display:"flex",alignItems:"center",cursor:"pointer",...extra});
+  const open = () => onOpen(doc);
   return (
-    <div onClick={()=>onOpen(doc)} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",background:selected?"var(--color-background-secondary)":"transparent",cursor:"pointer"}}>
+    <div style={{display:"contents"}}>
       {selectable && (
-        <div style={{padding:"11px 10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}} onClick={e=>e.stopPropagation()}>
+        <div style={{...c({cursor:"default"}),padding:"11px 10px",justifyContent:"center",...sep}} onClick={e=>{e.stopPropagation();onSelect(doc.id);}}>
           <input type="checkbox" checked={!!selected} onChange={()=>onSelect(doc.id)} style={{cursor:"pointer",margin:0}}/>
         </div>
       )}
-      <div style={{padding:"11px 12px",minWidth:0,...sep}}>
-        <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{doc.title}</div>
+      <div onClick={open} style={{...c(),padding:"11px 12px",minWidth:0,...sep}}>
+        <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,width:"100%"}}>{doc.title}</div>
       </div>
-      <div style={{padding:"11px 10px",display:"flex",alignItems:"center",...sep}}>
-        {doc.owner ? <span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.owner),color:avatarTx(doc.owner),whiteSpace:"nowrap"}}>{doc.owner}</span> : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      <div onClick={open} style={{...c(),padding:"11px 10px",...sep}}>
+        {doc.owner?<span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.owner),color:avatarTx(doc.owner),whiteSpace:"nowrap"}}>{doc.owner}</span>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div style={{padding:"11px 10px",display:"flex",alignItems:"center",...sep}}>
-        {doc.content_owner ? <span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.content_owner),color:avatarTx(doc.content_owner),whiteSpace:"nowrap"}}>{doc.content_owner}</span> : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      <div onClick={open} style={{...c(),padding:"11px 10px",...sep}}>
+        {doc.content_owner?<span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.content_owner),color:avatarTx(doc.content_owner),whiteSpace:"nowrap"}}>{doc.content_owner}</span>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div style={{padding:"11px 10px",display:"flex",alignItems:"center",...sep}}>
-        {doc.assist ? <span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.assist),color:avatarTx(doc.assist),whiteSpace:"nowrap"}}>{doc.assist}</span> : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      <div onClick={open} style={{...c(),padding:"11px 10px",...sep}}>
+        {doc.assist?<span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.assist),color:avatarTx(doc.assist),whiteSpace:"nowrap"}}>{doc.assist}</span>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",...sep}} title={doc.audience||""}>{doc.audience||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
-      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",...sep}} title={doc.description||""}>{doc.description||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
-      <div style={{padding:"11px 12px",...sep}} onClick={e=>e.stopPropagation()}>
-        {doc.url
-          ? <a href={doc.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}}>↗ Open</a>
-          : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,...sep}} title={doc.audience||""}>{doc.audience||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,...sep}} title={doc.description||""}>{doc.description||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div style={{...c({cursor:"default"}),padding:"11px 12px",...sep}}>
+        {doc.url?<a href={doc.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}}>↗ Open</a>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div style={{padding:"11px 12px",...sep}} onClick={e=>e.stopPropagation()}>
-        {doc.shareable_link
-          ? <a href={doc.shareable_link} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}}>↗ Open</a>
-          : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      <div style={{...c({cursor:"default"}),padding:"11px 12px",...sep}}>
+        {doc.shareable_link?<a href={doc.shareable_link} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}}>↗ Open</a>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDate(doc.next_update)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
-      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDateYear(doc.updated)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
-      <div style={{padding:"11px 12px",display:"flex",gap:4,flexWrap:"wrap",alignItems:"center",...sep}}>
-        {(doc.tags||[]).length>0
-          ? doc.tags.map(t=><span key={t} style={{fontSize:11,padding:"2px 7px",borderRadius:10,background:"var(--color-background-secondary)",color:"var(--color-text-secondary)",whiteSpace:"nowrap"}}>{t}</span>)
-          : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDate(doc.next_update)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDateYear(doc.updated)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div onClick={open} style={{...c(),padding:"11px 12px",flexWrap:"wrap",gap:4,...sep}}>
+        {(doc.tags||[]).length>0?doc.tags.map(t=><span key={t} style={{fontSize:11,padding:"2px 7px",borderRadius:10,background:"var(--color-background-secondary)",color:"var(--color-text-secondary)",whiteSpace:"nowrap"}}>{t}</span>):<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
     </div>
   );
@@ -343,9 +340,9 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
           <button onClick={()=>setSelectedIds(new Set())} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>
         </div>
       )}
-      <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"hidden"}}>
+      <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"clip",display:"grid",gridTemplateColumns:selectable?DOC_COLS_SEL:DOC_COLS}}>
         {displayDocs.length===0
-          ? <div style={{padding:"16px",fontSize:13,color:"var(--color-text-tertiary)"}}>{anyFilter?"No documents match the current filters.":"No documents."}</div>
+          ? <div style={{padding:"16px",fontSize:13,color:"var(--color-text-tertiary)",gridColumn:"1/-1"}}>{anyFilter||sq?"No documents match the current filters.":"No documents."}</div>
           : <>
               <DocListHeader selectable={selectable} selectedAll={selectedAll} someSelected={someSelected} onSelectAll={handleSelectAll} sort={sort} onSort={toggleSort}/>
               {displayDocs.map((d,i,arr)=>(
@@ -366,15 +363,23 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
 }
 
 // ── Run of Show View ──────────────────────────────────────────────────────────
-export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDeleteRow,members,isReadOnly}) {
+export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDeleteRow,onToggleDone,members,isReadOnly}) {
   const [selectedSession, setSelectedSession] = useState(sessions[0]?.id||"");
   const [editingRow,  setEditingRow]  = useState(null);
   const [editVal,     setEditVal]     = useState({});
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [doneRows,    setDoneRows]    = useState(new Set());
   const [expandedRow, setExpandedRow] = useState(null);
+  const [search,      setSearch]      = useState("");
 
   const rows = runOfShow[selectedSession]||[];
+  const rsq  = search.trim().toLowerCase();
+  const visibleRows = rsq ? rows.filter(r =>
+    (r.event||"").toLowerCase().includes(rsq) ||
+    (r.owner||"").toLowerCase().includes(rsq) ||
+    (r.assist||"").toLowerCase().includes(rsq) ||
+    (r.time||"").toLowerCase().includes(rsq) ||
+    (r.notes||"").toLowerCase().includes(rsq)
+  ) : rows;
 
   const switchSession = id => {
     setSelectedSession(id);
@@ -423,7 +428,14 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
 
   const toggleDone = (id, e) => {
     e.stopPropagation();
-    setDoneRows(prev => { const next=new Set(prev); next.has(id)?next.delete(id):next.add(id); return next; });
+    const row = (runOfShow[selectedSession] || []).find(r => r.id === id);
+    if (!row) return;
+    const newDone = !row.done;
+    setRunOfShow(prev => ({
+      ...prev,
+      [selectedSession]: (prev[selectedSession] || []).map(r => r.id === id ? { ...r, done: newDone } : r),
+    }));
+    if (onToggleDone && !String(id).startsWith('ri')) onToggleDone(id, newDone);
   };
 
   const allSelected  = rows.length > 0 && rows.every(r => selectedIds.has(r.id));
@@ -443,8 +455,18 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
     try { await Promise.all(ids.map(id => onDeleteRow(id))); } catch(e) { console.error('Failed to delete rows', e); }
   };
 
-  const colLabels = ["Time","Event","Owner","Assist"];
-  const gridCols  = `36px 90px 1fr 130px 130px 36px`;
+  const colLabels = ["Time","Task","Owner","Assist"];
+  const taskColPx = useMemo(() => {
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (!ctx) return 200;
+    ctx.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const widths = [
+      ctx.measureText('Task').width,
+      ...rows.map(r => ctx.measureText(r.event || '').width),
+    ];
+    return Math.ceil(Math.max(80, ...widths)) + 24; // 24px for cell padding
+  }, [rows]);
+  const gridCols  = `36px 90px ${taskColPx}px 130px 130px 36px`;
   const sep = {borderRight:"1px solid var(--color-border-tertiary)"};
 
   return (
@@ -460,7 +482,12 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
               })}
             </select>
         }
-        {!isReadOnly && <button onClick={newRow} style={{marginLeft:"auto",fontSize:13,padding:"5px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer"}}>+ Add row</button>}
+        <div style={{position:"relative",marginLeft:"auto"}}>
+          <span style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{fontSize:13,padding:"5px 10px 5px 26px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:160}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",padding:0,lineHeight:1}}>×</button>}
+        </div>
+        {!isReadOnly && <button onClick={newRow} style={{fontSize:13,padding:"5px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer"}}>+ Add row</button>}
       </div>
 
       {!isReadOnly && rows.length > 0 && (
@@ -478,9 +505,9 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
         </div>
       )}
 
-      <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"hidden"}}>
+      <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"clip",width:"fit-content"}}>
         {/* Header */}
-        <div style={{display:"grid",gridTemplateColumns:gridCols,borderBottom:"1px solid var(--color-border-secondary)",background:"var(--color-background-secondary)"}}>
+        <div style={{display:"grid",gridTemplateColumns:gridCols,borderBottom:"1px solid var(--color-border-secondary)",background:"var(--color-background-secondary)",position:"sticky",top:0,zIndex:2}}>
           <div style={{padding:"8px 10px",display:"flex",alignItems:"center",justifyContent:"center",...sep}}>
             {!isReadOnly && rows.length > 0 && <input type="checkbox" checked={allSelected} ref={el=>{if(el)el.indeterminate=someSelected&&!allSelected;}} onChange={handleSelectAll} style={{cursor:"pointer",margin:0}}/>}
           </div>
@@ -491,13 +518,14 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
         </div>
 
         {rows.length===0 && <div style={{padding:"16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No run of show entries for this session yet.</div>}
+        {rows.length>0 && visibleRows.length===0 && <div style={{padding:"16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No entries match the search.</div>}
 
-        {rows.map((row, ri) => {
+        {visibleRows.map((row, ri) => {
           const selected = selectedIds.has(row.id);
-          const done     = doneRows.has(row.id);
+          const done     = !!row.done;
           const editing  = editingRow === row.id;
           const expanded = expandedRow === row.id;
-          const isLast   = ri === rows.length - 1;
+          const isLast   = ri === visibleRows.length - 1;
           const doneStyle = done ? {textDecoration:"line-through", opacity:0.45} : {};
 
           return (
@@ -534,7 +562,7 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
                     <input type="checkbox" checked={selected} onChange={e=>toggleSelect(row.id,e)} style={{cursor:"pointer",margin:0}}/>
                   </div>
                   <div style={{padding:"10px 12px",fontSize:13,color:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",...sep,...doneStyle}}>{row.time||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
-                  <div style={{padding:"10px 12px",fontSize:13,color:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",...sep,...doneStyle}}>{row.event||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+                  <div style={{padding:"10px 12px",fontSize:13,color:"var(--color-text-primary)",whiteSpace:"nowrap",...sep,...doneStyle}}>{row.event||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
                   <div style={{padding:"10px 12px",...sep}}>
                     {row.owner ? <div style={{display:"flex",alignItems:"center",gap:6,...doneStyle}}><Avatar name={row.owner} size={20}/><span style={{fontSize:12}}>{row.owner}</span></div> : <span style={{color:"var(--color-text-tertiary)"}}>—</span>}
                   </div>
