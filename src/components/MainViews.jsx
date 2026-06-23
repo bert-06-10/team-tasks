@@ -286,12 +286,13 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
 }
 
 // ── Calendar View ─────────────────────────────────────────────────────────────
-export function CalendarView({tasks,milestones,openTask,statusColors}) {
+export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
   const today = new Date();
   const [month,setMonth] = useState(today.getMonth());
   const [year,setYear] = useState(today.getFullYear());
   const [selected,setSelected] = useState(null);
   const [search,setSearch] = useState("");
+  const [myOnly,setMyOnly] = useState(false);
   const firstDay = new Date(year,month,1).getDay();
   const daysInMonth = new Date(year,month+1,0).getDate();
   const cells = [];
@@ -300,7 +301,10 @@ export function CalendarView({tasks,milestones,openTask,statusColors}) {
   while(cells.length%7!==0) cells.push(null);
   const dateStr = d => `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
   const sq = search.trim().toLowerCase();
-  const matchT = t => !sq||(t.title||"").toLowerCase().includes(sq)||(t.assignee||"").toLowerCase().includes(sq)||(t.tags||[]).some(g=>g.toLowerCase().includes(sq));
+  const matchT = t => {
+    if (myOnly && myUser && t.assignee!==myUser && t.assist!==myUser) return false;
+    return !sq||(t.title||"").toLowerCase().includes(sq)||(t.assignee||"").toLowerCase().includes(sq)||(t.tags||[]).some(g=>g.toLowerCase().includes(sq));
+  };
   const matchM = m => !sq||(m.title||"").toLowerCase().includes(sq);
   const tasksOnDay = d => tasks.filter(t=>t.due===dateStr(d)).filter(matchT);
   const msOnDay = d => milestones.filter(m=>m.date===dateStr(d)).filter(matchM);
@@ -317,6 +321,7 @@ export function CalendarView({tasks,milestones,openTask,statusColors}) {
           <span style={{fontSize:15,fontWeight:500,color:"var(--color-text-primary)",minWidth:160,textAlign:"center"}}>{MONTHS[month]} {year}</span>
           <button onClick={()=>{if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);}} style={{fontSize:16,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-primary)",padding:"4px 8px"}}>›</button>
           <button onClick={()=>{setMonth(today.getMonth());setYear(today.getFullYear());}} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-secondary)",cursor:"pointer",marginLeft:4}}>Today</button>
+          {myUser && <button onClick={()=>setMyOnly(v=>!v)} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:myOnly?"0.5px solid var(--color-border-primary)":"0.5px solid var(--color-border-tertiary)",background:myOnly?"var(--color-background-secondary)":"transparent",color:myOnly?"var(--color-text-primary)":"var(--color-text-secondary)",cursor:"pointer",fontWeight:myOnly?500:400}}>My tasks</button>}
           <div style={{position:"relative",marginLeft:8}}>
             <span style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{fontSize:12,padding:"4px 10px 4px 26px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:160}}/>
