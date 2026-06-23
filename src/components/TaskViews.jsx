@@ -238,10 +238,10 @@ function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
         {doc.owner?<span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.owner),color:avatarTx(doc.owner),whiteSpace:"nowrap"}}>{doc.owner}</span>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
       <div onClick={open} style={{...c(),padding:"11px 10px",...sep}}>
-        {doc.content_owner?<span title={doc.content_owner} style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.content_owner),color:avatarTx(doc.content_owner),whiteSpace:"nowrap"}}>{doc.content_owner.split(" ").map(w=>w[0]).join("").toUpperCase()}</span>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+        {doc.content_owner?<Avatar name={doc.content_owner} size={26}/>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
       <div onClick={open} style={{...c(),padding:"11px 10px",...sep}}>
-        {doc.assist?<span title={doc.assist} style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.assist),color:avatarTx(doc.assist),whiteSpace:"nowrap"}}>{doc.assist.split(" ").map(w=>w[0]).join("").toUpperCase()}</span>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+        {doc.assist?<Avatar name={doc.assist} size={26}/>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
       <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,...sep}} title={doc.audience||""}>{doc.audience||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
       <div style={{...c({cursor:"default"}),padding:"11px 12px",...sep}}>
