@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { BoardView, ListView, CalendarView, SearchView, ClassesView } from "./components/MainViews.jsx";
+import { BoardView, ListView, CalendarView, SearchView } from "./components/MainViews.jsx";
 import { RunOfShowView, ListHeader, ListRow, DocCard, CollateralView } from "./components/TaskViews.jsx";
 import { FilterDropdown } from "./components/Primitives.jsx";
 import { SettingsModal } from "./components/Settings.jsx";
-import { MilestoneModal, MilestoneDetailModal, TaskModal, DocModal, ImportModal, ImportCollateralModal, CycleModal } from "./components/Modals.jsx";
+import { MilestoneModal, MilestoneDetailModal, TaskModal, DocModal, ImportModal, ImportCollateralModal, CycleModal, AddSessionModal, StandardTasksModal } from "./components/Modals.jsx";
 import { AuthScreen } from "./components/AuthScreen.jsx";
 import { VIEWS, VIEW_LABELS, DEFAULT_STATUS_COLORS, DEFAULT_PREFS } from "./constants.js";
 import { avatarBg, avatarTx, initials, isOverdue, isWeekend, addDays, isFlagged, closestBusinessDay, genClassTasks, exportTasksToCSV, fmtDate, setDefaultTimezone } from "./utils.js";
@@ -46,7 +46,7 @@ export default function App() {
 
   // ── UI state ────────────────────────────────────────────────────────────────
   const [toasts,                    setToasts]                    = useState([]);
-  const [view, setViewRaw] = useState(() => sessionStorage.getItem('teamtasks_view') || 'board');
+  const [view, setViewRaw] = useState(() => { const s = sessionStorage.getItem('teamtasks_view'); return (s && s !== 'classes') ? s : 'board'; });
   const setView = useCallback((v) => { setViewRaw(v); sessionStorage.setItem('teamtasks_view', v); }, []);
   const [taskTypeFilter, setTaskTypeFilterRaw] = useState(() => sessionStorage.getItem('teamtasks_type') || 'program');
   const setTaskTypeFilter = useCallback((v) => { setTaskTypeFilterRaw(v); sessionStorage.setItem('teamtasks_type', v); }, []);
@@ -62,6 +62,9 @@ export default function App() {
   const [classTaskTemplate,         setClassTaskTemplate]         = useState(() => { try { const s = localStorage.getItem('teamtasks_class_task_template'); return s ? JSON.parse(s) : null; } catch { return null; } });
   const [importHistory,             setImportHistory]             = useState(() => { try { return JSON.parse(localStorage.getItem('teamtasks_import_history')) || []; } catch { return []; } });
 
+  const [showAddSessionModal,        setShowAddSessionModal]        = useState(false);
+  const [addSessionDuplicateFrom,   setAddSessionDuplicateFrom]   = useState(null);
+  const [showStandardTasksModal,    setShowStandardTasksModal]    = useState(false);
   const [showTaskModal,             setShowTaskModal]             = useState(false);
   const [showDocModal,              setShowDocModal]              = useState(false);
   const [showCycleModal,            setShowCycleModal]            = useState(false);
@@ -77,9 +80,6 @@ export default function App() {
   const [renameValue,               setRenameValue]               = useState('');
   const [openDropdown,              setOpenDropdown]              = useState(null);
   const [settingsTab,               setSettingsTab]               = useState("owners");
-  const [classesSessionId,          setClassesSessionId]          = useState(null);
-  const [classesSelectedProfessor,  setClassesSelectedProfessor]  = useState("");
-  const [classesSelectedSessionId,  setClassesSelectedSessionId]  = useState("");
   const [editTask,      setEditTask]      = useState(null);
   const [editDoc,       setEditDoc]       = useState(null);
   const [editMilestone, setEditMilestone] = useState(null);
@@ -705,15 +705,15 @@ export default function App() {
   };
 
   // ── Session handlers ────────────────────────────────────────────────────────
-  const navigateToClasses = (sessionId) => {
-    setClassesSessionId(sessionId);
-    setView("classes");
+  const handleAddSessionFromModal = async (sessData) => {
+    await saveSession({
+      ...sessData,
+      ...(addSessionDuplicateFrom && { duplicateFromId: addSessionDuplicateFrom.id }),
+    });
   };
 
-  const navigateToList = () => {
-    setTaskTypeFilter("class");
-    setView("list");
-  };
+  const openAddSession = () => { setAddSessionDuplicateFrom(null); setShowAddSessionModal(true); };
+  const openDuplicateSession = (sess) => { setAddSessionDuplicateFrom(sess); setShowAddSessionModal(true); };
 
   const updateSession = async (sessionData) => {
     try {
@@ -780,11 +780,6 @@ export default function App() {
     if (!window.confirm(msg)) return;
     setSessions(prev => prev.filter(s => s.id !== sessionId));
     setClassTasks(prev => prev.filter(t => t.sessionId !== sessionId));
-    if (classesSelectedSessionId === sessionId) {
-      setClassesSelectedSessionId("");
-      const remaining = sessions.filter(s => s.id !== sessionId && (s.professor || s.name) === classesSelectedProfessor);
-      if (!remaining.length) setClassesSelectedProfessor("");
-    }
     try {
       await db.deleteSession(sessionId);
       toast(`Session "${label}" deleted.`);
@@ -948,6 +943,19 @@ export default function App() {
               </div>
             )}
 
+            {/* Classes dropdown */}
+            {!isReadOnly && (
+              <div style={{ position: "relative", zIndex: 100 }}>
+                <button onClick={() => setOpenDropdown(openDropdown === 'classes' ? null : 'classes')} style={{ fontSize: 13, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'classes' ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>Classes ▾</button>
+                {openDropdown === 'classes' && (
+                  <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 170, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200 }}>
+                    <div onClick={() => { setOpenDropdown(null); openAddSession(); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add session</div>
+                    <div onClick={() => { setOpenDropdown(null); setShowStandardTasksModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Standard tasks</div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Import dropdown */}
             {!isReadOnly && (
               <div style={{ position: "relative", zIndex: 100 }}>
@@ -989,7 +997,7 @@ export default function App() {
         {(view === "board" || view === "list" || view === "mytasks") && (
           <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ display: "flex", gap: 4, padding: "4px", background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-lg)", flexShrink: 0 }}>
-              {taskTypeOptions.filter(([t]) => view !== "board" || t !== "class").map(([t, l]) => (
+              {taskTypeOptions.filter(([t]) => view !== "board" || (t !== "class" && t !== "runofshow")).map(([t, l]) => (
                 <button key={t} onClick={() => setTaskTypeFilter(t)} style={{ fontSize: 13, padding: "5px 14px", borderRadius: "var(--border-radius-md)", border: "none", background: taskTypeFilter === t ? "var(--color-background-primary)" : "transparent", color: taskTypeFilter === t ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", fontWeight: taskTypeFilter === t ? 500 : 400, boxShadow: taskTypeFilter === t ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>{l}</button>
               ))}
             </div>
@@ -1024,7 +1032,7 @@ export default function App() {
           </div>
         )}
 
-        <div style={{display:(view==="board"||view==="list"||view==="mytasks")&&taskTypeFilter==="runofshow"?"":"none"}}>
+        <div style={{display:(view==="list"||view==="mytasks")&&taskTypeFilter==="runofshow"?"":"none"}}>
           <RunOfShowView sessions={sessions} runOfShow={runOfShow} setRunOfShow={setRunOfShow} onSaveRow={handleSaveRunOfShowRow} onDeleteRow={handleDeleteRunOfShowRow} onToggleDone={handleToggleRunOfShowDone} members={members} isReadOnly={isReadOnly} />
         </div>
 
@@ -1033,18 +1041,14 @@ export default function App() {
         </div>
 
         <div style={{display:view==="list"&&showTaskList?"":"none"}}>
-          <ListView filteredTasks={filteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} onAddTask={()=>{setEditTask({...newTaskBase});setShowTaskModal(true);}} onAddMilestone={()=>{setEditMilestone({title:"",date:"",deps:[],collateralDeps:[]});setShowMilestoneModal(true);}} onEditMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} sessions={taskTypeFilter==="class"?sessions:undefined} onNavigateToClasses={taskTypeFilter==="class"?navigateToClasses:undefined} />
+          <ListView filteredTasks={filteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} onAddTask={()=>{setEditTask({...newTaskBase});setShowTaskModal(true);}} onAddMilestone={()=>{setEditMilestone({title:"",date:"",deps:[],collateralDeps:[]});setShowMilestoneModal(true);}} onEditMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} sessions={taskTypeFilter==="class"?sessions:undefined} />
         </div>
 
         <div style={{display:view==="mytasks"&&showTaskList?"":"none"}}>
-          <ListView filteredTasks={myFilteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} onAddTask={()=>{setEditTask({...newTaskBase});setShowTaskModal(true);}} onEditMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} sessions={taskTypeFilter==="class"?sessions:undefined} onNavigateToClasses={taskTypeFilter==="class"?navigateToClasses:undefined} />
+          <ListView filteredTasks={myFilteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} onAddTask={()=>{setEditTask({...newTaskBase});setShowTaskModal(true);}} onEditMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} sessions={taskTypeFilter==="class"?sessions:undefined} />
         </div>
 
-        <div style={{display:view==="classes"?"":"none"}}>
-          <ClassesView displayClassTasks={displayClassTasks} sessions={sessions} members={members} isReadOnly={isReadOnly} openTask={openTask} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} initialSessionId={classesSessionId} onSessionIdConsumed={()=>setClassesSessionId(null)} onNavigateToList={navigateToList} onSaveSession={saveSession} onUpdateSession={updateSession} onDeleteSession={deleteSession} classTaskTemplate={classTaskTemplate} onSaveTemplate={saveClassTaskTemplate} onApplyTemplate={applyTemplateToSession} onAddSelectedTasks={addSelectedTasksToSession} myUser={myUser} selectedProfessor={classesSelectedProfessor} onProfessorChange={setClassesSelectedProfessor} selectedSessionId={classesSelectedSessionId} onSessionIdChange={setClassesSelectedSessionId} />
-        </div>
-
-        <div style={{display:view==="calendar"?"":"none"}}>
+<div style={{display:view==="calendar"?"":"none"}}>
           <CalendarView tasks={displayAllTasks} milestones={milestones} openTask={openTask} statusColors={statusColors} />
         </div>
 
@@ -1058,6 +1062,8 @@ export default function App() {
       </div>
 
       {/* Modals */}
+      {showAddSessionModal && !isReadOnly && <AddSessionModal isDuplicate={!!addSessionDuplicateFrom} initialData={addSessionDuplicateFrom ? { professor: addSessionDuplicateFrom.professor || addSessionDuplicateFrom.name || "", cohort: addSessionDuplicateFrom.cohort || "Cohort 1", date: "", addTasks: false } : undefined} template={classTaskTemplate} onSave={handleAddSessionFromModal} onClose={() => { setShowAddSessionModal(false); setAddSessionDuplicateFrom(null); }} />}
+      {showStandardTasksModal && !isReadOnly && <StandardTasksModal template={classTaskTemplate} members={members} sessions={sessions} onSaveTemplate={saveClassTaskTemplate} onApplyTemplate={applyTemplateToSession} onClose={() => setShowStandardTasksModal(false)} />}
       {showTaskModal     && editTask     && <TaskModal task={editTask} tasks={allTasks} docs={docs} milestones={milestones} members={members} departments={departments} globalTags={globalTags} prefs={prefs} sessions={sessions} onChange={setEditTask} onSave={saveTask} onDelete={deleteTask} onClose={() => { setShowTaskModal(false); setEditTask(null); }} />}
       {showDocModal      && editDoc      && <DocModal doc={editDoc} members={members} audiences={audiences} globalTags={globalTags} prefs={prefs} onChange={setEditDoc} onSave={saveDoc} onDelete={deleteDoc} onClose={() => { setShowDocModal(false); setEditDoc(null); }} />}
       {showMilestoneDetail && viewMilestone && (()=>{ const dm = milestones.find(m=>m.id===viewMilestone.id) ?? viewMilestone; return <MilestoneDetailModal milestone={dm} tasks={allTasks} docs={docs} onEdit={m=>{setShowMilestoneDetail(false);setViewMilestone(null);setEditMilestone({...m,deps:m.deps||[],collateralDeps:m.collateralDeps||[]});setShowMilestoneModal(true);}} onClose={()=>{setShowMilestoneDetail(false);setViewMilestone(null);}}/> })()}
