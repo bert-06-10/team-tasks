@@ -4,8 +4,8 @@ export const DOC_TYPES = ["Google Drive","PDF","Web Link"];
 export const INIT_DEPARTMENTS = ["Engineering","Design","Marketing","Research","Operations"];
 export const INIT_AUDIENCES = ["All Team","Engineering","Design","Marketing","Research"];
 export const INIT_TAGS = ["design","onboarding","docs","engineering","research","brand","roadmap"];
-export const VIEWS = ["board","list","mytasks","classes","calendar","collateral","search"];
-export const VIEW_LABELS = {board:"Board",list:"All tasks",mytasks:"My tasks",classes:"Classes",calendar:"Calendar",collateral:"Collateral",search:"Search"};
+export const VIEWS = ["board","list","mytasks","calendar","collateral","runofshow","search"];
+export const VIEW_LABELS = {board:"Board",list:"All tasks",mytasks:"My tasks",calendar:"Calendar",collateral:"Collateral",runofshow:"Run of Show",search:"Search"};
 export const DEFAULT_CLASS_TASKS = ["Prepare session materials","Send participant reminder","Set up room/platform","Facilitate session","Post recording & notes","Follow-up survey"];
 export const DEFAULT_STATUS_COLORS = {
   "To Do":      {bg:"#F1EFE8",color:"#5F5E5A",border:"#D3D1C7"},

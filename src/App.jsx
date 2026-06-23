@@ -48,7 +48,7 @@ export default function App() {
   const [toasts,                    setToasts]                    = useState([]);
   const [view, setViewRaw] = useState(() => { const s = sessionStorage.getItem('teamtasks_view'); return (s && s !== 'classes') ? s : 'board'; });
   const setView = useCallback((v) => { setViewRaw(v); sessionStorage.setItem('teamtasks_view', v); }, []);
-  const [taskTypeFilter, setTaskTypeFilterRaw] = useState(() => sessionStorage.getItem('teamtasks_type') || 'program');
+  const [taskTypeFilter, setTaskTypeFilterRaw] = useState(() => { const t = sessionStorage.getItem('teamtasks_type'); return (t && t !== 'runofshow') ? t : 'program'; });
   const setTaskTypeFilter = useCallback((v) => { setTaskTypeFilterRaw(v); sessionStorage.setItem('teamtasks_type', v); }, []);
   const [taskSearch,                setTaskSearch]                = useState("");
   const [boardGroup,                setBoardGroup]                = useState("status");
@@ -849,8 +849,8 @@ export default function App() {
   const openDoc      = d => { if (!isReadOnly) { setEditDoc(d); setShowDocModal(true); } };
   const openSettings = (tab = "owners") => { setSettingsTab(tab); setShowSettings(true); };
 
-  const newTaskBase     = { title: "", assignee: myUser, assist: "", due: "", status: "To Do", notes: "", deps: [], collateralDeps: [], attachedDocs: [], tags: [], offset: 0, fallOffset: 0, department: "", type: taskTypeFilter === "runofshow" ? "class" : taskTypeFilter };
-  const taskTypeOptions = [["program", "Program tasks"], ["class", "Class tasks"], ["runofshow", "Run of show"]];
+  const newTaskBase     = { title: "", assignee: myUser, assist: "", due: "", status: "To Do", notes: "", deps: [], collateralDeps: [], attachedDocs: [], tags: [], offset: 0, fallOffset: 0, department: "", type: taskTypeFilter };
+  const taskTypeOptions = [["program", "Program tasks"], ["class", "Class tasks"]];
   const showTaskList    = taskTypeFilter === "program" || taskTypeFilter === "class";
 
   // ── Screens ─────────────────────────────────────────────────────────────────
@@ -997,7 +997,7 @@ export default function App() {
         {(view === "board" || view === "list" || view === "mytasks") && (
           <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ display: "flex", gap: 4, padding: "4px", background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-lg)", flexShrink: 0 }}>
-              {taskTypeOptions.filter(([t]) => view !== "board" || (t !== "class" && t !== "runofshow")).map(([t, l]) => (
+              {taskTypeOptions.filter(([t]) => view !== "board" || t !== "class").map(([t, l]) => (
                 <button key={t} onClick={() => setTaskTypeFilter(t)} style={{ fontSize: 13, padding: "5px 14px", borderRadius: "var(--border-radius-md)", border: "none", background: taskTypeFilter === t ? "var(--color-background-primary)" : "transparent", color: taskTypeFilter === t ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", fontWeight: taskTypeFilter === t ? 500 : 400, boxShadow: taskTypeFilter === t ? "0 1px 3px rgba(0,0,0,0.08)" : "none" }}>{l}</button>
               ))}
             </div>
@@ -1032,7 +1032,7 @@ export default function App() {
           </div>
         )}
 
-        <div style={{display:(view==="list"||view==="mytasks")&&taskTypeFilter==="runofshow"?"":"none"}}>
+        <div style={{display:view==="runofshow"?"":"none"}}>
           <RunOfShowView sessions={sessions} runOfShow={runOfShow} setRunOfShow={setRunOfShow} onSaveRow={handleSaveRunOfShowRow} onDeleteRow={handleDeleteRunOfShowRow} onToggleDone={handleToggleRunOfShowDone} members={members} isReadOnly={isReadOnly} />
         </div>
 

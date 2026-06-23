@@ -377,7 +377,23 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
 
 // ── Run of Show View ──────────────────────────────────────────────────────────
 export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDeleteRow,onToggleDone,members,isReadOnly}) {
-  const [selectedSession, setSelectedSession] = useState(sessions[0]?.id||"");
+  const professors = useMemo(() => [...new Set(sessions.map(s=>s.professor||s.name||"").filter(Boolean))].sort(), [sessions]);
+  const [selProf,  setSelProf]  = useState(() => professors[0]||"");
+  const profSessions = useMemo(() => sessions.filter(s=>(s.professor||s.name||"")===(selProf||professors[0]||"")), [sessions,selProf,professors]);
+  const [selDate,  setSelDate]  = useState(() => profSessions[0]?.id||"");
+  const selectedSession = selDate || profSessions[0]?.id || "";
+
+  const switchProf = prof => {
+    setSelProf(prof);
+    const first = sessions.filter(s=>(s.professor||s.name||"")===prof)[0];
+    setSelDate(first?.id||"");
+    setEditingRow(null); setEditVal({}); setExpandedRow(null); setSelectedIds(new Set());
+  };
+  const switchDate = id => {
+    setSelDate(id);
+    setEditingRow(null); setEditVal({}); setExpandedRow(null); setSelectedIds(new Set());
+  };
+
   const [editingRow,  setEditingRow]  = useState(null);
   const [editVal,     setEditVal]     = useState({});
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -393,14 +409,6 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
     (r.time||"").toLowerCase().includes(rsq) ||
     (r.notes||"").toLowerCase().includes(rsq)
   ) : rows;
-
-  const switchSession = id => {
-    setSelectedSession(id);
-    setEditingRow(null);
-    setEditVal({});
-    setExpandedRow(null);
-    setSelectedIds(new Set());
-  };
 
   const newRow = () => {
     const id = "ri"+Date.now();
@@ -484,23 +492,30 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
 
   return (
     <div>
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-        <span style={{fontSize:13,color:"var(--color-text-secondary)",flexShrink:0}}>Session:</span>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,flexWrap:"wrap"}}>
         {sessions.length === 0
           ? <span style={{fontSize:13,color:"var(--color-text-tertiary)"}}>No sessions yet.</span>
-          : <select value={selectedSession} onChange={e=>switchSession(e.target.value)} style={{fontSize:13,padding:"6px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",minWidth:220,maxWidth:400}}>
-              {sessions.map(s => {
-                const label = [s.professor||s.name, s.cohort?`— ${s.cohort}`:"", s.date?`· ${fmtDate(s.date)}`:""].filter(Boolean).join(" ");
-                return <option key={s.id} value={s.id}>{label}</option>;
-              })}
-            </select>
+          : <>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:13,color:"var(--color-text-secondary)",flexShrink:0}}>Professor:</span>
+                <select value={selProf} onChange={e=>switchProf(e.target.value)} style={{fontSize:13,padding:"6px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}>
+                  {professors.map(p=><option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:13,color:"var(--color-text-secondary)",flexShrink:0}}>Date:</span>
+                <select value={selectedSession} onChange={e=>switchDate(e.target.value)} style={{fontSize:13,padding:"6px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}>
+                  {profSessions.map(s=><option key={s.id} value={s.id}>{s.date?fmtDate(s.date):s.cohort||"(no date)"}</option>)}
+                </select>
+              </div>
+            </>
         }
         <div style={{position:"relative",marginLeft:"auto"}}>
           <span style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{fontSize:13,padding:"5px 10px 5px 26px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:160}}/>
           {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",padding:0,lineHeight:1}}>×</button>}
         </div>
-        {!isReadOnly && <button onClick={newRow} style={{fontSize:13,padding:"5px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer"}}>+ Add row</button>}
+        {!isReadOnly && selectedSession && <button onClick={newRow} style={{fontSize:13,padding:"5px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer"}}>+ Add row</button>}
       </div>
 
       {!isReadOnly && rows.length > 0 && (
