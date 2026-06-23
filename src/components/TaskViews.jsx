@@ -4,9 +4,9 @@ import { CollateralDetailModal } from "./Modals.jsx";
 import { fmtDate, fmtDateYear, isOverdue, avatarBg, avatarTx, addDays } from "../utils.js";
 import { DEFAULT_STATUS_COLORS } from "../constants.js";
 
-const LIST_COLS       = "1fr 70px 70px 90px 1fr 80px 130px 110px";
-const LIST_COLS_SEL   = "36px 1fr 70px 70px 90px 1fr 80px 130px 110px";
-const LIST_HEADERS    = ["Task","Owner","Assist","Due date","Notes","Links","Dependencies","Status"];
+const LIST_COLS       = "1fr 70px 70px 90px 110px 130px 80px 1fr";
+const LIST_COLS_SEL   = "36px 1fr 70px 70px 90px 110px 130px 80px 1fr";
+const LIST_HEADERS    = ["Task","Owner","Assist","Due date","Status","Dependencies","Links","Notes"];
 
 // ── List Header ───────────────────────────────────────────────────────────────
 export function ListHeader({selectable, selectedAll, someSelected, onSelectAll}) {
@@ -91,15 +91,9 @@ export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlocke
       </div>
       {/* Due date */}
       <div style={{padding:"11px 12px",fontSize:12,color:overdue?"var(--color-text-danger)":"var(--color-text-secondary)",...sep}}>{fmtDate(task.due)||"—"}</div>
-      {/* Notes */}
-      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",...sep}} title={task.notes||""}>{task.notes||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
-      {/* Links */}
+      {/* Status */}
       <div style={{padding:"11px 12px",...sep}} onClick={e=>e.stopPropagation()}>
-        {task.links
-          ? isUrl(task.links)
-            ? <a href={task.links} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}}>↗ Link</a>
-            : <span style={{fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}} title={task.links}>{task.links}</span>
-          : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+        <StatusPill status={task.status} onChange={s=>onStatus(task.id,s)} readOnly={readOnly} statusColors={statusColors}/>
       </div>
       {/* Dependencies */}
       <div style={{padding:"11px 12px",display:"flex",gap:4,flexWrap:"wrap",alignItems:"center",...sep}}>
@@ -110,10 +104,16 @@ export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlocke
         {(task.collateralDeps||[]).length>0&&<Badge label="docs" color="#185FA5" bg="#E6F1FB"/>}
         {!task.flagged&&bs!=="blocked"&&bs!=="at-risk"&&bs!=="clear"&&!(task.collateralDeps||[]).length&&<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      {/* Status */}
-      <div style={{padding:"11px 12px"}} onClick={e=>e.stopPropagation()}>
-        <StatusPill status={task.status} onChange={s=>onStatus(task.id,s)} readOnly={readOnly} statusColors={statusColors}/>
+      {/* Links */}
+      <div style={{padding:"11px 12px",...sep}} onClick={e=>e.stopPropagation()}>
+        {task.links
+          ? isUrl(task.links)
+            ? <a href={task.links} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}}>↗ Link</a>
+            : <span style={{fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}} title={task.links}>{task.links}</span>
+          : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
+      {/* Notes */}
+      <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={task.notes||""}>{task.notes||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
     </div>
   );
 }
@@ -173,13 +173,13 @@ export function DocCard({doc,readOnly,onEdit,last}) {
 }
 
 // ── Doc List (collateral tab) ─────────────────────────────────────────────────
-const DOC_COLS     = "1.5fr 130px 130px 130px 110px 1.5fr 130px 130px 110px 115px 1fr";
-const DOC_COLS_SEL = "36px 1.5fr 130px 130px 130px 110px 1.5fr 130px 130px 110px 115px 1fr";
-const DOC_HEADERS  = ["Title","Owner","Content Owner","Assist","Audience","Description","Editable Link","Shareable Link","Next Update","Last Updated","Tags"];
+const DOC_COLS     = "3fr 130px 130px 130px 110px 130px 130px 110px 115px 1fr";
+const DOC_COLS_SEL = "36px 3fr 130px 130px 130px 110px 130px 130px 110px 115px 1fr";
+const DOC_HEADERS  = ["Title","Owner","Content Owner","Assist","Audience","Editable Link","Shareable Link","Next Update","Last Updated","Tags"];
 const sep = {borderRight:"1px solid var(--color-border-secondary)"};
 const inp ={fontSize:12,width:"100%",boxSizing:"border-box",padding:"3px 6px",border:"1px solid var(--color-border-secondary)",borderRadius:4,background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"inherit"};
 
-const DOC_SORT_KEYS = [null,"owner","content_owner","assist","audience",null,null,null,"next_update","updated",null];
+const DOC_SORT_KEYS = [null,"owner","content_owner","assist","audience",null,null,"next_update","updated",null];
 
 function DocListHeader({selectable,selectedAll,someSelected,onSelectAll,sort,onSort}) {
   const hCell = {background:"var(--color-background-secondary)",borderBottom:"1px solid var(--color-border-secondary)",position:"sticky",top:0,zIndex:2,display:"flex",alignItems:"center"};
@@ -205,6 +205,20 @@ function DocListHeader({selectable,selectedAll,someSelected,onSelectAll,sort,onS
   );
 }
 
+function CopyLink({url}) {
+  const [copied,setCopied] = useState(false);
+  const copy = e => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(url).then(() => { setCopied(true); setTimeout(()=>setCopied(false),1500); });
+  };
+  return (
+    <div onClick={copy} title={`Click to copy: ${url}`} style={{display:"flex",alignItems:"center",gap:5,cursor:"pointer",minWidth:0,width:"100%"}}>
+      <span style={{fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>{url}</span>
+      <span style={{fontSize:15,flexShrink:0,color:copied?"#0F6E56":"var(--color-text-tertiary)"}}>{copied?"✓":"⎘"}</span>
+    </div>
+  );
+}
+
 function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
   const bb = last?"none":"1px solid var(--color-border-secondary)";
   const bg = selected?"var(--color-background-secondary)":"transparent";
@@ -218,7 +232,7 @@ function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
         </div>
       )}
       <div onClick={open} style={{...c(),padding:"11px 12px",minWidth:0,...sep}}>
-        <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,width:"100%"}}>{doc.title}</div>
+        <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",wordBreak:"break-word",lineHeight:1.4}}>{doc.title}</div>
       </div>
       <div onClick={open} style={{...c(),padding:"11px 10px",...sep}}>
         {doc.owner?<span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.owner),color:avatarTx(doc.owner),whiteSpace:"nowrap"}}>{doc.owner}</span>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
@@ -230,12 +244,11 @@ function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
         {doc.assist?<span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.assist),color:avatarTx(doc.assist),whiteSpace:"nowrap"}}>{doc.assist}</span>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
       <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,...sep}} title={doc.audience||""}>{doc.audience||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
-      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,...sep}} title={doc.description||""}>{doc.description||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
       <div style={{...c({cursor:"default"}),padding:"11px 12px",...sep}}>
-        {doc.url?<a href={doc.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}}>↗ Open</a>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+        {doc.url?<a href={doc.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>↗ Open</a>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div style={{...c({cursor:"default"}),padding:"11px 12px",...sep}}>
-        {doc.shareable_link?<a href={doc.shareable_link} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}}>↗ Open</a>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      <div style={{...c({cursor:"default"}),padding:"11px 12px",minWidth:0,...sep}}>
+        {doc.shareable_link?<CopyLink url={doc.shareable_link}/>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
       <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDate(doc.next_update)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
       <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDateYear(doc.updated)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
