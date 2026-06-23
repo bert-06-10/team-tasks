@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { TaskCard, ListRow, ListHeader, MilestoneBar, DocCard } from "./TaskViews.jsx";
 import { DEFAULT_STATUS_COLORS, STATUSES, MONTHS, DAYS } from "../constants.js";
-import { fmtDate, fmtDateYear } from "../utils.js";
+import { fmtDate, fmtDateYear, isOverdue } from "../utils.js";
 
 // ── Board View ────────────────────────────────────────────────────────────────
 export function BoardView({filteredTasks,displayTasks,displayDocs,milestones,isReadOnly,boardGroup,setBoardGroup,openTask,onViewMilestone,updateStatus,getBlockedStatus,statusColors}) {
   const [dragId,setDragId] = useState(null);
   const groupBy = (ts,key) => { const g={}; ts.forEach(t=>{const k=t[key]||"Unassigned";if(!g[k])g[k]=[];g[k].push(t);}); return g; };
+  const overdueIds = boardGroup==="status" ? new Set(filteredTasks.filter(t=>t.status!=="Done"&&isOverdue(t.due)).map(t=>t.id)) : new Set();
   const boardGroups = boardGroup==="status"
-    ? Object.fromEntries(STATUSES.map(s=>[s,filteredTasks.filter(t=>t.status===s)]))
+    ? {"Overdue":filteredTasks.filter(t=>overdueIds.has(t.id)),...Object.fromEntries(STATUSES.map(s=>[s,filteredTasks.filter(t=>t.status===s&&!overdueIds.has(t.id))]))}
     : groupBy(filteredTasks,boardGroup==="assignee"?"assignee":"department");
-  const keys = boardGroup==="status" ? STATUSES : Object.keys(boardGroups).sort();
+  const keys = boardGroup==="status" ? ["Overdue",...STATUSES] : Object.keys(boardGroups).sort();
   const onDragStart = (e,id) => { setDragId(id); e.dataTransfer.effectAllowed="move"; };
   const onDrop = (e,col) => { e.preventDefault(); if(dragId&&boardGroup==="status")updateStatus(dragId,col); setDragId(null); };
   const onDragOver = e => { e.preventDefault(); e.dataTransfer.dropEffect="move"; };
@@ -23,20 +24,23 @@ export function BoardView({filteredTasks,displayTasks,displayDocs,milestones,isR
         ))}
       </div>
       <div style={{display:"flex",gap:0,overflowX:"auto",paddingBottom:8,borderLeft:"0.5px solid var(--color-border-tertiary)"}}>
-        {keys.map(k => (
-          <div key={k} onDrop={e=>onDrop(e,k)} onDragOver={onDragOver} style={{minWidth:260,flex:"0 0 260px",borderRight:"0.5px solid var(--color-border-tertiary)",padding:"0 16px 16px",transition:"background 0.15s"}}>
-            <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",margin:"0 0 12px",letterSpacing:"0.04em",paddingTop:4}}>
-              {k.toUpperCase()} · {(boardGroups[k]||[]).length}
+        {keys.map(k => {
+          const isOverdueCol = k==="Overdue";
+          return (
+            <div key={k} onDrop={e=>!isOverdueCol&&onDrop(e,k)} onDragOver={!isOverdueCol?onDragOver:undefined} style={{minWidth:260,flex:"0 0 260px",borderRight:"0.5px solid var(--color-border-tertiary)",padding:"0 16px 16px",transition:"background 0.15s"}}>
+              <div style={{fontSize:12,fontWeight:500,color:isOverdueCol?"#A32D2D":"var(--color-text-secondary)",margin:"0 0 12px",letterSpacing:"0.04em",paddingTop:4}}>
+                {k.toUpperCase()} · {(boardGroups[k]||[]).length}
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {(boardGroups[k]||[]).map(t => (
+                  <div key={t.id} draggable={!isReadOnly&&boardGroup==="status"&&!isOverdueCol} onDragStart={e=>!isOverdueCol&&onDragStart(e,t.id)} onDragEnd={()=>setDragId(null)} style={{opacity:dragId===t.id?0.4:1,cursor:isOverdueCol?"default":"grab"}}>
+                    <TaskCard task={t} tasks={displayTasks} docs={displayDocs} readOnly={isReadOnly} onEdit={()=>openTask(t)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} showGroup={boardGroup!=="status"} statusColors={statusColors}/>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {(boardGroups[k]||[]).map(t => (
-                <div key={t.id} draggable={!isReadOnly&&boardGroup==="status"} onDragStart={e=>onDragStart(e,t.id)} onDragEnd={()=>setDragId(null)} style={{opacity:dragId===t.id?0.4:1,cursor:"grab"}}>
-                  <TaskCard task={t} tasks={displayTasks} docs={displayDocs} readOnly={isReadOnly} onEdit={()=>openTask(t)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} showGroup={boardGroup!=="status"} statusColors={statusColors}/>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -400,15 +404,9 @@ function offsetLabel(n) {
   return `${n} day${n !== 1 ? "s" : ""} after`;
 }
 
-export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, openTask, updateStatus, getBlockedStatus, statusColors, initialSessionId, onSessionIdConsumed, onNavigateToList, onSaveSession, onUpdateSession, onDeleteSession, classTaskTemplate, onSaveTemplate, onApplyTemplate, onAddSelectedTasks, myUser, selectedProfessor, onProfessorChange, selectedSessionId, onSessionIdChange }) {
+export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, openTask, updateStatus, getBlockedStatus, statusColors, initialSessionId, onSessionIdConsumed, onNavigateToList, onSaveSession, onUpdateSession, onDeleteSession, classTaskTemplate, onSaveTemplate, onApplyTemplate, onAddSelectedTasks, myUser, selectedProfessor, onProfessorChange, selectedSessionId, onSessionIdChange, onOpenAddSession, onOpenDuplicate }) {
   const setSelectedProfessor = onProfessorChange;
   const setSelectedSessionId = onSessionIdChange;
-  const [showAddForm,       setShowAddForm]       = useState(false);
-  const [isDuplicate,       setIsDuplicate]       = useState(false);
-  const [newSess,           setNewSess]           = useState({ professor: "", cohort: "Cohort 1", date: "", addTasks: false });
-  const [saving,            setSaving]            = useState(false);
-  const [showTemplate,      setShowTemplate]      = useState(false);
-  const [applying,          setApplying]          = useState(false);
   const [editingSession,    setEditingSession]    = useState(false);
   const [editSess,          setEditSess]          = useState(null);
   const [savingEdit,        setSavingEdit]        = useState(false);
@@ -468,35 +466,6 @@ export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, 
   };
   const removeTemplateItem = (i) => onSaveTemplate(template.filter((_, idx) => idx !== i));
   const addTemplateItem    = ()  => onSaveTemplate([...template, { title: "", offset: 0 }]);
-
-  const handleAddSession = async () => {
-    if (!newSess.professor.trim() || !newSess.date) return;
-    setSaving(true);
-    try {
-      const saved = await onSaveSession({
-        ...newSess,
-        ...(isDuplicate && { duplicateFromId: selectedSessionId }),
-      });
-      setShowAddForm(false);
-      setNewSess({ professor: "", cohort: "Cohort 1", date: "", addTasks: false });
-      if (saved) {
-        setSelectedProfessor(saved.professor || saved.name || newSess.professor);
-        setSelectedSessionId(saved.id);
-      }
-      setIsDuplicate(false);
-    } catch {
-      // Error already toasted by App.jsx; keep form open
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleApplyTemplate = async () => {
-    if (!selectedSessionId) return;
-    setApplying(true);
-    try { await onApplyTemplate(selectedSessionId); }
-    finally { setApplying(false); }
-  };
 
   const handleAddSelected = async () => {
     if (!pickerSelected.size || !selectedSessionId) return;
@@ -590,133 +559,12 @@ export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, 
             ))}
           </select>
         </div>
-        {!isReadOnly && (
-          <div style={{ display: "flex", gap: 8, alignSelf: "flex-end" }}>
-            {!showAddForm && (
-              <button onClick={() => { setIsDuplicate(false); setNewSess({ professor: "", cohort: "Cohort 1", date: "", addTasks: false }); setShowAddForm(true); setShowTemplate(false); }} style={btnSecondary}>
-                + Add session
-              </button>
-            )}
-            <button onClick={() => { setShowTemplate(t => !t); setShowAddForm(false); }} style={{ ...btnSecondary, background: showTemplate ? "var(--color-background-secondary)" : "transparent", fontWeight: showTemplate ? 500 : 400 }}>
-              Standard tasks {showTemplate ? "▴" : "▾"}
-            </button>
-          </div>
-        )}
         <div style={{ position: "relative", alignSelf: "flex-end" }}>
           <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--color-text-tertiary)", pointerEvents: "none" }}>⌕</span>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks..." style={{ fontSize: 13, padding: "6px 10px 6px 26px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", width: 180 }} />
           {search && <button onClick={() => setSearch("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", fontSize: 14, color: "var(--color-text-tertiary)", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>}
         </div>
       </div>
-
-      {/* Add session inline form */}
-      {showAddForm && !isReadOnly && (
-        <div style={{ marginBottom: 20, padding: "16px 20px", background: "var(--color-background-primary)", borderRadius: "var(--border-radius-lg)", border: "0.5px solid var(--color-border-secondary)" }}>
-          <div style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)", marginBottom: 14 }}>{isDuplicate ? "Duplicate session" : "New class session"}</div>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
-            <div style={{ flex: "1 1 180px" }}>
-              <div style={labelStyle}>PROFESSOR</div>
-              <input placeholder="Professor name" value={newSess.professor} onChange={e => setNewSess(p => ({ ...p, professor: e.target.value }))} style={inputStyle} />
-            </div>
-            <div style={{ flex: "1 1 140px" }}>
-              <div style={labelStyle}>COHORT</div>
-              <select value={newSess.cohort} onChange={e => setNewSess(p => ({ ...p, cohort: e.target.value }))} style={{ ...inputStyle, width: "auto", minWidth: "100%" }}>
-                {COHORT_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div style={{ flex: "1 1 160px" }}>
-              <div style={labelStyle}>CLASS DATE</div>
-              <input type="date" value={newSess.date} onChange={e => setNewSess(p => ({ ...p, date: e.target.value }))} style={inputStyle} />
-            </div>
-          </div>
-          {isDuplicate ? (
-            <div style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 12 }}>
-              Tasks from the original session will be copied and shifted to the new date.
-            </div>
-          ) : (
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 12, cursor: "pointer", userSelect: "none" }}>
-              <input type="checkbox" checked={newSess.addTasks} onChange={e => setNewSess(p => ({ ...p, addTasks: e.target.checked }))} style={{ cursor: "pointer" }} />
-              Add {template.length} standard task{template.length !== 1 ? "s" : ""} to this session
-            </label>
-          )}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={handleAddSession} disabled={saving || !newSess.professor.trim() || !newSess.date} style={{ fontSize: 13, padding: "6px 16px", borderRadius: "var(--border-radius-md)", border: "0.5px solid #9FE1CB", background: "#E1F5EE", color: "#0F6E56", cursor: (saving || !newSess.professor.trim() || !newSess.date) ? "default" : "pointer", opacity: (!newSess.professor.trim() || !newSess.date) ? 0.5 : 1 }}>
-              {saving ? "Saving…" : "Add session"}
-            </button>
-            <button onClick={() => { setShowAddForm(false); setIsDuplicate(false); setNewSess({ professor: "", cohort: "Cohort 1", date: "", addTasks: false }); }} style={btnSecondary}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Standard tasks template panel */}
-      {showTemplate && !isReadOnly && (
-        <div style={{ marginBottom: 20, padding: "16px 20px", background: "var(--color-background-primary)", borderRadius: "var(--border-radius-lg)", border: "0.5px solid var(--color-border-secondary)" }}>
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)", marginBottom: 2 }}>Standard tasks</div>
-            <div style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>Optionally applied when adding a new session. Use negative offsets for tasks due before the class date.</div>
-          </div>
-
-          {template.map((item, i) => (
-            <div key={i} style={{ marginBottom: 8, padding: "10px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)" }}>
-              {/* Row 1: task name, offset, delete */}
-              <div style={{ display: "flex", gap: 8, marginBottom: 7, alignItems: "center" }}>
-                <input
-                  value={item.title}
-                  onChange={e => updateTemplateItem(i, "title", e.target.value)}
-                  placeholder="Task name"
-                  style={{ ...inputStyle, padding: "5px 8px", flex: 1 }}
-                />
-                <input
-                  type="number"
-                  value={item.offset}
-                  onChange={e => updateTemplateItem(i, "offset", parseInt(e.target.value) || 0)}
-                  style={{ ...inputStyle, padding: "5px 8px", width: 56, flexShrink: 0, textAlign: "right" }}
-                />
-                <span style={{ fontSize: 11, color: "var(--color-text-tertiary)", whiteSpace: "nowrap", minWidth: 90 }}>{offsetLabel(item.offset)}</span>
-                <button onClick={() => removeTemplateItem(i)} title="Remove" style={{ fontSize: 15, lineHeight: 1, border: "none", background: "none", color: "var(--color-text-tertiary)", cursor: "pointer", padding: "2px 4px", flexShrink: 0 }}>×</button>
-              </div>
-              {/* Row 2: owner, assist, notes */}
-              <div style={{ display: "flex", gap: 8 }}>
-                <select
-                  value={item.assignee || ""}
-                  onChange={e => updateTemplateItem(i, "assignee", e.target.value)}
-                  style={{ ...inputStyle, padding: "4px 8px", flex: "0 0 160px" }}
-                >
-                  <option value="">Owner…</option>
-                  {(members || []).map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <select
-                  value={item.assist || ""}
-                  onChange={e => updateTemplateItem(i, "assist", e.target.value)}
-                  style={{ ...inputStyle, padding: "4px 8px", flex: "0 0 160px" }}
-                >
-                  <option value="">Assist…</option>
-                  {(members || []).map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <input
-                  value={item.notes || ""}
-                  onChange={e => updateTemplateItem(i, "notes", e.target.value)}
-                  placeholder="Notes"
-                  style={{ ...inputStyle, padding: "4px 8px", flex: 1 }}
-                />
-              </div>
-            </div>
-          ))}
-
-          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <button onClick={addTemplateItem} style={{ fontSize: 12, padding: "5px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>
-              + Add task
-            </button>
-            {selectedSession && (
-              <button onClick={handleApplyTemplate} disabled={applying} style={{ fontSize: 12, padding: "5px 14px", borderRadius: "var(--border-radius-md)", border: "0.5px solid #9FE1CB", background: "#E1F5EE", color: "#0F6E56", cursor: applying ? "default" : "pointer" }}>
-                {applying ? "Applying…" : `Apply to ${selectedSession.professor || selectedSession.name}`}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Session summary card */}
       {selectedSession && (
@@ -762,7 +610,7 @@ export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, 
                         <button onClick={startEditSession} style={{ fontSize: 12, padding: "2px 8px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "transparent", color: "var(--color-text-tertiary)", cursor: "pointer" }}>
                           Edit
                         </button>
-                        <button onClick={() => { setIsDuplicate(true); setNewSess({ professor: selectedSession.professor || selectedSession.name || "", cohort: selectedSession.cohort || "Cohort 1", date: "", addTasks: false }); setShowAddForm(true); setShowTemplate(false); setEditingSession(false); }} style={{ fontSize: 12, padding: "2px 8px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "transparent", color: "var(--color-text-tertiary)", cursor: "pointer" }}>
+                        <button onClick={() => { setEditingSession(false); onOpenDuplicate?.(selectedSession); }} style={{ fontSize: 12, padding: "2px 8px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "transparent", color: "var(--color-text-tertiary)", cursor: "pointer" }}>
                           Duplicate
                         </button>
                         <button onClick={() => onDeleteSession(selectedSession.id)} style={{ fontSize: 12, padding: "2px 8px", borderRadius: "var(--border-radius-md)", border: "0.5px solid #F7C1C1", background: "transparent", color: "#A32D2D", cursor: "pointer" }}>
@@ -809,7 +657,7 @@ export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, 
       )}
 
       {/* Empty states */}
-      {!selectedSession && !showAddForm && !showTemplate && (
+      {!selectedSession && (
         <div style={{ textAlign: "center", padding: "64px 24px", color: "var(--color-text-tertiary)", fontSize: 13 }}>
           {sessions.length === 0 ? "No sessions yet — add one above to get started." : "Select a professor and class date to view tasks."}
         </div>
