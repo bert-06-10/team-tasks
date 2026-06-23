@@ -1029,7 +1029,7 @@ export default function App() {
         </div>
 
         <div style={{display:view==="board"&&showTaskList?"":"none"}}>
-          <BoardView filteredTasks={filteredTasks.filter(t=>t.type==="program")} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} boardGroup={boardGroup} setBoardGroup={setBoardGroup} openTask={openTask} onViewMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} />
+          <BoardView filteredTasks={filteredTasks.filter(t=>t.type==="program").filter(t=>t.assignee===myUser||t.assist===myUser)} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} boardGroup={boardGroup} setBoardGroup={setBoardGroup} openTask={openTask} onViewMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} />
         </div>
 
         <div style={{display:view==="list"&&showTaskList?"":"none"}}>
