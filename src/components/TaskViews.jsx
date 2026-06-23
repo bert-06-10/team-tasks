@@ -267,7 +267,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [detailDoc,   setDetailDoc]   = useState(null);
   const [filters,     setFilters]     = useState(BLANK_FILTERS);
-  const [sort,        setSort]        = useState({col:null,dir:"asc"});
+  const [sort,        setSort]        = useState({col:"owner",dir:"asc"});
   const [search,      setSearch]      = useState("");
   const selectable = !isReadOnly;
 
