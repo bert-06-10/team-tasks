@@ -231,7 +231,7 @@ export function TeamRoles({ myUserId }) {
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {profiles.map(p => (
-          <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 8, border: "0.5px solid #e0e3e6", background: "#f8f9fa", gap: 12 }}>
+          <div key={p.id} style={{ display: "flex", flexDirection: "column", padding: "10px 14px", borderRadius: 8, border: "0.5px solid #e0e3e6", background: "#f8f9fa", gap: 8 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, color: "#1a1a18", fontWeight: 500 }}>{p.name}{p.id === myUserId ? " (you)" : ""}</div>
               <div style={{ fontSize: 12, color: "#888780", overflow: "hidden", textOverflow: "ellipsis" }}>{p.email}</div>
@@ -240,7 +240,7 @@ export function TeamRoles({ myUserId }) {
               value={p.role || "staff"}
               disabled={savingId === p.id}
               onChange={e => changeRole(p.id, e.target.value, p.role)}
-              style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "0.5px solid #d3d1c7", background: "#fff", color: "#1a1a18", flexShrink: 0 }}
+              style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "0.5px solid #d3d1c7", background: "#fff", color: "#1a1a18", alignSelf: "flex-start" }}
             >
               {ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
