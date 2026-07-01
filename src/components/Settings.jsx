@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toggle } from "./Primitives.jsx";
+import * as db from "../lib/db.js";
 import { STATUSES, DEFAULT_STATUS_COLORS, VIEWS, VIEW_LABELS, DEFAULT_PREFS } from "../constants.js";
 
 const TIMEZONES = [
@@ -179,9 +180,83 @@ export function ListEditor({label,items,setItems}) {
 }
 
 // ── Settings Modal ────────────────────────────────────────────────────────────
-export function SettingsModal({initialTab,members,setMembers,departments,setDepartments,audiences,setAudiences,globalTags,setGlobalTags,myUser,prefs,updatePrefs,onClose}) {
-  const [tab,setTab] = useState(initialTab||"owners");
-  const tabs = [["preferences","My Preferences"],["owners","Owners"],["departments","Departments"],["audiences","Audiences"],["tags","Tags"]];
+// ── Team & Roles (admin only) ─────────────────────────────────────────────────
+const ROLE_OPTIONS = [
+  ["admin",  "Admin — full control, incl. cycles & config"],
+  ["staff",  "Staff — day-to-day tasks, docs, sessions"],
+  ["viewer", "Viewer — read-only, no editing"],
+];
+
+export function TeamRoles({ myUserId }) {
+  const [profiles, setProfiles] = useState(null); // null = loading
+  const [error, setError]       = useState("");
+  const [savingId, setSavingId] = useState(null);
+
+  useEffect(() => {
+    db.fetchAllProfiles().then(setProfiles).catch(e => setError(e.message));
+  }, []);
+
+  const changeRole = async (userId, role, currentRole) => {
+    if (userId === myUserId && role !== "admin") {
+      const ok = window.confirm("You're about to remove your own admin access. You won't be able to undo this yourself. Continue?");
+      if (!ok) return;
+    }
+    setSavingId(userId);
+    setError("");
+    // Optimistic update
+    setProfiles(prev => prev.map(p => p.id === userId ? { ...p, role } : p));
+    try {
+      await db.updateProfileRole(userId, role);
+    } catch (e) {
+      setError(e.message);
+      setProfiles(prev => prev.map(p => p.id === userId ? { ...p, role: currentRole } : p));
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  if (profiles === null) {
+    return <div style={{ fontSize: 13, color: "#888780" }}>Loading team…</div>;
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: "#888780", marginBottom: 12 }}>
+        Controls who can view vs. edit vs. manage cycles. Changes take effect immediately for that person.
+      </div>
+      {error && (
+        <div style={{ fontSize: 12, color: "#A32D2D", padding: "8px 12px", background: "#FCEBEB", borderRadius: 8, border: "0.5px solid #F7C1C1", marginBottom: 12 }}>
+          {error}
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {profiles.map(p => (
+          <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 8, border: "0.5px solid #e0e3e6", background: "#f8f9fa", gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, color: "#1a1a18", fontWeight: 500 }}>{p.name}{p.id === myUserId ? " (you)" : ""}</div>
+              <div style={{ fontSize: 12, color: "#888780", overflow: "hidden", textOverflow: "ellipsis" }}>{p.email}</div>
+            </div>
+            <select
+              value={p.role || "staff"}
+              disabled={savingId === p.id}
+              onChange={e => changeRole(p.id, e.target.value, p.role)}
+              style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "0.5px solid #d3d1c7", background: "#fff", color: "#1a1a18", flexShrink: 0 }}
+            >
+              {ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+export function SettingsModal({initialTab,members,setMembers,departments,setDepartments,audiences,setAudiences,globalTags,setGlobalTags,myUser,myUserId,isAdmin,prefs,updatePrefs,onClose}) {
+  const [tab,setTab] = useState((initialTab && (isAdmin || initialTab === "preferences")) ? initialTab : "preferences");
+  const tabs = isAdmin
+    ? [["preferences","My Preferences"],["team","Team & Roles"],["owners","Owners"],["departments","Departments"],["audiences","Audiences"],["tags","Tags"]]
+    : [["preferences","My Preferences"]];
   const lc = {
     owners:      {label:"Owner",      items:members,     setItems:setMembers},
     departments: {label:"Department", items:departments, setItems:setDepartments},
@@ -203,6 +278,8 @@ export function SettingsModal({initialTab,members,setMembers,departments,setDepa
         <div style={{flex:1,overflowY:"auto",padding:"20px 24px 24px",background:"#ffffff",color:"#1a1a18"}}>
           {tab==="preferences"
             ? <UserPreferences myUser={myUser} prefs={prefs} updatePrefs={updatePrefs}/>
+            : tab==="team"
+            ? <TeamRoles myUserId={myUserId}/>
             : <ListEditor label={lc[tab].label} items={lc[tab].items} setItems={lc[tab].setItems}/>
           }
         </div>

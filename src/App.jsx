@@ -42,6 +42,7 @@ export default function App() {
 
   // ── User / prefs state ──────────────────────────────────────────────────────
   const [myUser,    setMyUser]    = useState("");
+  const [myRole,    setMyRole]    = useState("staff"); // 'admin' | 'staff' | 'viewer' — mirrors profiles.role
   const [userPrefs, setUserPrefs] = useState(DEFAULT_USER_PREFS);
 
   // ── UI state ────────────────────────────────────────────────────────────────
@@ -145,6 +146,7 @@ export default function App() {
         profile = await db.createProfile(uid, name, newSession.user.email);
       }
       setMyUser(profile.name);
+      setMyRole(profile.role || "staff");
 
       // Fetch user prefs (fall back to defaults if empty)
       const savedPrefs = await db.fetchUserPrefs(uid);
@@ -165,10 +167,17 @@ export default function App() {
           db.fetchArchivedCycles(),
         ]);
 
-      // Ensure the signed-in user appears in the members list
+      // Ensure the signed-in user appears in the members list.
+      // Note: adding to `members` now requires admin under RLS, so a non-admin's
+      // first login shouldn't throw — an admin can add them from Settings > Owners,
+      // or this silently succeeds if the signed-in user already happens to be admin.
       if (!membersList.includes(profile.name)) {
-        await db.addMember(profile.name);
-        membersList.push(profile.name);
+        try {
+          await db.addMember(profile.name);
+          membersList.push(profile.name);
+        } catch (e) {
+          console.warn("Could not auto-add to members list (likely non-admin):", e.message);
+        }
       }
 
       setMembers(membersList);
@@ -216,6 +225,7 @@ export default function App() {
     setSession(null);
     setUserId(null);
     setMyUser("");
+    setMyRole("staff");
     setUserPrefs(DEFAULT_USER_PREFS);
     setProgramTasks([]);
     setClassTasks([]);
@@ -828,7 +838,9 @@ export default function App() {
   const displayTasks        = taskTypeFilter === "program" ? displayProgramTasks : taskTypeFilter === "class" ? displayClassTasks : [];
   const displayAllTasks     = [...displayProgramTasks, ...displayClassTasks];
   const displayDocs         = viewingArchive ? viewingArchive.docs : docs;
-  const isReadOnly          = !!viewingArchive;
+  const isAdmin             = myRole === "admin";
+  const isViewer            = myRole === "viewer";
+  const isReadOnly          = !!viewingArchive || isViewer;
   const sortByDue = ts => [...ts].sort((a, b) => { if (!a.due && !b.due) return 0; if (!a.due) return 1; if (!b.due) return -1; return a.due < b.due ? -1 : a.due > b.due ? 1 : 0; });
   const _today = new Date().toISOString().slice(0, 10);
   const applyDateFilter = t => {
@@ -898,7 +910,8 @@ export default function App() {
           {/* Action dropdowns */}
           <div ref={dropdownsRef} style={{ display: "flex", alignItems: "center", gap: 4 }}>
 
-            {/* Cycle dropdown */}
+            {/* Cycle dropdown — cycle lifecycle is admin-only */}
+            {isAdmin && (
             <div style={{ position: "relative", zIndex: 100 }}>
               <button onClick={() => setOpenDropdown(openDropdown === 'cycle' ? null : 'cycle')} style={{ fontSize: 13, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'cycle' ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>Cycle ▾</button>
               {openDropdown === 'cycle' && (
@@ -928,6 +941,7 @@ export default function App() {
                 </div>
               )}
             </div>
+            )}
 
             {/* Program dropdown */}
             {!isReadOnly && (
@@ -1071,7 +1085,7 @@ export default function App() {
       {showCycleModal    && <CycleModal tasks={programTasks} activeCycle={activeCycle} initialDraft={draftCycle} sessions={sessions} cycleType={draftCycle?.cycleType || newCycleType} onSaveDraft={saveDraft} onLaunch={launchCycle} onClose={() => setShowCycleModal(false)} />}
       {showImportModal   && <ImportModal onImportProgram={importProgram} onImportClass={importClass} onImportRunOfShow={importROS} sessions={sessions} cycle={activeCycle} importHistory={importHistory} onReverseImport={reverseImport} initialTab={importModalTab} onClose={() => setShowImportModal(false)} />}
       {showImportCollateralModal && <ImportCollateralModal onImport={importCollateral} onClose={() => setShowImportCollateralModal(false)} />}
-      {showSettings      && <SettingsModal initialTab={settingsTab} members={members} setMembers={setMembersSync} departments={departments} setDepartments={setDepartmentsSync} audiences={audiences} setAudiences={setAudiencesSync} globalTags={globalTags} setGlobalTags={setGlobalTagsSync} myUser={myUser} prefs={prefs} updatePrefs={updatePrefs} onClose={() => setShowSettings(false)} />}
+      {showSettings      && <SettingsModal initialTab={settingsTab} members={members} setMembers={setMembersSync} departments={departments} setDepartments={setDepartmentsSync} audiences={audiences} setAudiences={setAudiencesSync} globalTags={globalTags} setGlobalTags={setGlobalTagsSync} myUser={myUser} myUserId={userId} isAdmin={isAdmin} prefs={prefs} updatePrefs={updatePrefs} onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

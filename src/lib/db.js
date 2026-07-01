@@ -16,6 +16,21 @@ export async function createProfile(userId, name, email) {
   return data
 }
 
+// Admin-only (enforced by RLS): list every team member's profile + role
+export async function fetchAllProfiles() {
+  const { data, error } = await supabase
+    .from('profiles').select('id, name, email, role').order('name')
+  if (error) throw error
+  return data
+}
+
+// Admin-only (enforced by RLS): change another user's role
+export async function updateProfileRole(userId, role) {
+  const { error } = await supabase
+    .from('profiles').update({ role }).eq('id', userId)
+  if (error) throw error
+}
+
 export async function fetchUserPrefs(userId) {
   const { data, error } = await supabase
     .from('user_preferences').select('*').eq('user_id', userId).maybeSingle()
