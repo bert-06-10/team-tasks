@@ -236,14 +236,22 @@ export function TeamRoles({ myUserId }) {
               <div style={{ fontSize: 13, color: "#1a1a18", fontWeight: 500 }}>{p.name}{p.id === myUserId ? " (you)" : ""}</div>
               <div style={{ fontSize: 12, color: "#888780", overflow: "hidden", textOverflow: "ellipsis" }}>{p.email}</div>
             </div>
-            <select
-              value={p.role || "staff"}
-              disabled={savingId === p.id}
-              onChange={e => changeRole(p.id, e.target.value, p.role)}
-              style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "0.5px solid #d3d1c7", background: "#fff", color: "#1a1a18", alignSelf: "flex-start" }}
-            >
-              {ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
+            <div style={{ display: "flex", gap: 4 }}>
+              {ROLE_OPTIONS.map(([v, l]) => {
+                const active = (p.role || "staff") === v;
+                return (
+                  <button
+                    key={v}
+                    disabled={savingId === p.id}
+                    onClick={() => !active && changeRole(p.id, v, p.role)}
+                    title={l}
+                    style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `0.5px solid ${active ? "#4a7c59" : "#d3d1c7"}`, background: active ? "#4a7c59" : "#fff", color: active ? "#fff" : "#555", cursor: active ? "default" : "pointer", fontWeight: active ? 600 : 400 }}
+                  >
+                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>
