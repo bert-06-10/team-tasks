@@ -1,6 +1,32 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient.js";
 
+// Supabase/Postgres error text is technical and inconsistent between the
+// password-signup path (thrown error object) and the OAuth redirect path
+// (query-string params) — this maps both to one human-readable message.
+function friendlyAuthError({ code, description, message } = {}) {
+  const text = `${code || ""} ${description || message || ""}`.toLowerCase();
+
+  if (text.includes("signup_disabled") || text.includes("signups not allowed")) {
+    return "New sign-ups are currently turned off. Contact an admin to get an invite.";
+  }
+  if (text.includes("saving new user") || text.includes("database error")) {
+    // Our @tlcleaders.com domain trigger raises inside the DB, which Supabase
+    // wraps in this generic message rather than passing our custom text through.
+    return "Sign-ups are restricted to @tlcleaders.com email addresses. If you have a TLC email and still see this, contact an admin.";
+  }
+  if (text.includes("invalid login credentials")) {
+    return "Incorrect email or password. Please try again.";
+  }
+  if (text.includes("user already registered") || text.includes("already been registered")) {
+    return "An account with that email already exists — try signing in instead.";
+  }
+  if (text.includes("password") && text.includes("6 character")) {
+    return "Password must be at least 6 characters.";
+  }
+  return description?.replace(/\+/g, " ") || message || "Something went wrong signing you in. Please try again, or contact an admin if it keeps happening.";
+}
+
 export function AuthScreen() {
   const [mode, setMode]         = useState("signin");
   const [name, setName]         = useState("");
@@ -23,8 +49,10 @@ export function AuthScreen() {
                  : null;
     if (source) {
       const params = new URLSearchParams(source);
-      const desc = params.get("error_description");
-      setError(desc ? desc.replace(/\+/g, " ") : "Sign-in failed. Please try again.");
+      setError(friendlyAuthError({
+        code: params.get("error_code"),
+        description: params.get("error_description"),
+      }));
       // Clear both so refreshing doesn't re-show a stale error
       window.history.replaceState(null, "", window.location.pathname);
     }
@@ -57,7 +85,7 @@ export function AuthScreen() {
         // If session exists, App receives SIGNED_IN and handles the rest
       }
     } catch (e) {
-      setError(e.message);
+      setError(friendlyAuthError({ code: e.code, message: e.message }));
       setLoading(false);
     }
   };
@@ -70,7 +98,7 @@ export function AuthScreen() {
       options: { redirectTo: window.location.origin },
     });
     if (error) {
-      setError(error.message);
+      setError(friendlyAuthError({ code: error.code, message: error.message }));
       setLoading(false);
     }
     // On success the browser redirects to Google — no further action here
