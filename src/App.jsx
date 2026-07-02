@@ -16,6 +16,21 @@ const DEFAULT_USER_PREFS = {
   notifications: { ...DEFAULT_PREFS.notifications },
 };
 
+// Tracks viewport width so we can switch to a condensed mobile header/nav.
+// Uses matchMedia + resize listener rather than CSS alone because the mobile
+// header restructures which elements render (e.g. 4 dropdowns -> 1 overflow
+// menu), not just their visibility/sizing.
+function useIsMobile(breakpoint = 700) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= breakpoint);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [breakpoint]);
+  return isMobile;
+}
+
+
 // Apply saved timezone immediately so dates render correctly before prefs finish loading
 const _cachedTz = localStorage.getItem('teamtasks_timezone');
 if (_cachedTz) setDefaultTimezone(_cachedTz);
@@ -841,6 +856,7 @@ export default function App() {
   const isAdmin             = myRole === "admin";
   const isViewer            = myRole === "viewer";
   const isReadOnly          = !!viewingArchive || isViewer;
+  const isMobile            = useIsMobile();
   const sortByDue = ts => [...ts].sort((a, b) => { if (!a.due && !b.due) return 0; if (!a.due) return 1; if (!b.due) return -1; return a.due < b.due ? -1 : a.due > b.due ? 1 : 0; });
   const _today = new Date().toISOString().slice(0, 10);
   const applyDateFilter = t => {
@@ -886,12 +902,12 @@ export default function App() {
 
       {/* Top nav */}
       <div style={{ background: "var(--color-background-primary)", borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
-        <div style={{ padding: "0 24px", display: "flex", alignItems: "center", gap: 12, height: 52 }}>
-          <span onClick={() => setView(prefs.defaultView || "board")} style={{ fontWeight: 500, fontSize: 15, color: "var(--color-text-primary)", flexShrink: 0, cursor: "pointer" }}>Team Tasks</span>
+        <div style={{ padding: isMobile ? "0 12px" : "0 24px", display: "flex", alignItems: "center", gap: 12, height: 52, overflowX: "auto" }}>
+          <span onClick={() => setView(prefs.defaultView || "board")} style={{ fontWeight: 500, fontSize: 15, color: "var(--color-text-primary)", flexShrink: 0, cursor: "pointer" }}>{isMobile ? "TT" : "Team Tasks"}</span>
 
           {/* Cycle selector */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, borderLeft: "0.5px solid var(--color-border-tertiary)", paddingLeft: 12 }}>
-            <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>Cycle:</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, borderLeft: "0.5px solid var(--color-border-tertiary)", paddingLeft: 12, flexShrink: 0 }}>
+            {!isMobile && <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>Cycle:</span>}
             {renamingCycle ? (
               <>
                 <input autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') commitRenameCycle(); if (e.key === 'Escape') setRenamingCycle(false); }} style={{ fontSize: 13, border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", padding: "3px 8px", background: "var(--color-background-secondary)", color: "var(--color-text-primary)", width: 180 }} />
@@ -899,7 +915,7 @@ export default function App() {
                 <button onClick={() => setRenamingCycle(false)} style={{ fontSize: 12, padding: "2px 8px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Cancel</button>
               </>
             ) : (
-              <select value={viewingArchive ? String(viewingArchive.cycle.id) : "__active__"} onChange={e => { if (e.target.value === "__active__") setViewingArchive(null); else { const a = archivedCycles.find(x => String(x.cycle.id) === e.target.value); setViewingArchive(a || null); } }} style={{ fontSize: 13, border: "0.5px solid var(--color-border-tertiary)", borderRadius: "var(--border-radius-md)", padding: "3px 8px", background: "var(--color-background-secondary)", color: "var(--color-text-primary)" }}>
+              <select value={viewingArchive ? String(viewingArchive.cycle.id) : "__active__"} onChange={e => { if (e.target.value === "__active__") setViewingArchive(null); else { const a = archivedCycles.find(x => String(x.cycle.id) === e.target.value); setViewingArchive(a || null); } }} style={{ fontSize: 13, border: "0.5px solid var(--color-border-tertiary)", borderRadius: "var(--border-radius-md)", padding: "3px 8px", background: "var(--color-background-secondary)", color: "var(--color-text-primary)", maxWidth: isMobile ? 130 : undefined }}>
                 <option value="__active__">{activeCycle?.name || "No active cycle"} (active)</option>
                 {archivedCycles.map(a => <option key={a.cycle.id} value={String(a.cycle.id)}>{a.cycle.name} (archived)</option>)}
               </select>
@@ -907,7 +923,8 @@ export default function App() {
             {isReadOnly && <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: "#FAEEDA", color: "#854F0B" }}>read-only</span>}
           </div>
 
-          {/* Action dropdowns */}
+          {/* Action dropdowns — desktop only; mobile gets one consolidated menu below */}
+          {!isMobile && (
           <div ref={dropdownsRef} style={{ display: "flex", alignItems: "center", gap: 4 }}>
 
             {/* Cycle dropdown — cycle lifecycle is admin-only */}
@@ -986,28 +1003,48 @@ export default function App() {
               </div>
             )}
           </div>
+          )}
+
+          {/* Mobile consolidated "+ Add" menu — merges Program/Classes/Import into one button */}
+          {isMobile && !isReadOnly && (
+            <div style={{ position: "relative", zIndex: 100 }}>
+              <button onClick={() => setOpenDropdown(openDropdown === 'mobileMenu' ? null : 'mobileMenu')} style={{ fontSize: 13, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'mobileMenu' ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>+ Add ▾</button>
+              {openDropdown === 'mobileMenu' && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 200, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200, maxHeight: "70vh", overflowY: "auto" }}>
+                  <div onClick={() => { setOpenDropdown(null); setEditTask({ ...newTaskBase }); setShowTaskModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)" }}>Add new task</div>
+                  <div onClick={() => { setOpenDropdown(null); setEditMilestone({ title: "", date: "", deps: [], collateralDeps: [] }); setShowMilestoneModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)" }}>Add milestone</div>
+                  <div onClick={() => { setOpenDropdown(null); setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: myUser, content_owner: "", assist: "", url: "", shareable_link: "", tags: [] }); setShowDocModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)" }}>Add collateral</div>
+                  <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "2px 0" }} />
+                  <div onClick={() => { setOpenDropdown(null); openAddSession(); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)" }}>Add session</div>
+                  <div onClick={() => { setOpenDropdown(null); setShowStandardTasksModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)" }}>Standard tasks</div>
+                  <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "2px 0" }} />
+                  <div onClick={() => { setOpenDropdown(null); exportTasksToCSV(displayProgramTasks, displayClassTasks, (viewingArchive ? viewingArchive.cycle : activeCycle)?.name); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)" }}>Export tasks to CSV</div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-            {draftCycle && (
+            {draftCycle && !isMobile && (
               <div style={{ display: "flex", alignItems: "center", borderRadius: 20, border: "1px solid #9FE1CB", background: "#E1F5EE", overflow: "hidden" }}>
                 <button onClick={() => setShowCycleModal(true)} style={{ fontSize: 12, padding: "4px 6px 4px 12px", border: "none", background: "transparent", color: "#0F6E56", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#0F6E56", display: "inline-block" }}></span>{draftCycle.cycle.name}</button>
                 <button onClick={deleteDraft} title="Delete draft" style={{ fontSize: 14, padding: "4px 10px 4px 4px", border: "none", background: "transparent", color: "#0F6E56", cursor: "pointer", lineHeight: 1 }}>×</button>
               </div>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <button onClick={() => openSettings("preferences")} title="My preferences" style={{ width: 28, height: 28, borderRadius: "50%", background: avatarBg(myUser), border: "none", fontSize: 11, fontWeight: 500, color: avatarTx(myUser), cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{initials(myUser)}</button>
-              <span style={{ fontSize: 13, color: "var(--color-text-primary)" }}>{myUser}</span>
-              <button onClick={signOut} style={{ fontSize: 12, padding: "4px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Sign out</button>
+              <button onClick={() => openSettings("preferences")} title="My preferences" style={{ width: 28, height: 28, borderRadius: "50%", background: avatarBg(myUser), border: "none", fontSize: 11, fontWeight: 500, color: avatarTx(myUser), cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{initials(myUser)}</button>
+              {!isMobile && <span style={{ fontSize: 13, color: "var(--color-text-primary)" }}>{myUser}</span>}
+              <button onClick={signOut} title="Sign out" style={{ fontSize: 12, padding: isMobile ? "4px 8px" : "4px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer", flexShrink: 0 }}>{isMobile ? "⏻" : "Sign out"}</button>
             </div>
           </div>
         </div>
-        <div style={{ padding: "0 24px", borderTop: "0.5px solid var(--color-border-tertiary)", display: "flex", gap: 0, alignItems: "center" }}>
+        <div style={{ padding: isMobile ? "0 12px" : "0 24px", borderTop: "0.5px solid var(--color-border-tertiary)", display: "flex", gap: 0, alignItems: "center", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {VIEWS.map(v => <button key={v} onClick={() => setView(v)} style={{ fontSize: 13, padding: "10px 16px", border: "none", borderBottom: view === v ? "2px solid var(--color-text-primary)" : "2px solid transparent", background: "transparent", color: view === v ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", fontWeight: view === v ? 500 : 400 }}>{VIEW_LABELS[v]}</button>)}
         </div>
       </div>
 
       {/* Main content */}
-      <div style={{ flex: 1, padding: 24 }}>
+      <div style={{ flex: 1, padding: isMobile ? 12 : 24 }}>
         {(view === "board" || view === "list" || view === "mytasks") && (
           <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ display: "flex", gap: 4, padding: "4px", background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-lg)", flexShrink: 0 }}>
@@ -1055,11 +1092,11 @@ export default function App() {
         </div>
 
         <div style={{display:view==="list"&&showTaskList?"":"none"}}>
-          <ListView filteredTasks={filteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} onAddTask={()=>{setEditTask({...newTaskBase});setShowTaskModal(true);}} onAddMilestone={()=>{setEditMilestone({title:"",date:"",deps:[],collateralDeps:[]});setShowMilestoneModal(true);}} onEditMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} sessions={taskTypeFilter==="class"?sessions:undefined} />
+          <ListView filteredTasks={filteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} onAddTask={()=>{setEditTask({...newTaskBase});setShowTaskModal(true);}} onAddMilestone={()=>{setEditMilestone({title:"",date:"",deps:[],collateralDeps:[]});setShowMilestoneModal(true);}} onEditMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} sessions={taskTypeFilter==="class"?sessions:undefined} isMobile={isMobile} />
         </div>
 
         <div style={{display:view==="mytasks"&&showTaskList?"":"none"}}>
-          <ListView filteredTasks={myFilteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} onAddTask={()=>{setEditTask({...newTaskBase});setShowTaskModal(true);}} onEditMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} sessions={taskTypeFilter==="class"?sessions:undefined} />
+          <ListView filteredTasks={myFilteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} onAddTask={()=>{setEditTask({...newTaskBase});setShowTaskModal(true);}} onEditMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} sessions={taskTypeFilter==="class"?sessions:undefined} isMobile={isMobile} />
         </div>
 
 <div style={{display:view==="calendar"?"":"none"}}>
