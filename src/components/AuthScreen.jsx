@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient.js";
 
 export function AuthScreen() {
@@ -8,6 +8,27 @@ export function AuthScreen() {
   const [password, setPassword] = useState("");
   const [error, setError]       = useState("");
   const [loading, setLoading]   = useState(false);
+
+  // Google OAuth redirects back here with `?error=...&error_description=...`
+  // on failure (e.g. rejected by the @tlcleaders.com domain trigger). Note:
+  // we read from the QUERY STRING, not the hash — supabase-js's client
+  // auto-scans window.location.hash on init (to detect tokens/errors) and
+  // strips it immediately, often before this effect runs, so the hash can't
+  // be relied on. The query string is untouched by that logic and survives.
+  useEffect(() => {
+    const search = window.location.search;
+    const hash   = window.location.hash;
+    const source = search.includes("error=") ? search
+                 : hash.includes("error=")    ? hash.slice(1)
+                 : null;
+    if (source) {
+      const params = new URLSearchParams(source);
+      const desc = params.get("error_description");
+      setError(desc ? desc.replace(/\+/g, " ") : "Sign-in failed. Please try again.");
+      // Clear both so refreshing doesn't re-show a stale error
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   const switchMode = m => { setMode(m); setError(""); };
 
