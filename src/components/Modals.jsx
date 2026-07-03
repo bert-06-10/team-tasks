@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Modal, Field, TagInput } from "./Primitives.jsx";
 import { STATUSES, DOC_TYPES, DEFAULT_CLASS_TASKS } from "../constants.js";
-import { fmtDate, fmtDateYear, addDays, isFlagged, nextBusinessDay, isWeekend, closestBusinessDay, parseCSV, parseClassTasksCSV, parseProgramTasksCSV, parseRunOfShowCSV, parseCollateralCSV, avatarBg, avatarTx, typeIcon, typeColor, typeBg } from "../utils.js";
+import { fmtDate, fmtDateYear, addDays, isFlagged, nextBusinessDay, isWeekend, closestBusinessDay, parseCSV, parseClassTasksCSV, parseProgramTasksCSV, parseRunOfShowCSV, parseCollateralCSV, avatarBg, avatarTx, typeIcon, typeColor, typeBg, useIsMobile } from "../utils.js";
 
 function SearchablePicker({options, onSelect, placeholder="Search…"}) {
   const [query, setQuery]   = useState("");
@@ -226,6 +226,8 @@ export function MilestoneModal({milestone,onChange,onSave,onDelete,onClose,tasks
 // ── Task Modal ────────────────────────────────────────────────────────────────
 export function TaskModal({task,tasks,docs,milestones=[],members,departments,globalTags,prefs,sessions,onChange,onSave,onDelete,onClose}) {
   const isNew = !task.id;
+  const isMobile = useIsMobile();
+  const twoCol = {display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12};
   return (
     <Modal onClose={onClose} title={isNew?(task.type==="class"?"New class task":"New program task"):(task.type==="class"?"Edit class task":"Edit program task")}>
       {task.type==="class"&&(

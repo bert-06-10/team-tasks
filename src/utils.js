@@ -1,4 +1,19 @@
+import { useState, useEffect } from "react";
 import { INIT_MEMBERS, AVATAR_BG, AVATAR_TX, DEFAULT_CLASS_TASKS, STATUSES } from "./constants.js";
+
+// Tracks viewport width so components can switch to condensed mobile layouts.
+// Shared here (rather than defined per-file) since both App.jsx and the modal
+// primitives need the same breakpoint.
+export function useIsMobile(breakpoint = 700) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= breakpoint);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 
 export const initials = n => (n||"?").split(" ").map(w=>w[0]).join("");
 export const memberIdx = n => { const i=INIT_MEMBERS.indexOf(n); return i>=0?i:(n?n.charCodeAt(0)%7:6); };
