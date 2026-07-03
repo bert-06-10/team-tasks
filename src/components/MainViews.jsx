@@ -115,15 +115,15 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
           <button onClick={() => setSelectedIds(new Set())} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>
         </div>
       ) : (
-        <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          {!isMobile && !isReadOnly && visibleIds.length > 0 && <button onClick={handleSelectAll} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Select all</button>}
-          {!isReadOnly && onAddTask && <button onClick={onAddTask} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",fontWeight:500}}>+ Add task</button>}
+        <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+          {!isMobile && !isReadOnly && visibleIds.length > 0 && <button onClick={handleSelectAll} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer",whiteSpace:"nowrap"}}>Select all</button>}
+          {!isReadOnly && onAddTask && <button onClick={onAddTask} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",fontWeight:500,whiteSpace:"nowrap"}}>+ Add task</button>}
         </div>
       )}
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-        <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>Group by:</span>
+        <span style={{fontSize:12,color:"var(--color-text-tertiary)",whiteSpace:"nowrap"}}>Group by:</span>
         {groupOptions.map(([g,l]) => (
-          <button key={g} onClick={()=>setListGroup(g)} style={{fontSize:12,padding:"4px 10px",borderRadius:20,border:listGroup===g?"0.5px solid var(--color-border-primary)":"0.5px solid var(--color-border-tertiary)",background:listGroup===g?"var(--color-background-secondary)":"transparent",color:listGroup===g?"var(--color-text-primary)":"var(--color-text-secondary)",cursor:"pointer"}}>{l}</button>
+          <button key={g} onClick={()=>setListGroup(g)} style={{fontSize:12,padding:"4px 10px",borderRadius:20,border:listGroup===g?"0.5px solid var(--color-border-primary)":"0.5px solid var(--color-border-tertiary)",background:listGroup===g?"var(--color-background-secondary)":"transparent",color:listGroup===g?"var(--color-text-primary)":"var(--color-text-secondary)",cursor:"pointer",whiteSpace:"nowrap"}}>{l}</button>
         ))}
       </div>
     </div>
@@ -259,22 +259,36 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
     return (
       <div>
         <Toolbar/>
-        <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"clip",marginBottom:16}}>
-          <ListHeader selectable={selectable} selectedAll={selectedAll} someSelected={someSelected} onSelectAll={handleSelectAll}/>
-          {displayList.length===0&&<div style={{padding:"12px 16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No tasks.</div>}
-          {displayList.map((entry,i,arr) => {
-            if (entry.type==='date-header') {
-              return (
-                <div key={`dh-${entry.date}-${i}`} style={{padding:"5px 14px",background:"var(--color-background-secondary)",borderBottom:"1px solid var(--color-border-tertiary)",display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:11,fontWeight:600,color:"var(--color-text-secondary)",letterSpacing:"0.05em"}}>{fmtWeekHeader(entry.date)}</span>
-                  <span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>{entry.count} {entry.count===1?"item":"items"}</span>
-                </div>
-              );
-            }
-            const last = i===arr.length-1 || arr[i+1]?.type==='date-header';
-            return <ListRow key={entry.item.id} task={entry.item} tasks={displayTasks} docs={displayDocs} last={last} readOnly={isReadOnly} onEdit={()=>openTask(entry.item)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} selectable={selectable} selected={selectedIds.has(entry.item.id)} onSelect={toggleSelect}/>;
-          })}
-        </div>
+        {isMobile ? (
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {displayList.length===0&&<div style={{padding:"12px 4px",fontSize:13,color:"var(--color-text-tertiary)"}}>No tasks.</div>}
+            {displayList.map((entry,i) => entry.type==='date-header' ? (
+              <div key={`dh-${entry.date}-${i}`} style={{padding:"4px 2px",display:"flex",alignItems:"center",gap:8,marginTop:i===0?0:4}}>
+                <span style={{fontSize:11,fontWeight:600,color:"var(--color-text-secondary)",letterSpacing:"0.05em"}}>{fmtWeekHeader(entry.date)}</span>
+                <span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>{entry.count} {entry.count===1?"item":"items"}</span>
+              </div>
+            ) : (
+              <TaskCard key={entry.item.id} task={entry.item} tasks={displayTasks} docs={displayDocs} readOnly={isReadOnly} onEdit={()=>openTask(entry.item)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} showGroup statusColors={statusColors}/>
+            ))}
+          </div>
+        ) : (
+          <div style={{background:"var(--color-background-primary)",borderRadius:"var(--border-radius-lg)",border:"0.5px solid var(--color-border-tertiary)",overflow:"clip",marginBottom:16}}>
+            <ListHeader selectable={selectable} selectedAll={selectedAll} someSelected={someSelected} onSelectAll={handleSelectAll}/>
+            {displayList.length===0&&<div style={{padding:"12px 16px",fontSize:13,color:"var(--color-text-tertiary)"}}>No tasks.</div>}
+            {displayList.map((entry,i,arr) => {
+              if (entry.type==='date-header') {
+                return (
+                  <div key={`dh-${entry.date}-${i}`} style={{padding:"5px 14px",background:"var(--color-background-secondary)",borderBottom:"1px solid var(--color-border-tertiary)",display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:11,fontWeight:600,color:"var(--color-text-secondary)",letterSpacing:"0.05em"}}>{fmtWeekHeader(entry.date)}</span>
+                    <span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>{entry.count} {entry.count===1?"item":"items"}</span>
+                  </div>
+                );
+              }
+              const last = i===arr.length-1 || arr[i+1]?.type==='date-header';
+              return <ListRow key={entry.item.id} task={entry.item} tasks={displayTasks} docs={displayDocs} last={last} readOnly={isReadOnly} onEdit={()=>openTask(entry.item)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} selectable={selectable} selected={selectedIds.has(entry.item.id)} onSelect={toggleSelect}/>;
+            })}
+          </div>
+        )}
       </div>
     );
   }
