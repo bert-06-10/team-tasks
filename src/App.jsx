@@ -859,6 +859,7 @@ export default function App() {
   const isViewer            = myRole === "viewer";
   const isReadOnly          = !!viewingArchive || isViewer;
   const isMobile            = useIsMobile();
+  useEffect(() => { if (isMobile && view === "collateral") setView(prefs.defaultView || "board"); }, [isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
   const sortByDue = ts => [...ts].sort((a, b) => { if (!a.due && !b.due) return 0; if (!a.due) return 1; if (!b.due) return -1; return a.due < b.due ? -1 : a.due > b.due ? 1 : 0; });
   const _today = new Date().toISOString().slice(0, 10);
   const applyDateFilter = t => {
@@ -1041,7 +1042,7 @@ export default function App() {
           </div>
         </div>
         <div style={{ padding: isMobile ? "0 12px" : "0 24px", borderTop: "0.5px solid var(--color-border-tertiary)", display: "flex", gap: 0, alignItems: "center", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {VIEWS.map(v => <button key={v} onClick={() => setView(v)} style={{ fontSize: 13, padding: "10px 16px", border: "none", borderBottom: view === v ? "2px solid var(--color-text-primary)" : "2px solid transparent", background: "transparent", color: view === v ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", fontWeight: view === v ? 500 : 400 }}>{VIEW_LABELS[v]}</button>)}
+          {(isMobile ? VIEWS.filter(v => v !== "collateral") : VIEWS).map(v => <button key={v} onClick={() => setView(v)} style={{ fontSize: 13, padding: "10px 16px", border: "none", borderBottom: view === v ? "2px solid var(--color-text-primary)" : "2px solid transparent", background: "transparent", color: view === v ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", fontWeight: view === v ? 500 : 400 }}>{VIEW_LABELS[v]}</button>)}
         </div>
       </div>
 
@@ -1105,7 +1106,7 @@ export default function App() {
           <CalendarView tasks={displayAllTasks} milestones={milestones} openTask={openTask} statusColors={statusColors} myUser={myUser} />
         </div>
 
-        <div style={{display:view==="collateral"?"":"none"}}>
+        <div style={{display:view==="collateral"&&!isMobile?"":"none"}}>
           <CollateralView docs={displayDocs} isReadOnly={isReadOnly} onSave={saveDoc} onDelete={deleteDoc} onDeleteSelected={deleteSelectedDocs} onAddDoc={()=>{setEditDoc({title:"",type:"Google Drive",audience:"",description:"",updated:new Date().toISOString().slice(0,10),next_update:"",owner:myUser,content_owner:"",assist:"",url:"",shareable_link:"",tags:[]});setShowDocModal(true);}} members={members} audiences={audiences} globalTags={globalTags} />
         </div>
 
