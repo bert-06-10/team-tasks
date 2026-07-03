@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { TaskCard, ListRow, ListHeader, MilestoneBar, DocCard } from "./TaskViews.jsx";
 import { DEFAULT_STATUS_COLORS, STATUSES, MONTHS, DAYS } from "../constants.js";
-import { fmtDate, fmtDateYear, isOverdue } from "../utils.js";
+import { fmtDate, fmtDateYear, isOverdue, useIsMobile } from "../utils.js";
 
 // ── Board View ────────────────────────────────────────────────────────────────
 export function BoardView({filteredTasks,displayTasks,displayDocs,milestones,isReadOnly,boardGroup,setBoardGroup,openTask,onViewMilestone,updateStatus,getBlockedStatus,statusColors}) {
   const [dragId,setDragId] = useState(null);
+  const isMobile = useIsMobile();
   const groupBy = (ts,key) => { const g={}; ts.forEach(t=>{const k=t[key]||"Unassigned";if(!g[k])g[k]=[];g[k].push(t);}); return g; };
   const overdueIds = boardGroup==="status" ? new Set(filteredTasks.filter(t=>t.status!=="Done"&&isOverdue(t.due)).map(t=>t.id)) : new Set();
   const boardGroups = boardGroup==="status"
@@ -17,23 +18,24 @@ export function BoardView({filteredTasks,displayTasks,displayDocs,milestones,isR
   const onDragOver = e => { e.preventDefault(); e.dataTransfer.dropEffect="move"; };
   return (
     <div>
-      <div style={{display:"flex",gap:4,alignItems:"center",marginBottom:12,justifyContent:"flex-end"}}>
-        <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>Group by:</span>
+      <div style={{display:"flex",gap:4,alignItems:"center",marginBottom:12,justifyContent:isMobile?"flex-start":"flex-end",flexWrap:"wrap"}}>
+        <span style={{fontSize:12,color:"var(--color-text-tertiary)",whiteSpace:"nowrap"}}>Group by:</span>
         {["status","assignee","department"].map(g => (
-          <button key={g} onClick={()=>setBoardGroup(g)} style={{fontSize:12,padding:"4px 10px",borderRadius:20,border:boardGroup===g?"0.5px solid var(--color-border-primary)":"0.5px solid var(--color-border-tertiary)",background:boardGroup===g?"var(--color-background-secondary)":"transparent",color:boardGroup===g?"var(--color-text-primary)":"var(--color-text-secondary)",cursor:"pointer",textTransform:"capitalize"}}>{g}</button>
+          <button key={g} onClick={()=>setBoardGroup(g)} style={{fontSize:12,padding:"4px 10px",borderRadius:20,border:boardGroup===g?"0.5px solid var(--color-border-primary)":"0.5px solid var(--color-border-tertiary)",background:boardGroup===g?"var(--color-background-secondary)":"transparent",color:boardGroup===g?"var(--color-text-primary)":"var(--color-text-secondary)",cursor:"pointer",textTransform:"capitalize",whiteSpace:"nowrap"}}>{g}</button>
         ))}
       </div>
-      <div style={{display:"flex",gap:0,overflowX:"auto",paddingBottom:8,borderLeft:"0.5px solid var(--color-border-tertiary)"}}>
+      {isMobile && <div style={{fontSize:11,color:"var(--color-text-tertiary)",marginBottom:8}}>Swipe to see more columns · tap a card to edit</div>}
+      <div style={{display:"flex",gap:0,overflowX:"auto",paddingBottom:8,borderLeft:"0.5px solid var(--color-border-tertiary)",scrollSnapType:isMobile?"x mandatory":undefined,WebkitOverflowScrolling:"touch"}}>
         {keys.map(k => {
           const isOverdueCol = k==="Overdue";
           return (
-            <div key={k} onDrop={e=>!isOverdueCol&&onDrop(e,k)} onDragOver={!isOverdueCol?onDragOver:undefined} style={{minWidth:260,flex:"0 0 260px",borderRight:"0.5px solid var(--color-border-tertiary)",padding:"0 16px 16px",transition:"background 0.15s"}}>
+            <div key={k} onDrop={e=>!isOverdueCol&&onDrop(e,k)} onDragOver={!isOverdueCol?onDragOver:undefined} style={{minWidth:isMobile?"calc(100vw - 56px)":260,flex:isMobile?"0 0 calc(100vw - 56px)":"0 0 260px",borderRight:"0.5px solid var(--color-border-tertiary)",padding:"0 16px 16px",transition:"background 0.15s",scrollSnapAlign:isMobile?"start":undefined}}>
               <div style={{fontSize:12,fontWeight:500,color:isOverdueCol?"#A32D2D":"var(--color-text-secondary)",margin:"0 0 12px",letterSpacing:"0.04em",paddingTop:4}}>
                 {k.toUpperCase()} · {(boardGroups[k]||[]).length}
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>
                 {(boardGroups[k]||[]).map(t => (
-                  <div key={t.id} draggable={!isReadOnly&&boardGroup==="status"&&!isOverdueCol} onDragStart={e=>!isOverdueCol&&onDragStart(e,t.id)} onDragEnd={()=>setDragId(null)} style={{opacity:dragId===t.id?0.4:1,cursor:isOverdueCol?"default":"grab"}}>
+                  <div key={t.id} draggable={!isReadOnly&&boardGroup==="status"&&!isOverdueCol&&!isMobile} onDragStart={e=>!isOverdueCol&&onDragStart(e,t.id)} onDragEnd={()=>setDragId(null)} style={{opacity:dragId===t.id?0.4:1,cursor:isOverdueCol?"default":"grab"}}>
                     <TaskCard task={t} tasks={displayTasks} docs={displayDocs} readOnly={isReadOnly} onEdit={()=>openTask(t)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} showGroup={boardGroup!=="status"} statusColors={statusColors}/>
                   </div>
                 ))}
@@ -309,6 +311,7 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
 // ── Calendar View ─────────────────────────────────────────────────────────────
 export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
   const today = new Date();
+  const isMobile = useIsMobile();
   const [month,setMonth] = useState(today.getMonth());
   const [year,setYear] = useState(today.getFullYear());
   const [selected,setSelected] = useState(null);
@@ -334,28 +337,30 @@ export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
     : {bg:"#E6F1FB",color:"#185FA5"};
   const selectedTasks = selected ? tasksOnDay(selected) : [];
   const selectedMs = selected ? msOnDay(selected) : [];
+  const cellH = isMobile ? 56 : 96;
+  const maxChips = isMobile ? 1 : 3;
   return (
-    <div style={{display:"flex",gap:16}}>
+    <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:16}}>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
+        <div style={{display:"flex",alignItems:"center",gap:isMobile?8:16,marginBottom:16,flexWrap:"wrap"}}>
           <button onClick={()=>{if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1);}} style={{fontSize:16,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-primary)",padding:"4px 8px"}}>‹</button>
-          <span style={{fontSize:15,fontWeight:500,color:"var(--color-text-primary)",minWidth:160,textAlign:"center"}}>{MONTHS[month]} {year}</span>
+          <span style={{fontSize:15,fontWeight:500,color:"var(--color-text-primary)",minWidth:isMobile?"auto":160,textAlign:"center"}}>{isMobile?MONTHS[month].slice(0,3):MONTHS[month]} {year}</span>
           <button onClick={()=>{if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);}} style={{fontSize:16,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-primary)",padding:"4px 8px"}}>›</button>
-          <button onClick={()=>{setMonth(today.getMonth());setYear(today.getFullYear());}} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-secondary)",cursor:"pointer",marginLeft:4}}>Today</button>
-          {myUser && <button onClick={()=>setMyOnly(v=>!v)} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:myOnly?"1px solid #0F6E56":"0.5px solid var(--color-border-secondary)",background:myOnly?"#0F6E56":"var(--color-background-primary)",color:myOnly?"#fff":"var(--color-text-secondary)",cursor:"pointer",fontWeight:500,transition:"background 0.15s,color 0.15s,border 0.15s"}}>My tasks</button>}
-          <div style={{position:"relative",marginLeft:8}}>
+          <button onClick={()=>{setMonth(today.getMonth());setYear(today.getFullYear());}} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-secondary)",cursor:"pointer",marginLeft:4,whiteSpace:"nowrap"}}>Today</button>
+          {myUser && <button onClick={()=>setMyOnly(v=>!v)} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:myOnly?"1px solid #0F6E56":"0.5px solid var(--color-border-secondary)",background:myOnly?"#0F6E56":"var(--color-background-primary)",color:myOnly?"#fff":"var(--color-text-secondary)",cursor:"pointer",fontWeight:500,transition:"background 0.15s,color 0.15s,border 0.15s",whiteSpace:"nowrap"}}>My tasks</button>}
+          <div style={{position:"relative",marginLeft:isMobile?0:8}}>
             <span style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{fontSize:12,padding:"4px 10px 4px 26px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:160}}/>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{fontSize:12,padding:"4px 10px 4px 26px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:isMobile?130:160}}/>
             {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",padding:0,lineHeight:1}}>×</button>}
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:"auto"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:isMobile?0:"auto",flexWrap:"wrap"}}>
             <span style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#185FA5"}}><span style={{width:10,height:10,borderRadius:2,background:"#E6F1FB",border:"1px solid #B5D4F4",display:"inline-block"}}/>Program</span>
             <span style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#854F0B"}}><span style={{width:10,height:10,borderRadius:2,background:"#FAEEDA",border:"1px solid #F0C97A",display:"inline-block"}}/>Class</span>
           </div>
         </div>
         <div style={{border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",overflow:"hidden"}}>
           <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderBottom:"1px solid var(--color-border-secondary)"}}>
-            {DAYS.map(d => <div key={d} style={{padding:"8px 4px",textAlign:"center",fontSize:11,fontWeight:500,color:"var(--color-text-secondary)",letterSpacing:"0.04em",borderRight:"0.5px solid var(--color-border-tertiary)"}}>{d}</div>)}
+            {DAYS.map(d => <div key={d} style={{padding:isMobile?"6px 2px":"8px 4px",textAlign:"center",fontSize:11,fontWeight:500,color:"var(--color-text-secondary)",letterSpacing:"0.04em",borderRight:"0.5px solid var(--color-border-tertiary)"}}>{isMobile?d.slice(0,1):d}</div>)}
           </div>
           {Array.from({length:cells.length/7}).map((_,wi) => (
             <div key={wi} style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",borderBottom:wi===cells.length/7-1?"none":"0.5px solid var(--color-border-tertiary)"}}>
@@ -364,19 +369,26 @@ export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
                 const dayTasks = d ? tasksOnDay(d) : [];
                 const dayMs = d ? msOnDay(d) : [];
                 const isSelected = selected===d;
+                const totalItems = dayMs.length + dayTasks.length;
                 return (
-                  <div key={di} onClick={()=>d&&setSelected(isSelected?null:d)} style={{height:96,overflow:"hidden",padding:"6px 6px 4px",borderRight:di===6?"none":"0.5px solid var(--color-border-tertiary)",background:isSelected?"var(--color-background-secondary)":d?"var(--color-background-primary)":"var(--color-background-tertiary)",cursor:d?"pointer":"default"}}>
+                  <div key={di} onClick={()=>d&&setSelected(isSelected?null:d)} style={{height:cellH,overflow:"hidden",padding:isMobile?"3px 2px":"6px 6px 4px",borderRight:di===6?"none":"0.5px solid var(--color-border-tertiary)",background:isSelected?"var(--color-background-secondary)":d?"var(--color-background-primary)":"var(--color-background-tertiary)",cursor:d?"pointer":"default"}}>
                     {d&&(
-                      <div style={{width:22,height:22,borderRadius:"50%",background:isToday?"#185FA5":"transparent",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:4}}>
-                        <span style={{fontSize:12,fontWeight:isToday?500:400,color:isToday?"#fff":"var(--color-text-primary)"}}>{d}</span>
+                      <div style={{width:isMobile?18:22,height:isMobile?18:22,borderRadius:"50%",background:isToday?"#185FA5":"transparent",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:isMobile?1:4,marginInline:isMobile?"auto":0}}>
+                        <span style={{fontSize:isMobile?11:12,fontWeight:isToday?500:400,color:isToday?"#fff":"var(--color-text-primary)"}}>{d}</span>
                       </div>
                     )}
-                    {dayMs.map(m => <div key={m.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:"#E6F1FB",color:"#185FA5",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>◆ {m.title}</div>)}
-                    {dayTasks.slice(0,3).map(t => {
-                      const tc = typeChip(t);
-                      return <div key={t.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:tc.bg,color:tc.color,marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.title}</div>;
-                    })}
-                    {dayTasks.length>3&&<div style={{fontSize:10,color:"var(--color-text-tertiary)"}}>+{dayTasks.length-3} more</div>}
+                    {isMobile ? (
+                      totalItems>0 && <div style={{width:5,height:5,borderRadius:"50%",background:"var(--color-text-secondary)",margin:"0 auto"}}/>
+                    ) : (
+                      <>
+                        {dayMs.map(m => <div key={m.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:"#E6F1FB",color:"#185FA5",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>◆ {m.title}</div>)}
+                        {dayTasks.slice(0,maxChips).map(t => {
+                          const tc = typeChip(t);
+                          return <div key={t.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:tc.bg,color:tc.color,marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.title}</div>;
+                        })}
+                        {dayTasks.length>maxChips&&<div style={{fontSize:10,color:"var(--color-text-tertiary)"}}>+{dayTasks.length-maxChips} more</div>}
+                      </>
+                    )}
                   </div>
                 );
               })}
@@ -385,7 +397,7 @@ export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
         </div>
       </div>
       {selected&&(
-        <div style={{width:240,flexShrink:0}}>
+        <div style={{width:isMobile?"100%":240,flexShrink:0}}>
           <div style={{fontSize:14,fontWeight:500,color:"var(--color-text-primary)",marginBottom:12}}>{MONTHS[month]} {selected}</div>
           {selectedMs.map(m => (
             <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #B5D4F4",background:"#E6F1FB",marginBottom:8}}>

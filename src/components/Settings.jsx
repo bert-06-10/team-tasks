@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Toggle } from "./Primitives.jsx";
 import * as db from "../lib/db.js";
+import { useIsMobile } from "../utils.js";
 import { STATUSES, DEFAULT_STATUS_COLORS, VIEWS, VIEW_LABELS, DEFAULT_PREFS } from "../constants.js";
 
 const TIMEZONES = [
@@ -70,6 +71,7 @@ export function IntegrationRow({icon,name,description,connected,onToggle}) {
 // ── User Preferences ──────────────────────────────────────────────────────────
 export function UserPreferences({myUser,prefs,updatePrefs}) {
   const [desktopStatus,setDesktopStatus] = useState(Notification.permission);
+  const isMobile = useIsMobile();
   const requestDesktop = async () => {
     const p = await Notification.requestPermission();
     setDesktopStatus(p);
@@ -102,16 +104,20 @@ export function UserPreferences({myUser,prefs,updatePrefs}) {
       {STATUSES.map(s => {
         const sc = prefs.statusColors[s]||DEFAULT_STATUS_COLORS[s];
         return (
-          <div key={s} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:8,border:"0.5px solid #e0e3e6",background:"#f8f9fa",marginBottom:8}}>
-            <span style={{flex:1,fontSize:13,color:"#1a1a18"}}>{s}</span>
-            <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:sc.bg,color:sc.color,border:`1px solid ${sc.border}`,fontWeight:500}}>{s}</span>
-            {[["bg","Fill"],["color","Text"],["border","Border"]].map(([f,l]) => (
-              <div key={f} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                <span style={{fontSize:10,color:"#888780"}}>{l}</span>
-                <input type="color" value={sc[f]} onChange={e=>updateStatusColor(s,f,e.target.value)} style={{width:28,height:28,border:"0.5px solid #787878",borderRadius:4,cursor:"pointer",padding:2,background:"none"}}/>
-              </div>
-            ))}
-            <button onClick={()=>updatePrefs("statusColors",{...prefs.statusColors,[s]:{...DEFAULT_STATUS_COLORS[s]}})} style={{fontSize:11,padding:"2px 8px",borderRadius:6,border:"0.5px solid #787878",background:"transparent",color:"#888780",cursor:"pointer"}}>Reset</button>
+          <div key={s} style={{display:"flex",flexDirection:isMobile?"column":"row",alignItems:isMobile?"stretch":"center",gap:isMobile?8:12,padding:"10px 14px",borderRadius:8,border:"0.5px solid #e0e3e6",background:"#f8f9fa",marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <span style={{flex:1,fontSize:13,color:"#1a1a18"}}>{s}</span>
+              <span style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:sc.bg,color:sc.color,border:`1px solid ${sc.border}`,fontWeight:500,flexShrink:0}}>{s}</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:12,justifyContent:isMobile?"flex-start":undefined}}>
+              {[["bg","Fill"],["color","Text"],["border","Border"]].map(([f,l]) => (
+                <div key={f} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                  <span style={{fontSize:10,color:"#888780"}}>{l}</span>
+                  <input type="color" value={sc[f]} onChange={e=>updateStatusColor(s,f,e.target.value)} style={{width:28,height:28,border:"0.5px solid #787878",borderRadius:4,cursor:"pointer",padding:2,background:"none"}}/>
+                </div>
+              ))}
+              <button onClick={()=>updatePrefs("statusColors",{...prefs.statusColors,[s]:{...DEFAULT_STATUS_COLORS[s]}})} style={{fontSize:11,padding:"2px 8px",borderRadius:6,border:"0.5px solid #787878",background:"transparent",color:"#888780",cursor:"pointer",marginLeft:isMobile?"auto":0}}>Reset</button>
+            </div>
           </div>
         );
       })}
@@ -231,27 +237,19 @@ export function TeamRoles({ myUserId }) {
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {profiles.map(p => (
-          <div key={p.id} style={{ display: "flex", flexDirection: "column", padding: "10px 14px", borderRadius: 8, border: "0.5px solid #e0e3e6", background: "#f8f9fa", gap: 8 }}>
+          <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 8, border: "0.5px solid #e0e3e6", background: "#f8f9fa", gap: 12 }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 13, color: "#1a1a18", fontWeight: 500 }}>{p.name}{p.id === myUserId ? " (you)" : ""}</div>
               <div style={{ fontSize: 12, color: "#888780", overflow: "hidden", textOverflow: "ellipsis" }}>{p.email}</div>
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
-              {ROLE_OPTIONS.map(([v, l]) => {
-                const active = (p.role || "staff") === v;
-                return (
-                  <button
-                    key={v}
-                    disabled={savingId === p.id}
-                    onClick={() => !active && changeRole(p.id, v, p.role)}
-                    title={l}
-                    style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: `0.5px solid ${active ? "#4a7c59" : "#d3d1c7"}`, background: active ? "#4a7c59" : "#fff", color: active ? "#fff" : "#555", cursor: active ? "default" : "pointer", fontWeight: active ? 600 : 400 }}
-                  >
-                    {v.charAt(0).toUpperCase() + v.slice(1)}
-                  </button>
-                );
-              })}
-            </div>
+            <select
+              value={p.role || "staff"}
+              disabled={savingId === p.id}
+              onChange={e => changeRole(p.id, e.target.value, p.role)}
+              style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "0.5px solid #d3d1c7", background: "#fff", color: "#1a1a18", flexShrink: 0 }}
+            >
+              {ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
           </div>
         ))}
       </div>
@@ -262,6 +260,7 @@ export function TeamRoles({ myUserId }) {
 
 export function SettingsModal({initialTab,members,setMembers,departments,setDepartments,audiences,setAudiences,globalTags,setGlobalTags,myUser,myUserId,isAdmin,prefs,updatePrefs,onClose}) {
   const [tab,setTab] = useState((initialTab && (isAdmin || initialTab === "preferences")) ? initialTab : "preferences");
+  const isMobile = useIsMobile();
   const tabs = isAdmin
     ? [["preferences","My Preferences"],["team","Team & Roles"],["owners","Owners"],["departments","Departments"],["audiences","Audiences"],["tags","Tags"]]
     : [["preferences","My Preferences"]];
@@ -272,18 +271,18 @@ export function SettingsModal({initialTab,members,setMembers,departments,setDepa
     tags:        {label:"Tag",        items:globalTags,  setItems:setGlobalTags},
   };
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500}}>
-      <div style={{background:"#ffffff",borderRadius:12,border:"1px solid #e0e3e6",width:"100%",maxWidth:580,maxHeight:"90vh",display:"flex",flexDirection:"column",boxSizing:"border-box",boxShadow:"0 8px 32px rgba(0,0,0,0.18)"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"18px 24px 16px",borderBottom:"1px solid #e0e3e6",flexShrink:0}}>
+    <div style={{position:"fixed",inset:0,background:isMobile?"#ffffff":"rgba(0,0,0,0.45)",display:"flex",alignItems:isMobile?"stretch":"center",justifyContent:"center",zIndex:500}}>
+      <div style={{background:"#ffffff",borderRadius:isMobile?0:12,border:isMobile?"none":"1px solid #e0e3e6",width:"100%",maxWidth:isMobile?"none":580,height:isMobile?"100%":undefined,maxHeight:isMobile?"100%":"90vh",display:"flex",flexDirection:"column",boxSizing:"border-box",boxShadow:isMobile?"none":"0 8px 32px rgba(0,0,0,0.18)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:isMobile?"14px 16px":"18px 24px 16px",borderBottom:"1px solid #e0e3e6",flexShrink:0}}>
           <span style={{fontSize:16,fontWeight:500,color:"#1a1a18"}}>Settings</span>
-          <button onClick={onClose} style={{background:"#eaecef",border:"none",borderRadius:6,width:28,height:28,fontSize:16,color:"#888780",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+          <button onClick={onClose} style={{background:"#eaecef",border:"none",borderRadius:8,width:isMobile?36:28,height:isMobile?36:28,fontSize:isMobile?20:16,color:"#888780",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>×</button>
         </div>
         <div style={{display:"flex",borderBottom:"1px solid #e0e3e6",flexShrink:0,overflowX:"auto"}}>
           {tabs.map(([k,l]) => (
-            <button key={k} onClick={()=>setTab(k)} style={{fontSize:13,padding:"10px 16px",border:"none",borderBottom:tab===k?"2px solid #1a1a18":"2px solid transparent",background:"transparent",color:tab===k?"#1a1a18":"#888780",cursor:"pointer",fontWeight:tab===k?500:400,whiteSpace:"nowrap"}}>{l}</button>
+            <button key={k} onClick={()=>setTab(k)} style={{fontSize:13,padding:"10px 16px",border:"none",borderBottom:tab===k?"2px solid #1a1a18":"2px solid transparent",background:"transparent",color:tab===k?"#1a1a18":"#888780",cursor:"pointer",fontWeight:tab===k?500:400,whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
           ))}
         </div>
-        <div style={{flex:1,overflowY:"auto",padding:"20px 24px 24px",background:"#ffffff",color:"#1a1a18"}}>
+        <div style={{flex:1,overflowY:"auto",padding:isMobile?"16px":"20px 24px 24px",background:"#ffffff",color:"#1a1a18"}}>
           {tab==="preferences"
             ? <UserPreferences myUser={myUser} prefs={prefs} updatePrefs={updatePrefs}/>
             : tab==="team"
