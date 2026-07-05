@@ -260,7 +260,7 @@ export function TeamRoles({ myUserId }) {
 
 // ── Activity log (admin only) ──────────────────────────────────────────────────
 const LOG_SKIP_FIELDS = new Set(["id","created_at","updated_at","offset_days","fall_offset_days"]);
-const LOG_FIELD_LABELS = { due_date:"Due date", session_id:"Session", collateral_deps:"Collateral deps" };
+const LOG_FIELD_LABELS = { due_date:"Due date", session_id:"Session", collateral_deps:"Collateral deps", content_owner:"Content owner", shareable_link:"Shareable link", next_update:"Next update", sort_order:"Order" };
 
 function diffFields(oldD, newD) {
   const keys = new Set([...Object.keys(oldD||{}), ...Object.keys(newD||{})]);
@@ -279,7 +279,7 @@ const fmtVal = v => {
   const s = String(v);
   return s.length > 60 ? s.slice(0,60)+"…" : s;
 };
-const TABLE_LABELS = { tasks:"Task", cycles:"Cycle" };
+const TABLE_LABELS = { tasks:"Task", cycles:"Cycle", docs:"Collateral", milestones:"Milestone", sessions:"Session", run_of_show:"Run of Show item" };
 const ACTION_LABELS = { insert:"created", update:"updated", delete:"deleted" };
 
 function ActivityLog() {
@@ -311,7 +311,7 @@ function ActivityLog() {
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {entries.map(e => {
           const record = e.new_data || e.old_data || {};
-          const title = record.title || record.name || `#${e.record_id}`;
+          const title = record.title || record.name || record.event || `#${e.record_id}`;
           const changes = e.action === "update" ? diffFields(e.old_data, e.new_data) : [];
           const isOpen = expanded.has(e.id);
           return (
