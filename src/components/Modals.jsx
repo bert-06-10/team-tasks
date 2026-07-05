@@ -246,7 +246,7 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
           </select>
         </Field>
         <Field label="Assist">
-          <select value={task.assist||""} onChange={e=>onChange({...task,assist:e.target.value})}>
+          <select value={task.assist||""} onChange={e=>{const name=e.target.value;onChange({...task,assist:name,assist_id:name?(profileIdByName[name.trim().toLowerCase()]||null):null});}}>
             <option value="">None</option>
             {members.map(m=><option key={m}>{m}</option>)}
           </select>
