@@ -413,33 +413,45 @@ function PersonPicker({value, members, onChange}) {
 export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDeleteRow,onToggleDone,members,profileIdByName={},isReadOnly}) {
   const professors = useMemo(() => [...new Set(sessions.map(s=>s.professor||s.name||"").filter(Boolean))].sort(), [sessions]);
   const [selProf,  setSelProf]  = useState(() => {
-    try {
-      const {prof} = JSON.parse(localStorage.getItem("ros_sel")||"{}");
-      if (prof && professors.includes(prof)) return prof;
-    } catch {}
+    try { return JSON.parse(localStorage.getItem("ros_sel")||"{}").prof || professors[0] || ""; } catch {}
     return professors[0]||"";
   });
   const profSessions = useMemo(() => sessions.filter(s=>(s.professor||s.name||"")===(selProf||professors[0]||"")), [sessions,selProf,professors]);
   const [selDate,  setSelDate]  = useState(() => {
-    try {
-      const {date} = JSON.parse(localStorage.getItem("ros_sel")||"{}");
-      if (date && profSessions.some(s=>s.id===date)) return date;
-    } catch {}
+    try { return JSON.parse(localStorage.getItem("ros_sel")||"{}").date || profSessions[0]?.id || ""; } catch {}
     return profSessions[0]?.id||"";
   });
   const selectedSession = selDate || profSessions[0]?.id || "";
 
+  // Restore saved selection once sessions load from Supabase (handles reload before data arrives)
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current || professors.length === 0) return;
+    restoredRef.current = true;
+    try {
+      const {prof, date} = JSON.parse(localStorage.getItem("ros_sel")||"{}");
+      if (prof && professors.includes(prof)) {
+        setSelProf(prof);
+        const ps = sessions.filter(s=>(s.professor||s.name||"")===prof);
+        setSelDate(date && ps.some(s=>s.id===date) ? date : ps[0]?.id||"");
+      }
+    } catch {}
+  }, [professors]);
+
+  // Persist current selection whenever it changes (covers default auto-selection too)
+  useEffect(() => {
+    if (!selProf && !selectedSession) return;
+    try { localStorage.setItem("ros_sel", JSON.stringify({prof: selProf, date: selectedSession})); } catch {}
+  }, [selProf, selectedSession]);
+
   const switchProf = prof => {
     setSelProf(prof);
     const first = sessions.filter(s=>(s.professor||s.name||"")===prof)[0];
-    const date = first?.id||"";
-    setSelDate(date);
-    try { localStorage.setItem("ros_sel", JSON.stringify({prof, date})); } catch {}
+    setSelDate(first?.id||"");
     setEditingRow(null); setEditVal({}); setExpandedRow(null); setSelectedIds(new Set());
   };
   const switchDate = id => {
     setSelDate(id);
-    try { localStorage.setItem("ros_sel", JSON.stringify({prof: selProf, date: id})); } catch {}
     setEditingRow(null); setEditVal({}); setExpandedRow(null); setSelectedIds(new Set());
   };
 
