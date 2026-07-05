@@ -385,7 +385,7 @@ export function DocModal({doc,members,audiences,globalTags,prefs,onChange,onSave
         </select>
       </Field>
       <Field label="Description"><textarea value={doc.description} onChange={e=>onChange({...doc,description:e.target.value})} rows={2} style={{resize:"vertical"}}/></Field>
-      <Field label="Owner">
+      <Field label="Department">
         <select value={doc.owner} onChange={e=>onChange({...doc,owner:e.target.value})}>
           {members.map(m=><option key={m}>{m}</option>)}
         </select>
@@ -879,7 +879,7 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, onSa
             <>
               <LabeledField label="Title"><input value={val.title||""} onChange={e=>setVal(v=>({...v,title:e.target.value}))} style={inp} autoFocus/></LabeledField>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 24px"}}>
-                <LabeledField label="Owner">
+                <LabeledField label="Department">
                   <select value={val.owner||""} onChange={e=>setVal(v=>({...v,owner:e.target.value}))} style={sel}>
                     <option value="">—</option>{members.map(m=><option key={m}>{m}</option>)}
                   </select>
@@ -919,7 +919,7 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, onSa
           ) : (
             <>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 32px"}}>
-                <LabeledField label="Owner"><PersonPill name={doc.owner}/></LabeledField>
+                <LabeledField label="Department"><PersonPill name={doc.owner}/></LabeledField>
                 <LabeledField label="Audience"><TextVal v={doc.audience}/></LabeledField>
                 <LabeledField label="Content Owner"><PersonPill name={doc.content_owner}/></LabeledField>
                 <LabeledField label="Assist"><PersonPill name={doc.assist}/></LabeledField>
