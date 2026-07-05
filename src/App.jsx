@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { BoardView, ListView, CalendarView, SearchView } from "./components/MainViews.jsx";
 import { RunOfShowView, ListHeader, ListRow, DocCard, CollateralView } from "./components/TaskViews.jsx";
 import { FilterDropdown } from "./components/Primitives.jsx";
@@ -53,6 +53,7 @@ export default function App() {
   const [globalTags,   setGlobalTags]   = useState([]);
   const [activeCycle,  setActiveCycle]  = useState(null);
   const [archivedCycles, setArchivedCycles] = useState([]);
+  const [profiles,     setProfiles]     = useState([]);
   const [loading,      setLoading]      = useState(true);
 
   // ── User / prefs state ──────────────────────────────────────────────────────
@@ -175,11 +176,11 @@ export default function App() {
       localStorage.setItem('teamtasks_timezone', tz);
 
       // Fetch config lists + sessions + cycle
-      const [membersList, deptList, audList, tagList, sessionsData, cycle, archived] =
+      const [membersList, deptList, audList, tagList, sessionsData, cycle, archived, allProfiles] =
         await Promise.all([
           db.fetchMembers(), db.fetchDepartments(), db.fetchAudiences(),
           db.fetchGlobalTags(), db.fetchSessions(), db.fetchActiveCycle(),
-          db.fetchArchivedCycles(),
+          db.fetchArchivedCycles(), db.fetchAllProfiles(),
         ]);
 
       // Ensure the signed-in user appears in the members list.
@@ -202,6 +203,7 @@ export default function App() {
       setSessions(sessionsData);
       setActiveCycle(cycle);
       setArchivedCycles(archived);
+      setProfiles(allProfiles || []);
 
       // Fetch tasks, run of show, milestones, docs
       const [taskData, rosData, milestonesData, docsData] = await Promise.all([
@@ -254,6 +256,7 @@ export default function App() {
     setDepartments([]);
     setAudiences([]);
     setGlobalTags([]);
+    setProfiles([]);
     setLoading(false);
   };
 
@@ -860,6 +863,12 @@ export default function App() {
   const isReadOnly          = !!viewingArchive || isViewer;
   const isMobile            = useIsMobile();
   useEffect(() => { if (isMobile && view === "collateral") setView(prefs.defaultView || "board"); }, [isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Case/whitespace-insensitive name → profile id, so picking a name that matches a real account auto-links it.
+  const profileIdByName = useMemo(() => {
+    const map = {};
+    profiles.forEach(p => { if (p.name) map[p.name.trim().toLowerCase()] = p.id; });
+    return map;
+  }, [profiles]);
   const sortByDue = ts => [...ts].sort((a, b) => { if (!a.due && !b.due) return 0; if (!a.due) return 1; if (!b.due) return -1; return a.due < b.due ? -1 : a.due > b.due ? 1 : 0; });
   const _today = new Date().toISOString().slice(0, 10);
   const applyDateFilter = t => {
@@ -880,7 +889,7 @@ export default function App() {
   const openDoc      = d => { if (!isReadOnly) { setEditDoc(d); setShowDocModal(true); } };
   const openSettings = (tab = "owners") => { setSettingsTab(tab); setShowSettings(true); };
 
-  const newTaskBase     = { title: "", assignee: myUser, assist: "", due: "", status: "To Do", notes: "", deps: [], collateralDeps: [], attachedDocs: [], tags: [], offset: 0, fallOffset: 0, department: "", type: taskTypeFilter };
+  const newTaskBase     = { title: "", assignee: myUser, assignee_id: userId || null, assist: "", due: "", status: "To Do", notes: "", deps: [], collateralDeps: [], attachedDocs: [], tags: [], offset: 0, fallOffset: 0, department: "", type: taskTypeFilter };
   const taskTypeOptions = [["program", "Program tasks"], ["class", "Class tasks"]];
   const showTaskList    = taskTypeFilter === "program" || taskTypeFilter === "class";
 
@@ -1118,7 +1127,7 @@ export default function App() {
       {/* Modals */}
       {showAddSessionModal && !isReadOnly && <AddSessionModal isDuplicate={!!addSessionDuplicateFrom} initialData={addSessionDuplicateFrom ? { professor: addSessionDuplicateFrom.professor || addSessionDuplicateFrom.name || "", cohort: addSessionDuplicateFrom.cohort || "Cohort 1", date: "", addTasks: false } : undefined} template={classTaskTemplate} onSave={handleAddSessionFromModal} onClose={() => { setShowAddSessionModal(false); setAddSessionDuplicateFrom(null); }} />}
       {showStandardTasksModal && !isReadOnly && <StandardTasksModal template={classTaskTemplate} members={members} sessions={sessions} onSaveTemplate={saveClassTaskTemplate} onApplyTemplate={applyTemplateToSession} onClose={() => setShowStandardTasksModal(false)} />}
-      {showTaskModal     && editTask     && <TaskModal task={editTask} tasks={allTasks} docs={docs} milestones={milestones} members={members} departments={departments} globalTags={globalTags} prefs={prefs} sessions={sessions} onChange={setEditTask} onSave={saveTask} onDelete={deleteTask} onClose={() => { setShowTaskModal(false); setEditTask(null); }} />}
+      {showTaskModal     && editTask     && <TaskModal task={editTask} tasks={allTasks} docs={docs} milestones={milestones} members={members} departments={departments} globalTags={globalTags} prefs={prefs} sessions={sessions} profileIdByName={profileIdByName} onChange={setEditTask} onSave={saveTask} onDelete={deleteTask} onClose={() => { setShowTaskModal(false); setEditTask(null); }} />}
       {showDocModal      && editDoc      && <DocModal doc={editDoc} members={members} audiences={audiences} globalTags={globalTags} prefs={prefs} onChange={setEditDoc} onSave={saveDoc} onDelete={deleteDoc} onClose={() => { setShowDocModal(false); setEditDoc(null); }} />}
       {showMilestoneDetail && viewMilestone && (()=>{ const dm = milestones.find(m=>m.id===viewMilestone.id) ?? viewMilestone; return <MilestoneDetailModal milestone={dm} tasks={allTasks} docs={docs} onEdit={m=>{setShowMilestoneDetail(false);setViewMilestone(null);setEditMilestone({...m,deps:m.deps||[],collateralDeps:m.collateralDeps||[]});setShowMilestoneModal(true);}} onClose={()=>{setShowMilestoneDetail(false);setViewMilestone(null);}}/> })()}
       {showMilestoneModal && editMilestone && <MilestoneModal milestone={editMilestone} onChange={setEditMilestone} onSave={saveMilestone} onDelete={deleteMilestone} tasks={allTasks} docs={docs} onClose={() => { setShowMilestoneModal(false); setEditMilestone(null); }} />}

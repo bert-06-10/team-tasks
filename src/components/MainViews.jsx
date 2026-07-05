@@ -442,7 +442,7 @@ function offsetLabel(n) {
   return `${n} day${n !== 1 ? "s" : ""} after`;
 }
 
-export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, openTask, updateStatus, getBlockedStatus, statusColors, initialSessionId, onSessionIdConsumed, onNavigateToList, onSaveSession, onUpdateSession, onDeleteSession, classTaskTemplate, onSaveTemplate, onApplyTemplate, onAddSelectedTasks, myUser, selectedProfessor, onProfessorChange, selectedSessionId, onSessionIdChange, onOpenAddSession, onOpenDuplicate }) {
+export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, openTask, updateStatus, getBlockedStatus, statusColors, initialSessionId, onSessionIdConsumed, onNavigateToList, onSaveSession, onUpdateSession, onDeleteSession, classTaskTemplate, onSaveTemplate, onApplyTemplate, onAddSelectedTasks, myUser, profileIdByName={}, selectedProfessor, onProfessorChange, selectedSessionId, onSessionIdChange, onOpenAddSession, onOpenDuplicate }) {
   const setSelectedProfessor = onProfessorChange;
   const setSelectedSessionId = onSessionIdChange;
   const [editingSession,    setEditingSession]    = useState(false);
@@ -521,7 +521,7 @@ export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, 
   };
 
   const openBlankTask = () => openTask({
-    title: "", assignee: myUser || "", assist: "", due: classDate || "", status: "To Do",
+    title: "", assignee: myUser || "", assignee_id: profileIdByName[(myUser||"").trim().toLowerCase()]||null, assist: "", due: classDate || "", status: "To Do",
     notes: "", deps: [], collateralDeps: [], attachedDocs: [], tags: ["class"],
     offset: 0, fallOffset: 0, department: "", type: "class",
     sessionId: selectedSessionId, sessionName: selectedSession?.professor || selectedSession?.name || "",
