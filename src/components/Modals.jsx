@@ -224,7 +224,7 @@ export function MilestoneModal({milestone,onChange,onSave,onDelete,onClose,tasks
 }
 
 // ── Task Modal ────────────────────────────────────────────────────────────────
-export function TaskModal({task,tasks,docs,milestones=[],members,departments,globalTags,prefs,sessions,onChange,onSave,onDelete,onClose}) {
+export function TaskModal({task,tasks,docs,milestones=[],members,departments,globalTags,prefs,sessions,profileIdByName={},onChange,onSave,onDelete,onClose}) {
   const isNew = !task.id;
   const isMobile = useIsMobile();
   const twoCol = {display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12};
@@ -239,9 +239,9 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
         </Field>
       )}
       <Field label="Title"><input value={task.title} onChange={e=>onChange({...task,title:e.target.value})} placeholder="Task title"/></Field>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+      <div style={twoCol}>
         <Field label="Assignee">
-          <select value={task.assignee} onChange={e=>onChange({...task,assignee:e.target.value})}>
+          <select value={task.assignee} onChange={e=>{const name=e.target.value;onChange({...task,assignee:name,assignee_id:profileIdByName[name.trim().toLowerCase()]||null});}}>
             {members.map(m=><option key={m}>{m}</option>)}
           </select>
         </Field>
@@ -253,7 +253,7 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
         </Field>
       </div>
       {task.type==="program"&&(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <div style={twoCol}>
           <Field label="Department">
             <select value={task.department||""} onChange={e=>onChange({...task,department:e.target.value})}>
               <option value="">None</option>
@@ -272,7 +272,7 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
         </div>
       )}
       {task.type==="program"&&(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        <div style={twoCol}>
           <Field label="Spring: days from start">
             <input type="number" min="0" value={task.offset||0} onChange={e=>onChange({...task,offset:parseInt(e.target.value)||0})}/>
           </Field>
