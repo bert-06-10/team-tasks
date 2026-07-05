@@ -900,7 +900,7 @@ export default function App() {
       </div>
 
       {/* Top nav */}
-      <div style={{ background: "var(--color-background-primary)", borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
+      <div style={{ position: "relative", zIndex: 10, background: "var(--color-background-primary)", borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
         <div style={{ padding: isMobile ? "0 12px" : "0 24px", display: "flex", alignItems: "center", gap: 12, height: 52, overflowX: isMobile ? "auto" : "visible" }}>
           <span onClick={() => setView(prefs.defaultView || "board")} style={{ fontWeight: 500, fontSize: 15, color: "var(--color-text-primary)", flexShrink: 0, cursor: "pointer" }}>{isMobile ? "TT" : "Team Tasks"}</span>
 
