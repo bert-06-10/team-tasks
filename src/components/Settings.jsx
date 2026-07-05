@@ -293,7 +293,11 @@ function ActivityLog() {
 
   const toggle = id => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  if (entries === null) return <div style={{ fontSize: 13, color: "#888780" }}>Loading activity…</div>;
+  if (entries === null) {
+    return error
+      ? <div style={{ fontSize: 12, color: "#A32D2D", padding: "8px 12px", background: "#FCEBEB", borderRadius: 8, border: "0.5px solid #F7C1C1" }}>{error}</div>
+      : <div style={{ fontSize: 13, color: "#888780" }}>Loading activity…</div>;
+  }
 
   return (
     <div>
