@@ -64,6 +64,9 @@ export default function App() {
   const [draftCycle,                setDraftCycle]                = useState(() => { try { return JSON.parse(localStorage.getItem('teamtasks_draft_cycle')); } catch { return null; } });
   const [classTaskTemplate,         setClassTaskTemplate]         = useState(() => { try { const s = localStorage.getItem('teamtasks_class_task_template'); return s ? JSON.parse(s) : null; } catch { return null; } });
   const [importHistory,             setImportHistory]             = useState(() => { try { return JSON.parse(localStorage.getItem('teamtasks_import_history')) || []; } catch { return []; } });
+  const [rosProf, setRosProf] = useState(() => { try { return JSON.parse(localStorage.getItem("ros_sel")||"{}").prof||""; } catch { return ""; } });
+  const [rosDate, setRosDate] = useState(() => { try { return JSON.parse(localStorage.getItem("ros_sel")||"{}").date||""; } catch { return ""; } });
+  const handleRosSel = (prof, date) => { setRosProf(prof); setRosDate(date); try { localStorage.setItem("ros_sel", JSON.stringify({prof,date})); } catch {} };
 
   const [showAddSessionModal,        setShowAddSessionModal]        = useState(false);
   const [addSessionDuplicateFrom,   setAddSessionDuplicateFrom]   = useState(null);
@@ -1080,7 +1083,7 @@ export default function App() {
         )}
 
         <div style={{display:view==="runofshow"?"":"none"}}>
-          <RunOfShowView sessions={sessions} runOfShow={runOfShow} setRunOfShow={setRunOfShow} onSaveRow={handleSaveRunOfShowRow} onDeleteRow={handleDeleteRunOfShowRow} onToggleDone={handleToggleRunOfShowDone} members={members} profileIdByName={profileIdByName} isReadOnly={isReadOnly} />
+          <RunOfShowView sessions={sessions} runOfShow={runOfShow} setRunOfShow={setRunOfShow} onSaveRow={handleSaveRunOfShowRow} onDeleteRow={handleDeleteRunOfShowRow} onToggleDone={handleToggleRunOfShowDone} members={members} profileIdByName={profileIdByName} isReadOnly={isReadOnly} rosProf={rosProf} rosDate={rosDate} onRosSel={handleRosSel} />
         </div>
 
         <div style={{display:view==="board"&&showTaskList?"":"none"}}>

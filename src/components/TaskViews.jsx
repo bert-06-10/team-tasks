@@ -410,34 +410,19 @@ function PersonPicker({value, members, onChange}) {
   );
 }
 
-export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDeleteRow,onToggleDone,members,profileIdByName={},isReadOnly}) {
+export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDeleteRow,onToggleDone,members,profileIdByName={},isReadOnly,rosProf="",rosDate="",onRosSel}) {
   const professors = useMemo(() => [...new Set(sessions.map(s=>s.professor||s.name||"").filter(Boolean))].sort(), [sessions]);
-  const [selProf,  setSelProf]  = useState(() => {
-    try { return JSON.parse(localStorage.getItem("ros_sel")||"{}").prof || professors[0] || ""; } catch {}
-    return professors[0]||"";
-  });
-  const profSessions = useMemo(() => sessions.filter(s=>(s.professor||s.name||"")===(selProf||professors[0]||"")), [sessions,selProf,professors]);
-  const [selDate,  setSelDate]  = useState(() => {
-    try { return JSON.parse(localStorage.getItem("ros_sel")||"{}").date || profSessions[0]?.id || ""; } catch {}
-    return profSessions[0]?.id||"";
-  });
-  const selectedSession = selDate || profSessions[0]?.id || "";
-
-  // Persist whenever selection changes; skip if selectedSession is empty (sessions still loading)
-  // so we never overwrite a valid saved date with "" during async session fetch.
-  useEffect(() => {
-    if (!selectedSession) return;
-    try { localStorage.setItem("ros_sel", JSON.stringify({prof: selProf, date: selectedSession})); } catch {}
-  }, [selProf, selectedSession]);
+  const selProf = rosProf || professors[0] || "";
+  const profSessions = useMemo(() => sessions.filter(s=>(s.professor||s.name||"")===selProf), [sessions,selProf]);
+  const selectedSession = rosDate || profSessions[0]?.id || "";
 
   const switchProf = prof => {
-    setSelProf(prof);
     const first = sessions.filter(s=>(s.professor||s.name||"")===prof)[0];
-    setSelDate(first?.id||"");
+    onRosSel?.(prof, first?.id||"");
     setEditingRow(null); setEditVal({}); setExpandedRow(null); setSelectedIds(new Set());
   };
   const switchDate = id => {
-    setSelDate(id);
+    onRosSel?.(selProf, id);
     setEditingRow(null); setEditVal({}); setExpandedRow(null); setSelectedIds(new Set());
   };
 
