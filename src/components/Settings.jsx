@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId, useRef } from "react";
 import { Toggle } from "./Primitives.jsx";
 import * as db from "../lib/db.js";
 import { useIsMobile } from "../utils.js";
@@ -350,6 +350,14 @@ function ActivityLog() {
 export function SettingsModal({initialTab,members,setMembers,departments,setDepartments,audiences,setAudiences,globalTags,setGlobalTags,myUser,myUserId,isAdmin,prefs,updatePrefs,onClose}) {
   const [tab,setTab] = useState((initialTab && (isAdmin || initialTab === "preferences")) ? initialTab : "preferences");
   const isMobile = useIsMobile();
+  const titleId = useId();
+  const closeRef = useRef(null);
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = e => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const tabs = isAdmin
     ? [["preferences","My Preferences"],["team","Team & Roles"],["activity","Activity"],["owners","Owners"],["departments","Departments"],["audiences","Audiences"],["tags","Tags"]]
     : [["preferences","My Preferences"]];
@@ -361,14 +369,14 @@ export function SettingsModal({initialTab,members,setMembers,departments,setDepa
   };
   return (
     <div style={{position:"fixed",inset:0,background:isMobile?"#ffffff":"rgba(0,0,0,0.45)",display:"flex",alignItems:isMobile?"stretch":"center",justifyContent:"center",zIndex:500}}>
-      <div style={{background:"#ffffff",borderRadius:isMobile?0:12,border:isMobile?"none":"1px solid #e0e3e6",width:"100%",maxWidth:isMobile?"none":580,height:isMobile?"100%":undefined,maxHeight:isMobile?"100%":"90vh",display:"flex",flexDirection:"column",boxSizing:"border-box",boxShadow:isMobile?"none":"0 8px 32px rgba(0,0,0,0.18)"}}>
+      <div role="dialog" aria-modal="true" aria-labelledby={titleId} style={{background:"#ffffff",borderRadius:isMobile?0:12,border:isMobile?"none":"1px solid #e0e3e6",width:"100%",maxWidth:isMobile?"none":580,height:isMobile?"100%":undefined,maxHeight:isMobile?"100%":"90vh",display:"flex",flexDirection:"column",boxSizing:"border-box",boxShadow:isMobile?"none":"0 8px 32px rgba(0,0,0,0.18)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:isMobile?"14px 16px":"18px 24px 16px",borderBottom:"1px solid #e0e3e6",flexShrink:0}}>
-          <span style={{fontSize:16,fontWeight:500,color:"#1a1a18"}}>Settings</span>
-          <button onClick={onClose} style={{background:"#eaecef",border:"none",borderRadius:8,width:isMobile?36:28,height:isMobile?36:28,fontSize:isMobile?20:16,color:"#888780",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>×</button>
+          <span id={titleId} style={{fontSize:16,fontWeight:500,color:"#1a1a18"}}>Settings</span>
+          <button ref={closeRef} onClick={onClose} aria-label="Close settings" style={{background:"#eaecef",border:"none",borderRadius:8,width:isMobile?36:28,height:isMobile?36:28,fontSize:isMobile?20:16,color:"#888780",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>×</button>
         </div>
-        <div style={{display:"flex",borderBottom:"1px solid #e0e3e6",flexShrink:0,overflowX:"auto"}}>
+        <div role="tablist" aria-label="Settings sections" style={{display:"flex",borderBottom:"1px solid #e0e3e6",flexShrink:0,overflowX:"auto"}}>
           {tabs.map(([k,l]) => (
-            <button key={k} onClick={()=>setTab(k)} style={{fontSize:13,padding:"10px 16px",border:"none",borderBottom:tab===k?"2px solid #1a1a18":"2px solid transparent",background:"transparent",color:tab===k?"#1a1a18":"#888780",cursor:"pointer",fontWeight:tab===k?500:400,whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
+            <button key={k} role="tab" aria-selected={tab===k} onClick={()=>setTab(k)} style={{fontSize:13,padding:"10px 16px",border:"none",borderBottom:tab===k?"2px solid #1a1a18":"2px solid transparent",background:"transparent",color:tab===k?"#1a1a18":"#888780",cursor:"pointer",fontWeight:tab===k?500:400,whiteSpace:"nowrap",flexShrink:0}}>{l}</button>
           ))}
         </div>
         <div style={{flex:1,overflowY:"auto",padding:isMobile?"16px":"20px 24px 24px",background:"#ffffff",color:"#1a1a18"}}>
