@@ -378,19 +378,34 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
 // ── Run of Show View ──────────────────────────────────────────────────────────
 export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDeleteRow,onToggleDone,members,profileIdByName={},isReadOnly}) {
   const professors = useMemo(() => [...new Set(sessions.map(s=>s.professor||s.name||"").filter(Boolean))].sort(), [sessions]);
-  const [selProf,  setSelProf]  = useState(() => professors[0]||"");
+  const [selProf,  setSelProf]  = useState(() => {
+    try {
+      const {prof} = JSON.parse(localStorage.getItem("ros_sel")||"{}");
+      if (prof && professors.includes(prof)) return prof;
+    } catch {}
+    return professors[0]||"";
+  });
   const profSessions = useMemo(() => sessions.filter(s=>(s.professor||s.name||"")===(selProf||professors[0]||"")), [sessions,selProf,professors]);
-  const [selDate,  setSelDate]  = useState(() => profSessions[0]?.id||"");
+  const [selDate,  setSelDate]  = useState(() => {
+    try {
+      const {date} = JSON.parse(localStorage.getItem("ros_sel")||"{}");
+      if (date && profSessions.some(s=>s.id===date)) return date;
+    } catch {}
+    return profSessions[0]?.id||"";
+  });
   const selectedSession = selDate || profSessions[0]?.id || "";
 
   const switchProf = prof => {
     setSelProf(prof);
     const first = sessions.filter(s=>(s.professor||s.name||"")===prof)[0];
-    setSelDate(first?.id||"");
+    const date = first?.id||"";
+    setSelDate(date);
+    try { localStorage.setItem("ros_sel", JSON.stringify({prof, date})); } catch {}
     setEditingRow(null); setEditVal({}); setExpandedRow(null); setSelectedIds(new Set());
   };
   const switchDate = id => {
     setSelDate(id);
+    try { localStorage.setItem("ros_sel", JSON.stringify({prof: selProf, date: id})); } catch {}
     setEditingRow(null); setEditVal({}); setExpandedRow(null); setSelectedIds(new Set());
   };
 
