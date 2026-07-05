@@ -423,24 +423,10 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
   });
   const selectedSession = selDate || profSessions[0]?.id || "";
 
-  // Restore saved selection once sessions load from Supabase (handles reload before data arrives)
-  const restoredRef = useRef(false);
+  // Persist whenever selection changes; skip if selectedSession is empty (sessions still loading)
+  // so we never overwrite a valid saved date with "" during async session fetch.
   useEffect(() => {
-    if (restoredRef.current || professors.length === 0) return;
-    restoredRef.current = true;
-    try {
-      const {prof, date} = JSON.parse(localStorage.getItem("ros_sel")||"{}");
-      if (prof && professors.includes(prof)) {
-        setSelProf(prof);
-        const ps = sessions.filter(s=>(s.professor||s.name||"")===prof);
-        setSelDate(date && ps.some(s=>s.id===date) ? date : ps[0]?.id||"");
-      }
-    } catch {}
-  }, [professors]);
-
-  // Persist current selection whenever it changes (covers default auto-selection too)
-  useEffect(() => {
-    if (!selProf && !selectedSession) return;
+    if (!selectedSession) return;
     try { localStorage.setItem("ros_sel", JSON.stringify({prof: selProf, date: selectedSession})); } catch {}
   }, [selProf, selectedSession]);
 
