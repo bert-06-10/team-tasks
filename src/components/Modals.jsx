@@ -367,7 +367,7 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
 }
 
 // ── Doc Modal ─────────────────────────────────────────────────────────────────
-export function DocModal({doc,members,audiences,globalTags,prefs,onChange,onSave,onDelete,onClose}) {
+export function DocModal({doc,members,audiences,globalTags,prefs,profileIdByName={},onChange,onSave,onDelete,onClose}) {
   const isNew = !doc.id;
   return (
     <Modal onClose={onClose} title={isNew?"Add document":"Edit document"}>
@@ -391,13 +391,13 @@ export function DocModal({doc,members,audiences,globalTags,prefs,onChange,onSave
         </select>
       </Field>
       <Field label="Content owner">
-        <select value={doc.content_owner||""} onChange={e=>onChange({...doc,content_owner:e.target.value})}>
+        <select value={doc.content_owner||""} onChange={e=>{const name=e.target.value;onChange({...doc,content_owner:name,content_owner_id:name?(profileIdByName[name.trim().toLowerCase()]||null):null});}}>
           <option value="">—</option>
           {members.map(m=><option key={m}>{m}</option>)}
         </select>
       </Field>
       <Field label="Assist">
-        <select value={doc.assist||""} onChange={e=>onChange({...doc,assist:e.target.value})}>
+        <select value={doc.assist||""} onChange={e=>{const name=e.target.value;onChange({...doc,assist:name,assist_id:name?(profileIdByName[name.trim().toLowerCase()]||null):null});}}>
           <option value="">—</option>
           {members.map(m=><option key={m}>{m}</option>)}
         </select>

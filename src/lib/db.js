@@ -462,7 +462,7 @@ export async function fetchDocs() {
   return data.map(r => ({
     id: r.id, title: r.title, type: r.type, url: r.url,
     audience: r.audience, description: r.description,
-    owner: r.owner, content_owner: r.content_owner || '', assist: r.assist || '', shareable_link: r.shareable_link || '', updated: r.updated_date || '', tags: r.tags || [],
+    owner: r.owner, content_owner: r.content_owner || '', content_owner_id: r.content_owner_id || null, assist: r.assist || '', assist_id: r.assist_id || null, shareable_link: r.shareable_link || '', updated: r.updated_date || '', tags: r.tags || [],
     next_update: r.next_update || '',
   }))
 }
@@ -471,7 +471,7 @@ export async function saveDoc(doc) {
   const row = {
     title: doc.title, type: doc.type, url: doc.url || '',
     audience: doc.audience || '', description: doc.description || '',
-    owner: doc.owner || '', content_owner: doc.content_owner || '', assist: doc.assist || '', shareable_link: doc.shareable_link || '', updated_date: doc.updated || null, tags: doc.tags || [],
+    owner: doc.owner || '', content_owner: doc.content_owner || '', content_owner_id: doc.content_owner_id || null, assist: doc.assist || '', assist_id: doc.assist_id || null, shareable_link: doc.shareable_link || '', updated_date: doc.updated || null, tags: doc.tags || [],
     next_update: doc.next_update || null,
   }
   if (doc.id) {
@@ -498,7 +498,7 @@ export async function fetchRunOfShow() {
   const result = {}
   data.forEach(r => {
     if (!result[r.session_id]) result[r.session_id] = []
-    result[r.session_id].push({ id: r.id, cohort: r.cohort, time: r.time, event: r.event, owner: r.owner, assist: r.assist, notes: r.notes, done: r.done || false })
+    result[r.session_id].push({ id: r.id, cohort: r.cohort, time: r.time, event: r.event, owner: r.owner, owner_id: r.owner_id || null, assist: r.assist, assist_id: r.assist_id || null, notes: r.notes, done: r.done || false })
   })
   return result
 }
@@ -507,7 +507,7 @@ export async function saveRunOfShowRow(sessionId, row) {
   const isTemp = !row.id || String(row.id).startsWith('ri')
   const dbRow = {
     session_id: sessionId, cohort: row.cohort || '', time: row.time || '',
-    event: row.event || '', owner: row.owner || '', assist: row.assist || '', notes: row.notes || '',
+    event: row.event || '', owner: row.owner || '', owner_id: row.owner_id || null, assist: row.assist || '', assist_id: row.assist_id || null, notes: row.notes || '',
     done: row.done || false,
   }
   if (!isTemp) {

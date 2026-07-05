@@ -6,7 +6,7 @@ import { SettingsModal } from "./components/Settings.jsx";
 import { MilestoneModal, MilestoneDetailModal, TaskModal, DocModal, ImportModal, ImportCollateralModal, CycleModal, AddSessionModal, StandardTasksModal } from "./components/Modals.jsx";
 import { AuthScreen } from "./components/AuthScreen.jsx";
 import { VIEWS, VIEW_LABELS, DEFAULT_STATUS_COLORS, DEFAULT_PREFS } from "./constants.js";
-import { avatarBg, avatarTx, initials, isOverdue, isWeekend, addDays, isFlagged, closestBusinessDay, genClassTasks, exportTasksToCSV, fmtDate, setDefaultTimezone } from "./utils.js";
+import { avatarBg, avatarTx, initials, isOverdue, isWeekend, addDays, isFlagged, closestBusinessDay, genClassTasks, exportTasksToCSV, fmtDate, setDefaultTimezone, useIsMobile } from "./utils.js";
 import { supabase } from "./supabaseClient.js";
 import * as db from "./lib/db.js";
 
@@ -15,20 +15,6 @@ const DEFAULT_USER_PREFS = {
   statusColors:  { ...DEFAULT_STATUS_COLORS },
   notifications: { ...DEFAULT_PREFS.notifications },
 };
-
-// Tracks viewport width so we can switch to a condensed mobile header/nav.
-// Uses matchMedia + resize listener rather than CSS alone because the mobile
-// header restructures which elements render (e.g. 4 dropdowns -> 1 overflow
-// menu), not just their visibility/sizing.
-function useIsMobile(breakpoint = 700) {
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= breakpoint);
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth <= breakpoint);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [breakpoint]);
-  return isMobile;
-}
 
 
 // Apply saved timezone immediately so dates render correctly before prefs finish loading
@@ -53,12 +39,12 @@ export default function App() {
   const [globalTags,   setGlobalTags]   = useState([]);
   const [activeCycle,  setActiveCycle]  = useState(null);
   const [archivedCycles, setArchivedCycles] = useState([]);
-  const [profiles,     setProfiles]     = useState([]);
   const [loading,      setLoading]      = useState(true);
 
   // ── User / prefs state ──────────────────────────────────────────────────────
   const [myUser,    setMyUser]    = useState("");
   const [myRole,    setMyRole]    = useState("staff"); // 'admin' | 'staff' | 'viewer' — mirrors profiles.role
+  const [profiles,  setProfiles]  = useState([]); // every {id,name,email,role} — used to link assignees to real accounts
   const [userPrefs, setUserPrefs] = useState(DEFAULT_USER_PREFS);
 
   // ── UI state ────────────────────────────────────────────────────────────────
@@ -175,13 +161,14 @@ export default function App() {
       setDefaultTimezone(tz);
       localStorage.setItem('teamtasks_timezone', tz);
 
-      // Fetch config lists + sessions + cycle
+      // Fetch config lists + sessions + cycle + all profiles (for linking assignees to real accounts)
       const [membersList, deptList, audList, tagList, sessionsData, cycle, archived, allProfiles] =
         await Promise.all([
           db.fetchMembers(), db.fetchDepartments(), db.fetchAudiences(),
           db.fetchGlobalTags(), db.fetchSessions(), db.fetchActiveCycle(),
           db.fetchArchivedCycles(), db.fetchAllProfiles(),
         ]);
+      setProfiles(allProfiles);
 
       // Ensure the signed-in user appears in the members list.
       // Note: adding to `members` now requires admin under RLS, so a non-admin's
@@ -203,7 +190,6 @@ export default function App() {
       setSessions(sessionsData);
       setActiveCycle(cycle);
       setArchivedCycles(archived);
-      setProfiles(allProfiles || []);
 
       // Fetch tasks, run of show, milestones, docs
       const [taskData, rosData, milestonesData, docsData] = await Promise.all([
@@ -243,6 +229,7 @@ export default function App() {
     setUserId(null);
     setMyUser("");
     setMyRole("staff");
+    setProfiles([]);
     setUserPrefs(DEFAULT_USER_PREFS);
     setProgramTasks([]);
     setClassTasks([]);
@@ -256,7 +243,6 @@ export default function App() {
     setDepartments([]);
     setAudiences([]);
     setGlobalTags([]);
-    setProfiles([]);
     setLoading(false);
   };
 
@@ -268,9 +254,7 @@ export default function App() {
       if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && s) {
         handled = true;
         handleAuthSuccess(s);
-      } else if (event === "SIGNED_OUT") {
-        resetState();
-      } else if (event === "INITIAL_SESSION" && !s) {
+      } else if (event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !s)) {
         if (!handled) { setSession(null); setLoading(false); }
       }
     });
@@ -862,8 +846,8 @@ export default function App() {
   const isViewer            = myRole === "viewer";
   const isReadOnly          = !!viewingArchive || isViewer;
   const isMobile            = useIsMobile();
-  useEffect(() => { if (isMobile && view === "collateral") setView(prefs.defaultView || "board"); }, [isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Case/whitespace-insensitive name → profile id, so picking a name that matches a real account auto-links it.
+  // Case/whitespace-insensitive name -> profile id, so picking a name in the
+  // Assignee dropdown that matches a real account auto-links it (see TaskModal).
   const profileIdByName = useMemo(() => {
     const map = {};
     profiles.forEach(p => { if (p.name) map[p.name.trim().toLowerCase()] = p.id; });
@@ -1051,7 +1035,7 @@ export default function App() {
           </div>
         </div>
         <div style={{ padding: isMobile ? "0 12px" : "0 24px", borderTop: "0.5px solid var(--color-border-tertiary)", display: "flex", gap: 0, alignItems: "center", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {(isMobile ? VIEWS.filter(v => v !== "collateral") : VIEWS).map(v => <button key={v} onClick={() => setView(v)} style={{ fontSize: 13, padding: "10px 16px", border: "none", borderBottom: view === v ? "2px solid var(--color-text-primary)" : "2px solid transparent", background: "transparent", color: view === v ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", fontWeight: view === v ? 500 : 400 }}>{VIEW_LABELS[v]}</button>)}
+          {VIEWS.map(v => <button key={v} onClick={() => setView(v)} style={{ fontSize: 13, padding: "10px 16px", border: "none", borderBottom: view === v ? "2px solid var(--color-text-primary)" : "2px solid transparent", background: "transparent", color: view === v ? "var(--color-text-primary)" : "var(--color-text-secondary)", cursor: "pointer", fontWeight: view === v ? 500 : 400 }}>{VIEW_LABELS[v]}</button>)}
         </div>
       </div>
 
@@ -1096,7 +1080,7 @@ export default function App() {
         )}
 
         <div style={{display:view==="runofshow"?"":"none"}}>
-          <RunOfShowView sessions={sessions} runOfShow={runOfShow} setRunOfShow={setRunOfShow} onSaveRow={handleSaveRunOfShowRow} onDeleteRow={handleDeleteRunOfShowRow} onToggleDone={handleToggleRunOfShowDone} members={members} isReadOnly={isReadOnly} />
+          <RunOfShowView sessions={sessions} runOfShow={runOfShow} setRunOfShow={setRunOfShow} onSaveRow={handleSaveRunOfShowRow} onDeleteRow={handleDeleteRunOfShowRow} onToggleDone={handleToggleRunOfShowDone} members={members} profileIdByName={profileIdByName} isReadOnly={isReadOnly} />
         </div>
 
         <div style={{display:view==="board"&&showTaskList?"":"none"}}>
@@ -1111,11 +1095,11 @@ export default function App() {
           <ListView filteredTasks={myFilteredTasks} displayTasks={allTasks} displayDocs={displayDocs} milestones={milestones} isReadOnly={isReadOnly} listGroup={listGroup} setListGroup={setListGroup} openTask={openTask} onAddTask={()=>{setEditTask({...newTaskBase});setShowTaskModal(true);}} onEditMilestone={m=>{setViewMilestone(m);setShowMilestoneDetail(true);}} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} onDeleteSelected={deleteSelectedTasks} sessions={taskTypeFilter==="class"?sessions:undefined} isMobile={isMobile} />
         </div>
 
-<div style={{display:view==="calendar"?"":"none"}}>
+        <div style={{display:view==="calendar"?"":"none"}}>
           <CalendarView tasks={displayAllTasks} milestones={milestones} openTask={openTask} statusColors={statusColors} myUser={myUser} />
         </div>
 
-        <div style={{display:view==="collateral"&&!isMobile?"":"none"}}>
+        <div style={{display:view==="collateral"?"":"none"}}>
           <CollateralView docs={displayDocs} isReadOnly={isReadOnly} onSave={saveDoc} onDelete={deleteDoc} onDeleteSelected={deleteSelectedDocs} onAddDoc={()=>{setEditDoc({title:"",type:"Google Drive",audience:"",description:"",updated:new Date().toISOString().slice(0,10),next_update:"",owner:myUser,content_owner:"",assist:"",url:"",shareable_link:"",tags:[]});setShowDocModal(true);}} members={members} audiences={audiences} globalTags={globalTags} />
         </div>
 
@@ -1128,7 +1112,7 @@ export default function App() {
       {showAddSessionModal && !isReadOnly && <AddSessionModal isDuplicate={!!addSessionDuplicateFrom} initialData={addSessionDuplicateFrom ? { professor: addSessionDuplicateFrom.professor || addSessionDuplicateFrom.name || "", cohort: addSessionDuplicateFrom.cohort || "Cohort 1", date: "", addTasks: false } : undefined} template={classTaskTemplate} onSave={handleAddSessionFromModal} onClose={() => { setShowAddSessionModal(false); setAddSessionDuplicateFrom(null); }} />}
       {showStandardTasksModal && !isReadOnly && <StandardTasksModal template={classTaskTemplate} members={members} sessions={sessions} onSaveTemplate={saveClassTaskTemplate} onApplyTemplate={applyTemplateToSession} onClose={() => setShowStandardTasksModal(false)} />}
       {showTaskModal     && editTask     && <TaskModal task={editTask} tasks={allTasks} docs={docs} milestones={milestones} members={members} departments={departments} globalTags={globalTags} prefs={prefs} sessions={sessions} profileIdByName={profileIdByName} onChange={setEditTask} onSave={saveTask} onDelete={deleteTask} onClose={() => { setShowTaskModal(false); setEditTask(null); }} />}
-      {showDocModal      && editDoc      && <DocModal doc={editDoc} members={members} audiences={audiences} globalTags={globalTags} prefs={prefs} onChange={setEditDoc} onSave={saveDoc} onDelete={deleteDoc} onClose={() => { setShowDocModal(false); setEditDoc(null); }} />}
+      {showDocModal      && editDoc      && <DocModal doc={editDoc} members={members} audiences={audiences} globalTags={globalTags} prefs={prefs} profileIdByName={profileIdByName} onChange={setEditDoc} onSave={saveDoc} onDelete={deleteDoc} onClose={() => { setShowDocModal(false); setEditDoc(null); }} />}
       {showMilestoneDetail && viewMilestone && (()=>{ const dm = milestones.find(m=>m.id===viewMilestone.id) ?? viewMilestone; return <MilestoneDetailModal milestone={dm} tasks={allTasks} docs={docs} onEdit={m=>{setShowMilestoneDetail(false);setViewMilestone(null);setEditMilestone({...m,deps:m.deps||[],collateralDeps:m.collateralDeps||[]});setShowMilestoneModal(true);}} onClose={()=>{setShowMilestoneDetail(false);setViewMilestone(null);}}/> })()}
       {showMilestoneModal && editMilestone && <MilestoneModal milestone={editMilestone} onChange={setEditMilestone} onSave={saveMilestone} onDelete={deleteMilestone} tasks={allTasks} docs={docs} onClose={() => { setShowMilestoneModal(false); setEditMilestone(null); }} />}
       {showCycleModal    && <CycleModal tasks={programTasks} activeCycle={activeCycle} initialDraft={draftCycle} sessions={sessions} cycleType={draftCycle?.cycleType || newCycleType} onSaveDraft={saveDraft} onLaunch={launchCycle} onClose={() => setShowCycleModal(false)} />}

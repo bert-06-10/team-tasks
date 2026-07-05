@@ -376,7 +376,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
 }
 
 // ── Run of Show View ──────────────────────────────────────────────────────────
-export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDeleteRow,onToggleDone,members,isReadOnly}) {
+export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDeleteRow,onToggleDone,members,profileIdByName={},isReadOnly}) {
   const professors = useMemo(() => [...new Set(sessions.map(s=>s.professor||s.name||"").filter(Boolean))].sort(), [sessions]);
   const [selProf,  setSelProf]  = useState(() => professors[0]||"");
   const profSessions = useMemo(() => sessions.filter(s=>(s.professor||s.name||"")===(selProf||professors[0]||"")), [sessions,selProf,professors]);
@@ -571,13 +571,13 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
                     <input value={editVal.event||""} onChange={e=>setEditVal(v=>({...v,event:e.target.value}))} placeholder="Event" style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",boxSizing:"border-box",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}/>
                   </div>
                   <div style={{padding:"6px 8px",...sep}}>
-                    <select value={editVal.owner||""} onChange={e=>setEditVal(v=>({...v,owner:e.target.value}))} style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}>
+                    <select value={editVal.owner||""} onChange={e=>{const name=e.target.value;setEditVal(v=>({...v,owner:name,owner_id:name?(profileIdByName[name.trim().toLowerCase()]||null):null}));}} style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}>
                       <option value="">—</option>
                       {members.map(m=><option key={m}>{m}</option>)}
                     </select>
                   </div>
                   <div style={{padding:"6px 8px",...sep}}>
-                    <select value={editVal.assist||""} onChange={e=>setEditVal(v=>({...v,assist:e.target.value}))} style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}>
+                    <select value={editVal.assist||""} onChange={e=>{const name=e.target.value;setEditVal(v=>({...v,assist:name,assist_id:name?(profileIdByName[name.trim().toLowerCase()]||null):null}));}} style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}>
                       <option value="">—</option>
                       {members.map(m=><option key={m}>{m}</option>)}
                     </select>
