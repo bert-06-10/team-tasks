@@ -66,7 +66,7 @@ export default function App() {
   const [importHistory,             setImportHistory]             = useState(() => { try { return JSON.parse(localStorage.getItem('teamtasks_import_history')) || []; } catch { return []; } });
   const [rosProf, setRosProf] = useState(() => { try { return JSON.parse(localStorage.getItem("ros_sel")||"{}").prof||""; } catch { return ""; } });
   const [rosDate, setRosDate] = useState(() => { try { return JSON.parse(localStorage.getItem("ros_sel")||"{}").date||""; } catch { return ""; } });
-  const handleRosSel = (prof, date) => { setRosProf(prof); setRosDate(date); try { localStorage.setItem("ros_sel", JSON.stringify({prof,date})); } catch {} };
+  const handleRosSel = (prof, date) => { setRosProf(prof); setRosDate(date); };
 
   const [showAddSessionModal,        setShowAddSessionModal]        = useState(false);
   const [addSessionDuplicateFrom,   setAddSessionDuplicateFrom]   = useState(null);

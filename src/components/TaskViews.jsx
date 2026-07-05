@@ -416,6 +416,14 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
   const profSessions = useMemo(() => sessions.filter(s=>(s.professor||s.name||"")===selProf), [sessions,selProf]);
   const selectedSession = rosDate || profSessions[0]?.id || "";
 
+  useEffect(() => {
+    if (!selProf || !selectedSession) return;
+    try {
+      localStorage.setItem("ros_sel", JSON.stringify({prof: selProf, date: selectedSession}));
+    } catch(e) { console.error("ros_sel direct write failed:", e); }
+    onRosSel?.(selProf, selectedSession);
+  }, [selProf, selectedSession]);
+
   const switchProf = prof => {
     const first = sessions.filter(s=>(s.professor||s.name||"")===prof)[0];
     onRosSel?.(prof, first?.id||"");
@@ -524,7 +532,7 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
 
   return (
     <div>
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,flexWrap:"wrap"}}>
         {sessions.length === 0
           ? <span style={{fontSize:13,color:"var(--color-text-tertiary)"}}>No sessions yet.</span>
           : <>
