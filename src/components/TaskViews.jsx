@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Avatar, Badge, StatusPill, FilterDropdown } from "./Primitives.jsx";
 import { CollateralDetailModal } from "./Modals.jsx";
 import { fmtDate, fmtDateYear, isOverdue, avatarBg, avatarTx, addDays } from "../utils.js";
@@ -376,6 +376,40 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
 }
 
 // ── Run of Show View ──────────────────────────────────────────────────────────
+// Avatar-based dropdown for Owner/Assist — matches how people are shown
+// everywhere else in the app (initials avatar + name), which a native
+// <select> can't render inside its options.
+function PersonPicker({value, members, onChange}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+  // Keep the current value selectable even if it's not in the members list
+  // (e.g. legacy first-name-only entries like "Ali" vs. "Ali Schipani").
+  const options = value && !members.includes(value) ? [value, ...members] : members;
+  return (
+    <div ref={ref} style={{position:"relative"}}>
+      <button type="button" onClick={()=>setOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",gap:6,fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",boxSizing:"border-box"}}>
+        {value ? <><Avatar name={value} size={18}/><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{value}</span></> : <span style={{color:"var(--color-text-tertiary)"}}>—</span>}
+      </button>
+      {open && (
+        <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,minWidth:180,maxHeight:220,overflowY:"auto",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.12)",zIndex:300}}>
+          <div onClick={()=>{onChange("");setOpen(false);}} style={{padding:"6px 10px",fontSize:12,color:"var(--color-text-tertiary)",cursor:"pointer"}}>—</div>
+          {options.map(m => (
+            <div key={m} onClick={()=>{onChange(m);setOpen(false);}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",fontSize:12,cursor:"pointer",color:"var(--color-text-primary)"}}>
+              <Avatar name={m} size={18}/><span>{m}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDeleteRow,onToggleDone,members,profileIdByName={},isReadOnly}) {
   const professors = useMemo(() => [...new Set(sessions.map(s=>s.professor||s.name||"").filter(Boolean))].sort(), [sessions]);
   const [selProf,  setSelProf]  = useState(() => {
@@ -586,16 +620,10 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
                     <input value={editVal.event||""} onChange={e=>setEditVal(v=>({...v,event:e.target.value}))} placeholder="Event" style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",boxSizing:"border-box",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}/>
                   </div>
                   <div style={{padding:"6px 8px",...sep}}>
-                    <select value={editVal.owner||""} onChange={e=>{const name=e.target.value;setEditVal(v=>({...v,owner:name,owner_id:name?(profileIdByName[name.trim().toLowerCase()]||null):null}));}} style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}>
-                      <option value="">—</option>
-                      {members.map(m=><option key={m}>{m}</option>)}
-                    </select>
+                    <PersonPicker value={editVal.owner||""} members={members} onChange={name=>setEditVal(v=>({...v,owner:name,owner_id:name?(profileIdByName[name.trim().toLowerCase()]||null):null}))}/>
                   </div>
                   <div style={{padding:"6px 8px",...sep}}>
-                    <select value={editVal.assist||""} onChange={e=>{const name=e.target.value;setEditVal(v=>({...v,assist:name,assist_id:name?(profileIdByName[name.trim().toLowerCase()]||null):null}));}} style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}>
-                      <option value="">—</option>
-                      {members.map(m=><option key={m}>{m}</option>)}
-                    </select>
+                    <PersonPicker value={editVal.assist||""} members={members} onChange={name=>setEditVal(v=>({...v,assist:name,assist_id:name?(profileIdByName[name.trim().toLowerCase()]||null):null}))}/>
                   </div>
                   <div/>
                 </div>
