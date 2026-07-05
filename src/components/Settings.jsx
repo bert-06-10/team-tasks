@@ -258,11 +258,96 @@ export function TeamRoles({ myUserId }) {
 }
 
 
+// ── Activity log (admin only) ──────────────────────────────────────────────────
+const LOG_SKIP_FIELDS = new Set(["id","created_at","updated_at","offset_days","fall_offset_days"]);
+const LOG_FIELD_LABELS = { due_date:"Due date", session_id:"Session", collateral_deps:"Collateral deps" };
+
+function diffFields(oldD, newD) {
+  const keys = new Set([...Object.keys(oldD||{}), ...Object.keys(newD||{})]);
+  const changes = [];
+  keys.forEach(k => {
+    if (LOG_SKIP_FIELDS.has(k)) return;
+    const ov = oldD?.[k], nv = newD?.[k];
+    if (JSON.stringify(ov) !== JSON.stringify(nv)) changes.push({ field:k, from:ov, to:nv });
+  });
+  return changes;
+}
+const fmtVal = v => {
+  if (v === null || v === undefined || v === "") return "—";
+  if (Array.isArray(v)) return v.length ? v.join(", ") : "—";
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  const s = String(v);
+  return s.length > 60 ? s.slice(0,60)+"…" : s;
+};
+const TABLE_LABELS = { tasks:"Task", cycles:"Cycle" };
+const ACTION_LABELS = { insert:"created", update:"updated", delete:"deleted" };
+
+function ActivityLog() {
+  const [entries, setEntries] = useState(null); // null = loading
+  const [error, setError]     = useState("");
+  const [expanded, setExpanded] = useState(new Set());
+
+  useEffect(() => {
+    db.fetchActivityLog().then(setEntries).catch(e => setError(e.message));
+  }, []);
+
+  const toggle = id => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  if (entries === null) return <div style={{ fontSize: 13, color: "#888780" }}>Loading activity…</div>;
+
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: "#888780", marginBottom: 12 }}>
+        A record of who created, edited, or deleted tasks and cycles. Most recent first.
+      </div>
+      {error && (
+        <div style={{ fontSize: 12, color: "#A32D2D", padding: "8px 12px", background: "#FCEBEB", borderRadius: 8, border: "0.5px solid #F7C1C1", marginBottom: 12 }}>{error}</div>
+      )}
+      {entries.length === 0 && <div style={{ fontSize: 13, color: "#888780" }}>No activity recorded yet.</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {entries.map(e => {
+          const record = e.new_data || e.old_data || {};
+          const title = record.title || record.name || `#${e.record_id}`;
+          const changes = e.action === "update" ? diffFields(e.old_data, e.new_data) : [];
+          const isOpen = expanded.has(e.id);
+          return (
+            <div key={e.id} style={{ padding: "9px 12px", borderRadius: 8, border: "0.5px solid #e0e3e6", background: "#f8f9fa" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, color: "#1a1a18" }}>
+                  <b>{e.actor_name || "Someone"}</b> {ACTION_LABELS[e.action] || e.action} {TABLE_LABELS[e.table_name] || e.table_name}: <b>{title}</b>
+                </span>
+                <span style={{ fontSize: 11, color: "#888780", marginLeft: "auto" }}>{new Date(e.created_at).toLocaleString()}</span>
+              </div>
+              {changes.length > 0 && (
+                <div style={{ marginTop: 4 }}>
+                  <button onClick={()=>toggle(e.id)} style={{ fontSize: 11, color: "#5B8DEF", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                    {isOpen ? "Hide" : "Show"} {changes.length} field{changes.length===1?"":"s"} changed
+                  </button>
+                  {isOpen && (
+                    <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
+                      {changes.map(c => (
+                        <div key={c.field} style={{ fontSize: 12, color: "#5f5e5a" }}>
+                          <b>{LOG_FIELD_LABELS[c.field] || c.field}:</b> {fmtVal(c.from)} → {fmtVal(c.to)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
 export function SettingsModal({initialTab,members,setMembers,departments,setDepartments,audiences,setAudiences,globalTags,setGlobalTags,myUser,myUserId,isAdmin,prefs,updatePrefs,onClose}) {
   const [tab,setTab] = useState((initialTab && (isAdmin || initialTab === "preferences")) ? initialTab : "preferences");
   const isMobile = useIsMobile();
   const tabs = isAdmin
-    ? [["preferences","My Preferences"],["team","Team & Roles"],["owners","Owners"],["departments","Departments"],["audiences","Audiences"],["tags","Tags"]]
+    ? [["preferences","My Preferences"],["team","Team & Roles"],["activity","Activity"],["owners","Owners"],["departments","Departments"],["audiences","Audiences"],["tags","Tags"]]
     : [["preferences","My Preferences"]];
   const lc = {
     owners:      {label:"Owner",      items:members,     setItems:setMembers},
@@ -287,6 +372,8 @@ export function SettingsModal({initialTab,members,setMembers,departments,setDepa
             ? <UserPreferences myUser={myUser} prefs={prefs} updatePrefs={updatePrefs}/>
             : tab==="team"
             ? <TeamRoles myUserId={myUserId}/>
+            : tab==="activity"
+            ? <ActivityLog/>
             : <ListEditor label={lc[tab].label} items={lc[tab].items} setItems={lc[tab].setItems}/>
           }
         </div>

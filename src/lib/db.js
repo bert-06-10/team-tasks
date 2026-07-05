@@ -552,3 +552,14 @@ export async function bulkInsertRunOfShow(sessionId, rows) {
   )
   return results.map(r => ({ id: r.id, cohort: r.cohort, time: r.time, event: r.event, owner: r.owner, assist: r.assist, notes: r.notes }))
 }
+
+// ── Activity log (admin-only, enforced by RLS) ─────────────────────────────────
+export async function fetchActivityLog(limit = 150) {
+  const { data, error } = await supabase
+    .from('activity_log')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data
+}
