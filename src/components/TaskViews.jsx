@@ -175,7 +175,7 @@ export function DocCard({doc,readOnly,onEdit,last}) {
 // ── Doc List (collateral tab) ─────────────────────────────────────────────────
 const DOC_COLS     = "3fr 130px 130px 130px 110px 130px 130px 110px 115px 1fr";
 const DOC_COLS_SEL = "36px 3fr 130px 130px 130px 110px 130px 130px 110px 115px 1fr";
-const DOC_HEADERS  = ["Title","Owner","Content Owner","Assist","Audience","Editable Link","Shareable Link","Next Update","Last Updated","Tags"];
+const DOC_HEADERS  = ["Title","Business Line","Content Owner","Assist","Audience","Editable Link","Shareable Link","Next Update","Last Updated","Tags"];
 const sep = {borderRight:"1px solid var(--color-border-secondary)"};
 const inp ={fontSize:12,width:"100%",boxSizing:"border-box",padding:"3px 6px",border:"1px solid var(--color-border-secondary)",borderRadius:4,background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"inherit"};
 
@@ -334,7 +334,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
           {search && <button onClick={()=>setSearch("")} aria-label="Clear search" style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",lineHeight:1,padding:0}}>×</button>}
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginLeft:"auto"}}>
-          <FilterDropdown label="Owner"         options={ownerOpts}         value={filters.owner}        onChange={v=>setFilter("owner",v)}/>
+          <FilterDropdown label="Business Line"  options={ownerOpts}         value={filters.owner}        onChange={v=>setFilter("owner",v)}/>
           <FilterDropdown label="Content Owner" options={contentOwnerOpts}  value={filters.contentOwner} onChange={v=>setFilter("contentOwner",v)}/>
           <FilterDropdown label="Assist"        options={assistOpts}        value={filters.assist}       onChange={v=>setFilter("assist",v)}/>
           <FilterDropdown label="Audience"      options={audienceOpts}      value={filters.audience}     onChange={v=>setFilter("audience",v)}/>
