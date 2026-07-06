@@ -76,7 +76,7 @@ function DepChip({t, onRemove}) {
       <span style={{color:done?"#0F6E56":"var(--color-text-tertiary)",fontSize:12,flexShrink:0}}>{done?"✓":"○"}</span>
       <span style={{flex:1,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
       <span style={{fontSize:11,color:"var(--color-text-tertiary)",flexShrink:0}}>{t.status}</span>
-      {onRemove && <button onClick={onRemove} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>}
+      {onRemove && <button aria-label="Remove" onClick={onRemove} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>}
     </div>
   );
 }
@@ -93,7 +93,7 @@ export function MilestoneDetailModal({milestone, tasks=[], docs=[], onEdit, onCl
     <Modal onClose={onClose} title="Milestone">
       {/* Header */}
       <div style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 16px",borderRadius:"var(--border-radius-lg)",background:allDone?"#E1F5EE":"#E6F1FB",border:`1px solid ${allDone?"#9FE1CB":"#B5D4F4"}`,marginBottom:16}}>
-        <span style={{fontSize:20,color:allDone?"#0F6E56":"#185FA5",marginTop:2}}>◆</span>
+        <span aria-hidden="true" style={{fontSize:20,color:allDone?"#0F6E56":"#185FA5",marginTop:2}}>◆</span>
         <div style={{flex:1}}>
           <div style={{fontSize:15,fontWeight:600,color:allDone?"#0F6E56":"#185FA5",marginBottom:2}}>{milestone.title}</div>
           <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
@@ -201,7 +201,7 @@ export function MilestoneModal({milestone,onChange,onSave,onDelete,onClose,tasks
                   <div key={docId} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:13}}>
                     <span style={{fontSize:11,fontWeight:600,color:typeColor(d.type),background:typeBg(d.type),padding:"1px 5px",borderRadius:3,flexShrink:0}}>{typeIcon(d.type)}</span>
                     <span style={{flex:1,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.title}</span>
-                    <button onClick={()=>removeCollateral(docId)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>
+                    <button aria-label="Remove collateral" onClick={()=>removeCollateral(docId)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>
                   </div>
                 );
               })}
@@ -336,7 +336,7 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
                 : <div style={{display:"flex",flexDirection:"column",gap:4}}>
                     {dependentMilestones.map(m => (
                       <div key={m.id} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:"var(--border-radius-md)",background:"#E6F1FB",border:"0.5px solid #B5D4F4",fontSize:13}}>
-                        <span style={{color:"#185FA5",fontSize:11,flexShrink:0}}>◆</span>
+                        <span aria-hidden="true" style={{color:"#185FA5",fontSize:11,flexShrink:0}}>◆</span>
                         <span style={{flex:1,color:"#185FA5",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.title}</span>
                         <span style={{fontSize:11,color:"#185FA5",opacity:0.7,flexShrink:0}}>{fmtDate(m.date)}</span>
                       </div>
@@ -680,7 +680,7 @@ export function CycleModal({tasks,activeCycle,initialDraft,sessions,onSaveDraft,
             <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
               {holidays.map(h => (
                 <span key={h} style={{fontSize:12,padding:"3px 10px",borderRadius:20,background:"#FCEBEB",color:"#A32D2D",display:"flex",alignItems:"center",gap:5}}>
-                  {h}<button onClick={()=>setHolidays(hh=>hh.filter(x=>x!==h))} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#A32D2D",padding:0}}>×</button>
+                  {h}<button aria-label={`Remove holiday ${h}`} onClick={()=>setHolidays(hh=>hh.filter(x=>x!==h))} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#A32D2D",padding:0}}>×</button>
                 </span>
               ))}
             </div>
@@ -869,7 +869,7 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, onSa
           <span style={{fontSize:16,fontWeight:500,color:"var(--color-text-primary)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{editing ? val.title : doc.title}</span>
           <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
             {!isReadOnly && !editing && <button onClick={()=>setEditing(true)} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",cursor:"pointer"}}>Edit</button>}
-            <button onClick={onClose} style={{background:"var(--color-background-secondary)",border:"none",borderRadius:6,width:28,height:28,fontSize:16,color:"var(--color-text-secondary)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+            <button aria-label="Close dialog" onClick={onClose} style={{background:"var(--color-background-secondary)",border:"none",borderRadius:6,width:28,height:28,fontSize:16,color:"var(--color-text-secondary)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
           </div>
         </div>
 
@@ -1043,7 +1043,7 @@ export function StandardTasksModal({ template: templateProp, members, sessions, 
             <input value={item.title} onChange={e => updateItem(i, "title", e.target.value)} placeholder="Task name" style={{ ...inputStyle, padding: "5px 8px", flex: 1 }} />
             <input type="number" value={item.offset} onChange={e => updateItem(i, "offset", parseInt(e.target.value) || 0)} style={{ ...inputStyle, padding: "5px 8px", width: 56, flexShrink: 0, textAlign: "right" }} />
             <span style={{ fontSize: 11, color: "var(--color-text-tertiary)", whiteSpace: "nowrap", minWidth: 90 }}>{stdOffsetLabel(item.offset)}</span>
-            <button onClick={() => removeItem(i)} style={{ fontSize: 15, lineHeight: 1, border: "none", background: "none", color: "var(--color-text-tertiary)", cursor: "pointer", padding: "2px 4px", flexShrink: 0 }}>×</button>
+            <button aria-label="Remove item" onClick={() => removeItem(i)} style={{ fontSize: 15, lineHeight: 1, border: "none", background: "none", color: "var(--color-text-tertiary)", cursor: "pointer", padding: "2px 4px", flexShrink: 0 }}>×</button>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <select value={item.assignee || ""} onChange={e => updateItem(i, "assignee", e.target.value)} style={{ ...inputStyle, padding: "4px 8px", flex: "0 0 150px" }}>
