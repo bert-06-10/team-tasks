@@ -1,9 +1,17 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { BoardView, ListView, CalendarView, SearchView } from "./components/MainViews.jsx";
+import { BoardView } from "./components/views/BoardView.jsx";
+import { ListView } from "./components/views/ListView.jsx";
+import { CalendarView } from "./components/views/CalendarView.jsx";
+import { SearchView } from "./components/views/SearchView.jsx";
 import { RunOfShowView, ListHeader, ListRow, DocCard, CollateralView } from "./components/TaskViews.jsx";
 import { FilterDropdown } from "./components/Primitives.jsx";
 import { SettingsModal } from "./components/Settings.jsx";
-import { MilestoneModal, MilestoneDetailModal, TaskModal, DocModal, ImportModal, ImportCollateralModal, CycleModal, AddSessionModal, StandardTasksModal } from "./components/Modals.jsx";
+import { MilestoneModal, MilestoneDetailModal } from "./components/modals/MilestoneModal.jsx";
+import { TaskModal } from "./components/modals/TaskModal.jsx";
+import { DocModal } from "./components/modals/DocModal.jsx";
+import { ImportModal, ImportCollateralModal } from "./components/modals/ImportModal.jsx";
+import { CycleModal } from "./components/modals/CycleModal.jsx";
+import { AddSessionModal, StandardTasksModal } from "./components/modals/SessionModals.jsx";
 import { AuthScreen } from "./components/AuthScreen.jsx";
 import { VIEWS, VIEW_LABELS, DEFAULT_STATUS_COLORS, DEFAULT_PREFS } from "./constants.js";
 import { avatarBg, avatarTx, initials, isOverdue, isWeekend, addDays, isFlagged, closestBusinessDay, genClassTasks, exportTasksToCSV, fmtDate, setDefaultTimezone, useIsMobile } from "./utils.js";
@@ -1039,6 +1047,7 @@ export default function App() {
               </div>
             )}
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <button onClick={() => openSettings("preferences")} aria-label="Settings" title="Settings" style={{ width: 28, height: 28, borderRadius: "50%", background: "transparent", border: "0.5px solid var(--color-border-secondary)", fontSize: 16, color: "var(--color-text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>⚙</button>
               <button onClick={() => openSettings("preferences")} title="My preferences" style={{ width: 28, height: 28, borderRadius: "50%", background: avatarBg(myUser), border: "none", fontSize: 11, fontWeight: 500, color: avatarTx(myUser), cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{initials(myUser)}</button>
               {!isMobile && <span style={{ fontSize: 13, color: "var(--color-text-primary)" }}>{myUser}</span>}
               <button onClick={signOut} title="Sign out" style={{ fontSize: 12, padding: isMobile ? "4px 8px" : "4px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer", flexShrink: 0 }}>{isMobile ? "⏻" : "Sign out"}</button>

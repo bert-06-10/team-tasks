@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Avatar, Badge, StatusPill, FilterDropdown } from "./Primitives.jsx";
-import { CollateralDetailModal } from "./Modals.jsx";
+import { CollateralDetailModal } from "./modals/CollateralDetailModal.jsx";
 import { fmtDate, fmtDateYear, isOverdue, avatarBg, avatarTx, addDays } from "../utils.js";
 import { DEFAULT_STATUS_COLORS } from "../constants.js";
 
