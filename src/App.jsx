@@ -238,6 +238,17 @@ export default function App() {
       setRunOfShow(rosData);
       setMilestones(milestonesData);
       setDocs(docsData);
+
+      // Merge all tags in use across tasks and docs into globalTags so the
+      // Settings > Tags tab reflects what's actually in the system.
+      const usedTags = [
+        ...fixedProgram.flatMap(t => t.tags || []),
+        ...fixedClass.flatMap(t => t.tags || []),
+        ...docsData.flatMap(d => d.tags || []),
+      ];
+      if (usedTags.length) {
+        setGlobalTags(prev => [...new Set([...prev, ...usedTags])].sort());
+      }
     } catch (e) {
       console.error("Failed to load data:", e);
       toast("Failed to load data. Check your connection.");
