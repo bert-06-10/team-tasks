@@ -188,10 +188,15 @@ export function ListEditor({label,items,setItems}) {
 // ── Settings Modal ────────────────────────────────────────────────────────────
 // ── Team & Roles (admin only) ─────────────────────────────────────────────────
 const ROLE_OPTIONS = [
-  ["admin",  "Admin — full control, incl. cycles & config"],
-  ["staff",  "Staff — day-to-day tasks, docs, sessions"],
-  ["viewer", "Viewer — read-only, no editing"],
+  ["admin",  "Admin"],
+  ["staff",  "Staff"],
+  ["viewer", "Viewer"],
 ];
+const ROLE_DESCRIPTIONS = {
+  admin:  "Full control, incl. cycles & config",
+  staff:  "Day-to-day tasks, docs, sessions",
+  viewer: "Read-only, no editing",
+};
 
 export function TeamRoles({ myUserId }) {
   const [profiles, setProfiles] = useState(null); // null = loading
@@ -242,14 +247,17 @@ export function TeamRoles({ myUserId }) {
               <div style={{ fontSize: 13, color: "#1a1a18", fontWeight: 500 }}>{p.name}{p.id === myUserId ? " (you)" : ""}</div>
               <div style={{ fontSize: 12, color: "#888780", overflow: "hidden", textOverflow: "ellipsis" }}>{p.email}</div>
             </div>
-            <select
-              value={p.role || "staff"}
-              disabled={savingId === p.id}
-              onChange={e => changeRole(p.id, e.target.value, p.role)}
-              style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "0.5px solid #d3d1c7", background: "#fff", color: "#1a1a18", flexShrink: 0 }}
-            >
-              {ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3, flexShrink: 0 }}>
+              <select
+                value={p.role || "staff"}
+                disabled={savingId === p.id}
+                onChange={e => changeRole(p.id, e.target.value, p.role)}
+                style={{ fontSize: 12, padding: "5px 8px", borderRadius: 6, border: "0.5px solid #d3d1c7", background: "#fff", color: "#1a1a18" }}
+              >
+                {ROLE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+              <div style={{ fontSize: 11, color: "#888780" }}>{ROLE_DESCRIPTIONS[p.role || "staff"]}</div>
+            </div>
           </div>
         ))}
       </div>
