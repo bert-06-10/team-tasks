@@ -78,7 +78,7 @@ export function TagInput({tags,suggestions,onChange}) {
       <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
         {tags.map(t => (
           <span key={t} style={{fontSize:12,padding:"3px 10px",borderRadius:20,background:"var(--color-background-secondary)",color:"var(--color-text-secondary)",display:"flex",alignItems:"center",gap:5}}>
-            {t}<button onClick={()=>onChange(tags.filter(x=>x!==t))} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--color-text-tertiary)",lineHeight:1,padding:0}}>×</button>
+            {t}<button onClick={()=>onChange(tags.filter(x=>x!==t))} aria-label={`Remove tag ${t}`} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--color-text-tertiary)",lineHeight:1,padding:0}}>×</button>
           </span>
         ))}
       </div>
