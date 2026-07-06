@@ -842,12 +842,14 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, onSa
   const [val,     setVal]     = useState({...doc});
   const titleId = useId();
   const closeRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     closeRef.current?.focus();
-    const onKey = e => { if (e.key === "Escape") onClose(); };
+    const onKey = e => { if (e.key === "Escape") onCloseRef.current(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSave   = () => { onSave(val); };
   const handleCancel = () => { setVal({...doc}); setEditing(false); };
