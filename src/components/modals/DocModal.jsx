@@ -19,7 +19,7 @@ export function DocModal({doc,members,audiences,globalTags,prefs,businessLines=[
         </select>
       </Field>
       <Field label="Description"><textarea value={doc.description} onChange={e=>onChange({...doc,description:e.target.value})} rows={2} style={{resize:"vertical"}}/></Field>
-      <Field label="Owner (business line)">
+      <Field label="Business Line">
         <select value={doc.owner||""} onChange={e=>onChange({...doc,owner:e.target.value})}>
           <option value="">Select business line...</option>
           {doc.owner && !businessLines.includes(doc.owner) && <option value={doc.owner}>{doc.owner} (legacy)</option>}
