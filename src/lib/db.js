@@ -152,6 +152,11 @@ export const addDepartment    = n        => addToList('departments', n)
 export const removeDepartment = n        => removeFromList('departments', n)
 export const updateDepartment = (o, n)   => updateInList('departments', o, n)
 
+export const fetchBusinessLines  = ()     => fetchList('business_lines')
+export const addBusinessLine     = n      => addToList('business_lines', n)
+export const removeBusinessLine  = n      => removeFromList('business_lines', n)
+export const updateBusinessLine  = (o, n) => updateInList('business_lines', o, n)
+
 export const fetchAudiences   = ()       => fetchList('audiences')
 export const addAudience      = n        => addToList('audiences', n)
 export const removeAudience   = n        => removeFromList('audiences', n)

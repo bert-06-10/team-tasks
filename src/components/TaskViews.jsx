@@ -263,7 +263,7 @@ const BLANK_FILTERS = { owner:"All", contentOwner:"All", assist:"All", audience:
 const DATE_FILTER_OPTS      = ["All","Has date","No date","Overdue","Next 30 days"];
 const LAST_UPDATED_OPTS     = ["All","Has date","No date","Past 30 days","Past 90 days"];
 
-export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected,onAddDoc,members,audiences,globalTags}) {
+export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected,onAddDoc,members,audiences,globalTags,businessLines=[]}) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [detailDoc,   setDetailDoc]   = useState(null);
   const [filters,     setFilters]     = useState(BLANK_FILTERS);
@@ -367,7 +367,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
       </div>
       {detailDoc && (
         <CollateralDetailModal
-          doc={detailDoc} members={members} audiences={audiences} globalTags={globalTags}
+          doc={detailDoc} members={members} audiences={audiences} globalTags={globalTags} businessLines={businessLines}
           onSave={handleDetailSave} onDelete={onDelete}
           onClose={()=>setDetailDoc(null)} isReadOnly={isReadOnly}/>
       )}

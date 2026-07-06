@@ -43,6 +43,7 @@ export default function App() {
   const [milestones,   setMilestones]   = useState([]);
   const [members,      setMembers]      = useState([]);
   const [departments,  setDepartments]  = useState([]);
+  const [businessLines, setBusinessLines] = useState([]);
   const [audiences,    setAudiences]    = useState([]);
   const [globalTags,   setGlobalTags]   = useState([]);
   const [activeCycle,  setActiveCycle]  = useState(null);
@@ -126,10 +127,12 @@ export default function App() {
   // ── Refs for config-list diffing ────────────────────────────────────────────
   const membersRef     = useRef([]);
   const departmentsRef = useRef([]);
+  const businessLinesRef = useRef([]);
   const audiencesRef   = useRef([]);
   const globalTagsRef  = useRef([]);
   useEffect(() => { membersRef.current     = members;     }, [members]);
   useEffect(() => { departmentsRef.current = departments; }, [departments]);
+  useEffect(() => { businessLinesRef.current = businessLines; }, [businessLines]);
   useEffect(() => { audiencesRef.current   = audiences;   }, [audiences]);
   useEffect(() => { globalTagsRef.current  = globalTags;  }, [globalTags]);
 
@@ -181,10 +184,10 @@ export default function App() {
       localStorage.setItem('teamtasks_timezone', tz);
 
       // Fetch config lists + sessions + cycle + all profiles (for linking assignees to real accounts)
-      const [membersList, deptList, audList, tagList, sessionsData, cycle, archived, allProfiles] =
+      const [membersList, deptList, audList, tagList, bizLineList, sessionsData, cycle, archived, allProfiles] =
         await Promise.all([
           db.fetchMembers(), db.fetchDepartments(), db.fetchAudiences(),
-          db.fetchGlobalTags(), db.fetchSessions(), db.fetchActiveCycle(),
+          db.fetchGlobalTags(), db.fetchBusinessLines(), db.fetchSessions(), db.fetchActiveCycle(),
           db.fetchArchivedCycles(), db.fetchAllProfiles(),
         ]);
       setProfiles(allProfiles);
@@ -206,6 +209,7 @@ export default function App() {
       setDepartments(deptList);
       setAudiences(audList);
       setGlobalTags(tagList);
+      setBusinessLines(bizLineList);
       setSessions(sessionsData);
       setActiveCycle(cycle);
       setArchivedCycles(archived);
@@ -260,6 +264,7 @@ export default function App() {
     setArchivedCycles([]);
     setMembers([]);
     setDepartments([]);
+    setBusinessLines([]);
     setAudiences([]);
     setGlobalTags([]);
     setLoading(false);
@@ -399,6 +404,7 @@ export default function App() {
 
   const setMembersSync     = useCallback(n => syncList(setMembers,     membersRef,     n, db.addMember,     db.removeMember,     db.updateMember),     [syncList]);
   const setDepartmentsSync = useCallback(n => syncList(setDepartments, departmentsRef, n, db.addDepartment, db.removeDepartment, db.updateDepartment), [syncList]);
+  const setBusinessLinesSync = useCallback(n => syncList(setBusinessLines, businessLinesRef, n, db.addBusinessLine, db.removeBusinessLine, db.updateBusinessLine), [syncList]);
   const setAudiencesSync   = useCallback(n => syncList(setAudiences,   audiencesRef,   n, db.addAudience,   db.removeAudience,   db.updateAudience),   [syncList]);
   const setGlobalTagsSync  = useCallback(n => syncList(setGlobalTags,  globalTagsRef,  n, db.addGlobalTag,  db.removeGlobalTag,  db.updateGlobalTag),  [syncList]);
 
@@ -1125,7 +1131,7 @@ export default function App() {
         </div>
 
         <div style={{display:view==="collateral"?"":"none"}}>
-          <CollateralView docs={displayDocs} isReadOnly={isReadOnly} onSave={saveDoc} onDelete={deleteDoc} onDeleteSelected={deleteSelectedDocs} onAddDoc={()=>{setEditDoc({title:"",type:"Google Drive",audience:"",description:"",updated:new Date().toISOString().slice(0,10),next_update:"",owner:myUser,content_owner:"",assist:"",url:"",shareable_link:"",tags:[]});setShowDocModal(true);}} members={members} audiences={audiences} globalTags={globalTags} />
+          <CollateralView docs={displayDocs} isReadOnly={isReadOnly} onSave={saveDoc} onDelete={deleteDoc} onDeleteSelected={deleteSelectedDocs} onAddDoc={()=>{setEditDoc({title:"",type:"Google Drive",audience:"",description:"",updated:new Date().toISOString().slice(0,10),next_update:"",owner:myUser,content_owner:"",assist:"",url:"",shareable_link:"",tags:[]});setShowDocModal(true);}} members={members} audiences={audiences} globalTags={globalTags} businessLines={businessLines} />
         </div>
 
         <div style={{display:view==="search"?"":"none"}}>
@@ -1137,13 +1143,13 @@ export default function App() {
       {showAddSessionModal && !isReadOnly && <AddSessionModal isDuplicate={!!addSessionDuplicateFrom} initialData={addSessionDuplicateFrom ? { professor: addSessionDuplicateFrom.professor || addSessionDuplicateFrom.name || "", cohort: addSessionDuplicateFrom.cohort || "Cohort 1", date: "", addTasks: false } : undefined} template={classTaskTemplate} onSave={handleAddSessionFromModal} onClose={() => { setShowAddSessionModal(false); setAddSessionDuplicateFrom(null); }} />}
       {showStandardTasksModal && !isReadOnly && <StandardTasksModal template={classTaskTemplate} members={members} sessions={sessions} onSaveTemplate={saveClassTaskTemplate} onApplyTemplate={applyTemplateToSession} onClose={() => setShowStandardTasksModal(false)} />}
       {showTaskModal     && editTask     && <TaskModal task={editTask} tasks={allTasks} docs={docs} milestones={milestones} members={members} departments={departments} globalTags={globalTags} prefs={prefs} sessions={sessions} profileIdByName={profileIdByName} onChange={setEditTask} onSave={saveTask} onDelete={deleteTask} onClose={() => { setShowTaskModal(false); setEditTask(null); }} />}
-      {showDocModal      && editDoc      && <DocModal doc={editDoc} members={members} audiences={audiences} globalTags={globalTags} prefs={prefs} profileIdByName={profileIdByName} onChange={setEditDoc} onSave={saveDoc} onDelete={deleteDoc} onClose={() => { setShowDocModal(false); setEditDoc(null); }} />}
+      {showDocModal      && editDoc      && <DocModal doc={editDoc} members={members} audiences={audiences} globalTags={globalTags} businessLines={businessLines} prefs={prefs} profileIdByName={profileIdByName} onChange={setEditDoc} onSave={saveDoc} onDelete={deleteDoc} onClose={() => { setShowDocModal(false); setEditDoc(null); }} />}
       {showMilestoneDetail && viewMilestone && (()=>{ const dm = milestones.find(m=>m.id===viewMilestone.id) ?? viewMilestone; return <MilestoneDetailModal milestone={dm} tasks={allTasks} docs={docs} onEdit={m=>{setShowMilestoneDetail(false);setViewMilestone(null);setEditMilestone({...m,deps:m.deps||[],collateralDeps:m.collateralDeps||[]});setShowMilestoneModal(true);}} onClose={()=>{setShowMilestoneDetail(false);setViewMilestone(null);}}/> })()}
       {showMilestoneModal && editMilestone && <MilestoneModal milestone={editMilestone} onChange={setEditMilestone} onSave={saveMilestone} onDelete={deleteMilestone} tasks={allTasks} docs={docs} onClose={() => { setShowMilestoneModal(false); setEditMilestone(null); }} />}
       {showCycleModal    && <CycleModal tasks={programTasks} activeCycle={activeCycle} initialDraft={draftCycle} sessions={sessions} cycleType={draftCycle?.cycleType || newCycleType} onSaveDraft={saveDraft} onLaunch={launchCycle} onClose={() => setShowCycleModal(false)} />}
       {showImportModal   && <ImportModal onImportProgram={importProgram} onImportClass={importClass} onImportRunOfShow={importROS} sessions={sessions} cycle={activeCycle} importHistory={importHistory} onReverseImport={reverseImport} initialTab={importModalTab} onClose={() => setShowImportModal(false)} />}
       {showImportCollateralModal && <ImportCollateralModal onImport={importCollateral} onClose={() => setShowImportCollateralModal(false)} />}
-      {showSettings      && <SettingsModal initialTab={settingsTab} members={members} setMembers={setMembersSync} departments={departments} setDepartments={setDepartmentsSync} audiences={audiences} setAudiences={setAudiencesSync} globalTags={globalTags} setGlobalTags={setGlobalTagsSync} myUser={myUser} myUserId={userId} isAdmin={isAdmin} prefs={prefs} updatePrefs={updatePrefs} onClose={() => setShowSettings(false)} />}
+      {showSettings      && <SettingsModal initialTab={settingsTab} members={members} setMembers={setMembersSync} departments={departments} setDepartments={setDepartmentsSync} audiences={audiences} setAudiences={setAudiencesSync} globalTags={globalTags} setGlobalTags={setGlobalTagsSync} businessLines={businessLines} setBusinessLines={setBusinessLinesSync} myUser={myUser} myUserId={userId} isAdmin={isAdmin} prefs={prefs} updatePrefs={updatePrefs} onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

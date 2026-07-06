@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useId } from "react";
 import { TagInput } from "../Primitives.jsx";
 import { avatarBg, avatarTx, fmtDateYear } from "../../utils.js";
 
-export function CollateralDetailModal({doc, members, audiences, globalTags, onSave, onDelete, onClose, isReadOnly}) {
+export function CollateralDetailModal({doc, members, audiences, globalTags, businessLines=[], onSave, onDelete, onClose, isReadOnly}) {
   const [editing, setEditing] = useState(false);
   const [val,     setVal]     = useState({...doc});
   const titleId = useId();
@@ -54,9 +54,11 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, onSa
             <>
               <LabeledField label="Title"><input value={val.title||""} onChange={e=>setVal(v=>({...v,title:e.target.value}))} style={inp} autoFocus/></LabeledField>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 24px"}}>
-                <LabeledField label="Owner">
+                <LabeledField label="Owner (business line)">
                   <select value={val.owner||""} onChange={e=>setVal(v=>({...v,owner:e.target.value}))} style={sel}>
-                    <option value="">—</option>{members.map(m=><option key={m}>{m}</option>)}
+                    <option value="">—</option>
+                    {val.owner && !businessLines.includes(val.owner) && <option value={val.owner}>{val.owner} (legacy)</option>}
+                    {businessLines.map(b=><option key={b}>{b}</option>)}
                   </select>
                 </LabeledField>
                 <LabeledField label="Audience">
@@ -94,7 +96,7 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, onSa
           ) : (
             <>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 32px"}}>
-                <LabeledField label="Owner"><PersonPill name={doc.owner}/></LabeledField>
+                <LabeledField label="Owner (business line)"><PersonPill name={doc.owner}/></LabeledField>
                 <LabeledField label="Audience"><TextVal v={doc.audience}/></LabeledField>
                 <LabeledField label="Content Owner"><PersonPill name={doc.content_owner}/></LabeledField>
                 <LabeledField label="Assist"><PersonPill name={doc.assist}/></LabeledField>

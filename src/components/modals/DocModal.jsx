@@ -1,7 +1,7 @@
 import { Modal, Field, TagInput } from "../Primitives.jsx";
 import { DOC_TYPES } from "../../constants.js";
 
-export function DocModal({doc,members,audiences,globalTags,prefs,profileIdByName={},onChange,onSave,onDelete,onClose}) {
+export function DocModal({doc,members,audiences,globalTags,prefs,businessLines=[],profileIdByName={},onChange,onSave,onDelete,onClose}) {
   const isNew = !doc.id;
   return (
     <Modal onClose={onClose} title={isNew?"Add document":"Edit document"}>
@@ -19,9 +19,11 @@ export function DocModal({doc,members,audiences,globalTags,prefs,profileIdByName
         </select>
       </Field>
       <Field label="Description"><textarea value={doc.description} onChange={e=>onChange({...doc,description:e.target.value})} rows={2} style={{resize:"vertical"}}/></Field>
-      <Field label="Owner">
-        <select value={doc.owner} onChange={e=>onChange({...doc,owner:e.target.value})}>
-          {members.map(m=><option key={m}>{m}</option>)}
+      <Field label="Owner (business line)">
+        <select value={doc.owner||""} onChange={e=>onChange({...doc,owner:e.target.value})}>
+          <option value="">Select business line...</option>
+          {doc.owner && !businessLines.includes(doc.owner) && <option value={doc.owner}>{doc.owner} (legacy)</option>}
+          {businessLines.map(b=><option key={b}>{b}</option>)}
         </select>
       </Field>
       <Field label="Content owner">

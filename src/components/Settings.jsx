@@ -279,7 +279,7 @@ const fmtVal = v => {
   const s = String(v);
   return s.length > 60 ? s.slice(0,60)+"…" : s;
 };
-const TABLE_LABELS = { tasks:"Task", cycles:"Cycle", docs:"Collateral", milestones:"Milestone", sessions:"Session", run_of_show:"Run of Show item" };
+const TABLE_LABELS = { tasks:"Task", cycles:"Cycle", docs:"Collateral", milestones:"Milestone", sessions:"Session", run_of_show:"Run of Show item", business_lines:"Business Line" };
 const ACTION_LABELS = { insert:"created", update:"updated", delete:"deleted" };
 
 function ActivityLog() {
@@ -347,7 +347,7 @@ function ActivityLog() {
 }
 
 
-export function SettingsModal({initialTab,members,setMembers,departments,setDepartments,audiences,setAudiences,globalTags,setGlobalTags,myUser,myUserId,isAdmin,prefs,updatePrefs,onClose}) {
+export function SettingsModal({initialTab,members,setMembers,departments,setDepartments,audiences,setAudiences,globalTags,setGlobalTags,businessLines,setBusinessLines,myUser,myUserId,isAdmin,prefs,updatePrefs,onClose}) {
   const [tab,setTab] = useState((initialTab && (isAdmin || initialTab === "preferences")) ? initialTab : "preferences");
   const isMobile = useIsMobile();
   const titleId = useId();
@@ -359,13 +359,14 @@ export function SettingsModal({initialTab,members,setMembers,departments,setDepa
     return () => document.removeEventListener("keydown", onKey);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const tabs = isAdmin
-    ? [["preferences","My Preferences"],["team","Team & Roles"],["activity","Activity"],["owners","Owners"],["departments","Departments"],["audiences","Audiences"],["tags","Tags"]]
+    ? [["preferences","My Preferences"],["team","Team & Roles"],["activity","Activity"],["owners","Owners"],["departments","Departments"],["businessLines","Business Lines"],["audiences","Audiences"],["tags","Tags"]]
     : [["preferences","My Preferences"]];
   const lc = {
-    owners:      {label:"Owner",      items:members,     setItems:setMembers},
-    departments: {label:"Department", items:departments, setItems:setDepartments},
-    audiences:   {label:"Audience",   items:audiences,   setItems:setAudiences},
-    tags:        {label:"Tag",        items:globalTags,  setItems:setGlobalTags},
+    owners:        {label:"Owner",         items:members,       setItems:setMembers},
+    departments:   {label:"Department",    items:departments,   setItems:setDepartments},
+    businessLines: {label:"Business Line", items:businessLines, setItems:setBusinessLines},
+    audiences:     {label:"Audience",      items:audiences,     setItems:setAudiences},
+    tags:          {label:"Tag",           items:globalTags,    setItems:setGlobalTags},
   };
   return (
     <div style={{position:"fixed",inset:0,background:isMobile?"#ffffff":"rgba(0,0,0,0.45)",display:"flex",alignItems:isMobile?"stretch":"center",justifyContent:"center",zIndex:500}}>
