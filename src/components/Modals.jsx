@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 import { Modal, Field, TagInput } from "./Primitives.jsx";
 import { STATUSES, DOC_TYPES, DEFAULT_CLASS_TASKS } from "../constants.js";
 import { fmtDate, fmtDateYear, addDays, isFlagged, nextBusinessDay, isWeekend, closestBusinessDay, parseCSV, parseClassTasksCSV, parseProgramTasksCSV, parseRunOfShowCSV, parseCollateralCSV, avatarBg, avatarTx, typeIcon, typeColor, typeBg, useIsMobile } from "../utils.js";
@@ -296,7 +296,7 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
             <span style={{color:done?"#0F6E56":"var(--color-text-tertiary)",fontSize:11,flexShrink:0}}>{done?"✓":"○"}</span>
             <span style={{flex:1,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</span>
             <span style={{fontSize:11,color:"var(--color-text-tertiary)",flexShrink:0}}>{status}</span>
-            {onRemove&&<button onClick={onRemove} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>}
+            {onRemove&&<button onClick={onRemove} aria-label="Remove" style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>}
           </div>
         );
         return (
@@ -385,7 +385,7 @@ export function DocModal({doc,members,audiences,globalTags,prefs,profileIdByName
         </select>
       </Field>
       <Field label="Description"><textarea value={doc.description} onChange={e=>onChange({...doc,description:e.target.value})} rows={2} style={{resize:"vertical"}}/></Field>
-      <Field label="Department">
+      <Field label="Owner">
         <select value={doc.owner} onChange={e=>onChange({...doc,owner:e.target.value})}>
           {members.map(m=><option key={m}>{m}</option>)}
         </select>
@@ -840,6 +840,14 @@ export function ImportCollateralModal({ onImport, onClose }) {
 export function CollateralDetailModal({doc, members, audiences, globalTags, onSave, onDelete, onClose, isReadOnly}) {
   const [editing, setEditing] = useState(false);
   const [val,     setVal]     = useState({...doc});
+  const titleId = useId();
+  const closeRef = useRef(null);
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = e => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave   = () => { onSave(val); };
   const handleCancel = () => { setVal({...doc}); setEditing(false); };
@@ -863,13 +871,13 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, onSa
 
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-      <div style={{background:"var(--color-background-primary)",borderRadius:12,border:"1px solid var(--color-border-secondary)",width:"100%",maxWidth:680,maxHeight:"88vh",overflowY:"auto",boxSizing:"border-box"}}>
+      <div role="dialog" aria-modal="true" aria-labelledby={titleId} style={{background:"var(--color-background-primary)",borderRadius:12,border:"1px solid var(--color-border-secondary)",width:"100%",maxWidth:680,maxHeight:"88vh",overflowY:"auto",boxSizing:"border-box"}}>
         {/* Header */}
         <div style={{display:"flex",alignItems:"center",gap:12,padding:"18px 24px 16px",borderBottom:"1px solid var(--color-border-tertiary)"}}>
-          <span style={{fontSize:16,fontWeight:500,color:"var(--color-text-primary)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{editing ? val.title : doc.title}</span>
+          <span id={titleId} style={{fontSize:16,fontWeight:500,color:"var(--color-text-primary)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{editing ? val.title : doc.title}</span>
           <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
             {!isReadOnly && !editing && <button onClick={()=>setEditing(true)} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)",color:"var(--color-text-primary)",cursor:"pointer"}}>Edit</button>}
-            <button aria-label="Close dialog" onClick={onClose} style={{background:"var(--color-background-secondary)",border:"none",borderRadius:6,width:28,height:28,fontSize:16,color:"var(--color-text-secondary)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
+            <button ref={closeRef} aria-label="Close dialog" onClick={onClose} style={{background:"var(--color-background-secondary)",border:"none",borderRadius:6,width:28,height:28,fontSize:16,color:"var(--color-text-secondary)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
           </div>
         </div>
 
@@ -879,7 +887,7 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, onSa
             <>
               <LabeledField label="Title"><input value={val.title||""} onChange={e=>setVal(v=>({...v,title:e.target.value}))} style={inp} autoFocus/></LabeledField>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 24px"}}>
-                <LabeledField label="Department">
+                <LabeledField label="Owner">
                   <select value={val.owner||""} onChange={e=>setVal(v=>({...v,owner:e.target.value}))} style={sel}>
                     <option value="">—</option>{members.map(m=><option key={m}>{m}</option>)}
                   </select>
