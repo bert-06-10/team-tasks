@@ -128,7 +128,7 @@ export function MilestoneBar({milestones, tasks=[], onEdit}) {
         const allDone = deps.length > 0 && doneCount === deps.length;
         return (
           <div key={m.id} onClick={onEdit?()=>onEdit(m):undefined} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:"var(--border-radius-md)",border:`1px solid ${allDone?"#9FE1CB":"#B5D4F4"}`,background:allDone?"#E1F5EE":"#E6F1FB",cursor:onEdit?"pointer":"default"}}>
-            <span style={{color:allDone?"#0F6E56":"#185FA5",fontSize:12}}>◆</span>
+            <span aria-hidden="true" style={{color:allDone?"#0F6E56":"#185FA5",fontSize:12}}>◆</span>
             <span style={{fontSize:12,fontWeight:500,color:allDone?"#0F6E56":"#185FA5"}}>{m.title}</span>
             <span style={{fontSize:11,color:allDone?"#0F6E56":"#185FA5",opacity:0.7}}>{fmtDate(m.date)}</span>
             {deps.length > 0 && (
@@ -329,9 +329,9 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
       <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
         {!isReadOnly && onAddDoc && <button onClick={onAddDoc} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",fontWeight:500,flexShrink:0}}>+ Add collateral</button>}
         <div style={{position:"relative",flexShrink:0}}>
-          <span style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
+          <span aria-hidden="true" style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search collateral…" style={{fontSize:13,padding:"5px 10px 5px 28px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:200}}/>
-          {search && <button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",lineHeight:1,padding:0}}>×</button>}
+          {search && <button onClick={()=>setSearch("")} aria-label="Clear search" style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",lineHeight:1,padding:0}}>×</button>}
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginLeft:"auto"}}>
           <FilterDropdown label="Owner"         options={ownerOpts}         value={filters.owner}        onChange={v=>setFilter("owner",v)}/>
@@ -554,9 +554,9 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
             </>
         }
         <div style={{position:"relative",marginLeft:"auto"}}>
-          <span style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
+          <span aria-hidden="true" style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{fontSize:13,padding:"5px 10px 5px 26px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:160}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",padding:0,lineHeight:1}}>×</button>}
+          {search&&<button onClick={()=>setSearch("")} aria-label="Clear search" style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",padding:0,lineHeight:1}}>×</button>}
         </div>
         {!isReadOnly && selectedSession && <button onClick={newRow} style={{fontSize:13,padding:"5px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer"}}>+ Add row</button>}
       </div>
