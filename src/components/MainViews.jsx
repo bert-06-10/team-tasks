@@ -343,15 +343,15 @@ export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
     <div style={{display:"flex",flexDirection:isMobile?"column":"row",gap:16}}>
       <div style={{flex:1,minWidth:0}}>
         <div style={{display:"flex",alignItems:"center",gap:isMobile?8:16,marginBottom:16,flexWrap:"wrap"}}>
-          <button onClick={()=>{if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1);}} style={{fontSize:16,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-primary)",padding:"4px 8px"}}>‹</button>
+          <button onClick={()=>{if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1);}} aria-label="Previous month" style={{fontSize:16,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-primary)",padding:"4px 8px"}}>‹</button>
           <span style={{fontSize:15,fontWeight:500,color:"var(--color-text-primary)",minWidth:isMobile?"auto":160,textAlign:"center"}}>{isMobile?MONTHS[month].slice(0,3):MONTHS[month]} {year}</span>
-          <button onClick={()=>{if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);}} style={{fontSize:16,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-primary)",padding:"4px 8px"}}>›</button>
+          <button onClick={()=>{if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);}} aria-label="Next month" style={{fontSize:16,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-primary)",padding:"4px 8px"}}>›</button>
           <button onClick={()=>{setMonth(today.getMonth());setYear(today.getFullYear());}} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-secondary)",cursor:"pointer",marginLeft:4,whiteSpace:"nowrap"}}>Today</button>
           {myUser && <button onClick={()=>setMyOnly(v=>!v)} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:myOnly?"1px solid #0F6E56":"0.5px solid var(--color-border-secondary)",background:myOnly?"#0F6E56":"var(--color-background-primary)",color:myOnly?"#fff":"var(--color-text-secondary)",cursor:"pointer",fontWeight:500,transition:"background 0.15s,color 0.15s,border 0.15s",whiteSpace:"nowrap"}}>My tasks</button>}
           <div style={{position:"relative",marginLeft:isMobile?0:8}}>
-            <span style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
+            <span aria-hidden="true" style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{fontSize:12,padding:"4px 10px 4px 26px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:isMobile?130:160}}/>
-            {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",padding:0,lineHeight:1}}>×</button>}
+            {search&&<button onClick={()=>setSearch("")} aria-label="Clear search" style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",padding:0,lineHeight:1}}>×</button>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:isMobile?0:"auto",flexWrap:"wrap"}}>
             <span style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#185FA5"}}><span style={{width:10,height:10,borderRadius:2,background:"#E6F1FB",border:"1px solid #B5D4F4",display:"inline-block"}}/>Program</span>
@@ -401,7 +401,7 @@ export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
           <div style={{fontSize:14,fontWeight:500,color:"var(--color-text-primary)",marginBottom:12}}>{MONTHS[month]} {selected}</div>
           {selectedMs.map(m => (
             <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #B5D4F4",background:"#E6F1FB",marginBottom:8}}>
-              <span style={{color:"#185FA5"}}>◆</span>
+              <span aria-hidden="true" style={{color:"#185FA5"}}>◆</span>
               <span style={{fontSize:13,fontWeight:500,color:"#185FA5"}}>{m.title}</span>
             </div>
           ))}
@@ -598,9 +598,9 @@ export function ClassesView({ displayClassTasks, sessions, members, isReadOnly, 
           </select>
         </div>
         <div style={{ position: "relative", alignSelf: "flex-end" }}>
-          <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--color-text-tertiary)", pointerEvents: "none" }}>⌕</span>
+          <span aria-hidden="true" style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--color-text-tertiary)", pointerEvents: "none" }}>⌕</span>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks..." style={{ fontSize: 13, padding: "6px 10px 6px 26px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", width: 180 }} />
-          {search && <button onClick={() => setSearch("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", fontSize: 14, color: "var(--color-text-tertiary)", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>}
+          {search && <button onClick={() => setSearch("")} aria-label="Clear search" style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", fontSize: 14, color: "var(--color-text-tertiary)", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>}
         </div>
       </div>
 
@@ -777,9 +777,9 @@ export function SearchView({displayTasks,displayDocs,isReadOnly,openTask,openDoc
   return (
     <div style={{maxWidth:1100,margin:"0 auto"}}>
       <div style={{position:"relative",marginBottom:24}}>
-        <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:15,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
+        <span aria-hidden="true" style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:15,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
         <input autoFocus value={q} onChange={e=>handleChange(e.target.value)} placeholder="Search tasks, collateral, owners, tags..." style={{width:"100%",boxSizing:"border-box",fontSize:14,padding:"11px 16px 11px 40px",borderRadius:"var(--border-radius-lg)",border:"1px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}/>
-        {q&&<button onClick={()=>{setQ("");setCommittedQ("");}} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:16,color:"var(--color-text-tertiary)",cursor:"pointer"}}>×</button>}
+        {q&&<button onClick={()=>{setQ("");setCommittedQ("");}} aria-label="Clear search" style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:16,color:"var(--color-text-tertiary)",cursor:"pointer"}}>×</button>}
       </div>
       {!committedQ&&(
         <div>

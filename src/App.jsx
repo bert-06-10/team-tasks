@@ -1082,9 +1082,9 @@ export default function App() {
               <FilterDropdown label="Due date" options={["All","Overdue","Due today","Next 7 days","Next 30 days","No due date"]} value={dateFilter} onChange={setDateFilter} />
               {(deptFilter !== "All" || ownerFilter !== "All" || sessionFilter !== "all" || dateFilter !== "All") && <button onClick={() => { setDeptFilter("All"); setOwnerFilter("All"); setSessionFilter("all"); setDateFilter("All"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
               <div style={{ position: "relative", marginLeft: "auto" }}>
-                <span style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--color-text-tertiary)", pointerEvents: "none" }}>⌕</span>
+                <span aria-hidden="true" style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--color-text-tertiary)", pointerEvents: "none" }}>⌕</span>
                 <input value={taskSearch} onChange={e => setTaskSearch(e.target.value)} placeholder="Search..." style={{ fontSize: 13, padding: "5px 10px 5px 26px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", width: 180 }} />
-                {taskSearch && <button onClick={() => setTaskSearch("")} style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", fontSize: 14, color: "var(--color-text-tertiary)", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>}
+                {taskSearch && <button onClick={() => setTaskSearch("")} aria-label="Clear search" style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", fontSize: 14, color: "var(--color-text-tertiary)", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>}
               </div>
             </>}
           </div>
