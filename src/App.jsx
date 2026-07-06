@@ -54,6 +54,7 @@ export default function App() {
   const [myUser,    setMyUser]    = useState("");
   const [myRole,    setMyRole]    = useState("staff"); // 'admin' | 'staff' | 'viewer' — mirrors profiles.role
   const [profiles,  setProfiles]  = useState([]); // every {id,name,email,role} — used to link assignees to real accounts
+  const [notifications, setNotifications] = useState([]);
   const [userPrefs, setUserPrefs] = useState(DEFAULT_USER_PREFS);
 
   // ── UI state ────────────────────────────────────────────────────────────────
@@ -105,8 +106,9 @@ export default function App() {
 
   // ── Dropdown click-outside handler ──────────────────────────────────────────
   const dropdownsRef = useRef(null);
+  const notifRef = useRef(null);
   useEffect(() => {
-    if (!openDropdown) return;
+    if (!openDropdown || openDropdown === 'notifications') return;
     const handler = (e) => {
       if (dropdownsRef.current && !dropdownsRef.current.contains(e.target)) {
         setOpenDropdown(null);
@@ -122,6 +124,14 @@ export default function App() {
     const onKey = e => { if (e.key === 'Escape') setOpenDropdown(null); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
+  }, [openDropdown]);
+
+  // The notification bell lives outside dropdownsRef's wrapper, so it needs its own outside-click check
+  useEffect(() => {
+    if (openDropdown !== 'notifications') return;
+    const handler = e => { if (notifRef.current && !notifRef.current.contains(e.target)) setOpenDropdown(null); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [openDropdown]);
 
   // ── Refs for config-list diffing ────────────────────────────────────────────
@@ -184,13 +194,14 @@ export default function App() {
       localStorage.setItem('teamtasks_timezone', tz);
 
       // Fetch config lists + sessions + cycle + all profiles (for linking assignees to real accounts)
-      const [membersList, deptList, audList, tagList, bizLineList, sessionsData, cycle, archived, allProfiles] =
+      const [membersList, deptList, audList, tagList, bizLineList, sessionsData, cycle, archived, allProfiles, notifs] =
         await Promise.all([
           db.fetchMembers(), db.fetchDepartments(), db.fetchAudiences(),
           db.fetchGlobalTags(), db.fetchBusinessLines(), db.fetchSessions(), db.fetchActiveCycle(),
-          db.fetchArchivedCycles(), db.fetchAllProfiles(),
+          db.fetchArchivedCycles(), db.fetchAllProfiles(), db.fetchNotifications(),
         ]);
       setProfiles(allProfiles);
+      setNotifications(notifs);
 
       // Ensure the signed-in user appears in the members list.
       // Note: adding to `members` now requires admin under RLS, so a non-admin's
@@ -264,6 +275,7 @@ export default function App() {
     setMyUser("");
     setMyRole("staff");
     setProfiles([]);
+    setNotifications([]);
     setUserPrefs(DEFAULT_USER_PREFS);
     setProgramTasks([]);
     setClassTasks([]);
@@ -388,6 +400,16 @@ export default function App() {
           if (!prev[sid]) return prev;
           return { ...prev, [sid]: prev[sid].map(row => row.id === r.id ? { ...row, done: r.done || false } : row) };
         });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, ({ eventType, new: r, old }) => {
+        // RLS already scopes this to the signed-in user's own notifications
+        if (eventType === 'DELETE') {
+          setNotifications(prev => prev.filter(n => n.id !== old.id));
+        } else if (eventType === 'INSERT') {
+          setNotifications(prev => prev.some(n => n.id === r.id) ? prev : [r, ...prev]);
+        } else if (eventType === 'UPDATE') {
+          setNotifications(prev => prev.map(n => n.id === r.id ? r : n));
+        }
       })
       .subscribe();
 
@@ -906,6 +928,24 @@ export default function App() {
   const myFilteredTasks     = sortByDue(displayTasks.filter(t => t.assignee === myUser || t.assist === myUser).filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter).filter(applyDateFilter).filter(matchesTaskSearch));
 
   const openTask     = t => { if (!isReadOnly) { setEditTask(t); setShowTaskModal(true); } };
+
+  const unreadNotifCount = notifications.filter(n => !n.read).length;
+  const markNotifRead = async id => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    try { await db.markNotificationRead(id); } catch (e) { console.error(e); }
+  };
+  const markAllNotifsRead = async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    try { await db.markAllNotificationsRead(); } catch (e) { console.error(e); }
+  };
+  const openNotification = n => {
+    if (!n.read) markNotifRead(n.id);
+    if (n.task_id) {
+      const t = allTasks.find(x => x.id === n.task_id);
+      if (t) openTask(t);
+    }
+  };
+
   const openDoc      = d => { if (!isReadOnly) { setEditDoc(d); setShowDocModal(true); } };
   const openSettings = (tab = "owners") => { setSettingsTab(tab); setShowSettings(true); };
 
@@ -1000,7 +1040,7 @@ export default function App() {
                   <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 180, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200 }}>
                     <button type="button" onClick={() => { setOpenDropdown(null); setEditTask({ ...newTaskBase }); setShowTaskModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add new task</button>
                     <button type="button" onClick={() => { setOpenDropdown(null); setEditMilestone({ title: "", date: "", deps: [], collateralDeps: [] }); setShowMilestoneModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add milestone</button>
-                    <button type="button" onClick={() => { setOpenDropdown(null); setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: myUser, content_owner: "", assist: "", url: "", shareable_link: "", tags: [] }); setShowDocModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add collateral</button>
+                    <button type="button" onClick={() => { setOpenDropdown(null); setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: "", content_owner: "", assist: "", url: "", shareable_link: "", tags: [] }); setShowDocModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add collateral</button>
                   </div>
                 )}
               </div>
@@ -1045,7 +1085,7 @@ export default function App() {
                 <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 200, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200, maxHeight: "70vh", overflowY: "auto" }}>
                   <button type="button" onClick={() => { setOpenDropdown(null); setEditTask({ ...newTaskBase }); setShowTaskModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }}>Add new task</button>
                   <button type="button" onClick={() => { setOpenDropdown(null); setEditMilestone({ title: "", date: "", deps: [], collateralDeps: [] }); setShowMilestoneModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }}>Add milestone</button>
-                  <button type="button" onClick={() => { setOpenDropdown(null); setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: myUser, content_owner: "", assist: "", url: "", shareable_link: "", tags: [] }); setShowDocModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }}>Add collateral</button>
+                  <button type="button" onClick={() => { setOpenDropdown(null); setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: "", content_owner: "", assist: "", url: "", shareable_link: "", tags: [] }); setShowDocModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }}>Add collateral</button>
                   <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "2px 0" }} />
                   <button type="button" onClick={() => { setOpenDropdown(null); openAddSession(); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }}>Add session</button>
                   <button type="button" onClick={() => { setOpenDropdown(null); setShowStandardTasksModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }}>Standard tasks</button>
@@ -1063,6 +1103,36 @@ export default function App() {
                 <button onClick={deleteDraft} title="Delete draft" aria-label="Delete draft" style={{ fontSize: 14, padding: "4px 10px 4px 4px", border: "none", background: "transparent", color: "#0F6E56", cursor: "pointer", lineHeight: 1 }}>×</button>
               </div>
             )}
+            <div ref={notifRef} style={{ position: "relative" }}>
+              <button onClick={() => setOpenDropdown(openDropdown === 'notifications' ? null : 'notifications')} aria-haspopup="true" aria-expanded={openDropdown === 'notifications'} aria-label={unreadNotifCount > 0 ? `Notifications, ${unreadNotifCount} unread` : "Notifications"} style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", border: "none", background: openDropdown === 'notifications' ? "var(--color-background-secondary)" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: "var(--color-text-secondary)", flexShrink: 0 }}>
+                🔔
+                {unreadNotifCount > 0 && (
+                  <span aria-hidden="true" style={{ position: "absolute", top: 2, right: 3, minWidth: 15, height: 15, borderRadius: 8, background: "#A32D2D", color: "#fff", fontSize: 9, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px", boxSizing: "border-box" }}>{unreadNotifCount > 9 ? "9+" : unreadNotifCount}</span>
+                )}
+              </button>
+              {openDropdown === 'notifications' && (
+                <div role="menu" style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, width: isMobile ? "calc(100vw - 24px)" : 340, maxHeight: 420, overflowY: "auto", background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 16px rgba(0,0,0,0.15)", zIndex: 400 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderBottom: "0.5px solid var(--color-border-tertiary)", position: "sticky", top: 0, background: "var(--color-background-primary)" }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)" }}>Notifications</span>
+                    {unreadNotifCount > 0 && <button onClick={markAllNotifsRead} style={{ fontSize: 12, border: "none", background: "none", color: "var(--color-text-secondary)", cursor: "pointer" }}>Mark all read</button>}
+                  </div>
+                  {notifications.length === 0 && (
+                    <div style={{ padding: "24px 14px", fontSize: 13, color: "var(--color-text-tertiary)", textAlign: "center" }}>No notifications yet.</div>
+                  )}
+                  {notifications.map(n => (
+                    <button key={n.id} type="button" onClick={() => { openNotification(n); setOpenDropdown(null); }} style={{ width: "100%", textAlign: "left", display: "block", border: "none", borderBottom: "0.5px solid var(--color-border-tertiary)", background: n.read ? "transparent" : "var(--color-background-secondary)", padding: "10px 14px", cursor: "pointer", font: "inherit" }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        {!n.read && <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: "#185FA5", flexShrink: 0, marginTop: 5 }} />}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, color: "var(--color-text-primary)", marginBottom: 2 }}>{n.message}</div>
+                          <div style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{new Date(n.created_at).toLocaleString()}</div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <button onClick={() => openSettings("preferences")} aria-label="Settings" title="Settings" style={{ width: 28, height: 28, borderRadius: "50%", background: "transparent", border: "0.5px solid var(--color-border-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-secondary)" }}>
