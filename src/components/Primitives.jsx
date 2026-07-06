@@ -138,29 +138,47 @@ export function FilterDropdown({label,options,value,onChange,align="left"}) {
   const [open,setOpen] = useState(false);
   const ref = useRef();
   const btnRef = useRef();
+  const panelRef = useRef();
   useEffect(() => {
     const h = e => { if(ref.current&&!ref.current.contains(e.target))setOpen(false); };
     document.addEventListener("mousedown",h);
     return () => document.removeEventListener("mousedown",h);
   },[]);
+  // Listbox keyboard pattern: arrows move real focus between options, Home/End
+  // jump to the ends, Escape closes and returns focus to the trigger, Tab
+  // closes the listbox and continues naturally to the next page element.
   useEffect(() => {
     if (!open) return;
-    const onKey = e => { if (e.key === "Escape") { setOpen(false); btnRef.current?.focus(); } };
+    const items = () => Array.from(panelRef.current?.querySelectorAll('[role="option"]') || []);
+    const current = items().find(el => el.getAttribute('aria-selected') === 'true');
+    (current || items()[0])?.focus();
+
+    const onKey = e => {
+      const list = items();
+      if (list.length === 0) return;
+      const idx = list.indexOf(document.activeElement);
+      if (e.key === "Escape") { setOpen(false); btnRef.current?.focus(); }
+      else if (e.key === "Tab") { setOpen(false); }
+      else if (e.key === "ArrowDown") { e.preventDefault(); list[idx < 0 ? 0 : (idx + 1) % list.length].focus(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); list[idx < 0 ? list.length - 1 : (idx - 1 + list.length) % list.length].focus(); }
+      else if (e.key === "Home") { e.preventDefault(); list[0].focus(); }
+      else if (e.key === "End") { e.preventDefault(); list[list.length - 1].focus(); }
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
   const active = value!=="All"&&value!==options[0];
   return (
     <div ref={ref} style={{position:"relative",display:"inline-block"}}>
-      <button ref={btnRef} onClick={()=>setOpen(o=>!o)} aria-haspopup="true" aria-expanded={open} style={{display:"flex",alignItems:"center",gap:6,fontSize:13,padding:"6px 12px",borderRadius:"var(--border-radius-md)",border:active?"1px solid var(--color-border-primary)":"0.5px solid var(--color-border-secondary)",background:active?"var(--color-background-secondary)":"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",whiteSpace:"nowrap"}}>
+      <button ref={btnRef} onClick={()=>setOpen(o=>!o)} aria-haspopup="listbox" aria-expanded={open} style={{display:"flex",alignItems:"center",gap:6,fontSize:13,padding:"6px 12px",borderRadius:"var(--border-radius-md)",border:active?"1px solid var(--color-border-primary)":"0.5px solid var(--color-border-secondary)",background:active?"var(--color-background-secondary)":"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",whiteSpace:"nowrap"}}>
         <span style={{fontWeight:500,color:"var(--color-text-tertiary)",fontSize:12}}>{label}:</span>
         <span>{value}</span>
         <span aria-hidden="true" style={{fontSize:10,color:"var(--color-text-tertiary)",marginLeft:2}}>{open?"▲":"▼"}</span>
       </button>
       {open&&(
-        <div aria-label={label} style={{position:"absolute",top:"calc(100% + 4px)",[align==="right"?"right":"left"]:0,minWidth:160,background:"var(--color-background-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",zIndex:400,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.12)"}}>
+        <div ref={panelRef} role="listbox" aria-label={label} style={{position:"absolute",top:"calc(100% + 4px)",[align==="right"?"right":"left"]:0,minWidth:160,background:"var(--color-background-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",zIndex:400,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.12)"}}>
           {options.map(o => (
-            <button key={o} type="button" aria-pressed={value===o} onClick={()=>{onChange(o);setOpen(false);btnRef.current?.focus();}} style={{width:"100%",textAlign:"left",border:"none",padding:"8px 14px",fontSize:13,cursor:"pointer",background:value===o?"var(--color-background-secondary)":"var(--color-background-primary)",color:"var(--color-text-primary)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+            <button key={o} type="button" role="option" aria-selected={value===o} onClick={()=>{onChange(o);setOpen(false);btnRef.current?.focus();}} style={{width:"100%",textAlign:"left",border:"none",padding:"8px 14px",fontSize:13,cursor:"pointer",background:value===o?"var(--color-background-secondary)":"var(--color-background-primary)",color:"var(--color-text-primary)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
               {o}{value===o&&<span aria-hidden="true" style={{fontSize:11,color:"var(--color-text-tertiary)"}}>✓</span>}
             </button>
           ))}
