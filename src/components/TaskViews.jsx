@@ -396,14 +396,14 @@ function PersonPicker({value, members, onChange}) {
   const options = value && !members.includes(value) ? [value, ...members] : members;
   return (
     <div ref={ref} style={{position:"relative"}}>
-      <button ref={btnRef} type="button" onClick={()=>setOpen(o=>!o)} aria-haspopup="listbox" aria-expanded={open} style={{width:"100%",display:"flex",alignItems:"center",gap:6,fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",boxSizing:"border-box"}}>
+      <button ref={btnRef} type="button" onClick={()=>setOpen(o=>!o)} aria-haspopup="true" aria-expanded={open} style={{width:"100%",display:"flex",alignItems:"center",gap:6,fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"3px 6px",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",boxSizing:"border-box"}}>
         {value ? <><Avatar name={value} size={18}/><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{value}</span></> : <span style={{color:"var(--color-text-tertiary)"}}>—</span>}
       </button>
       {open && (
-        <div role="listbox" aria-label="Person" style={{position:"absolute",top:"calc(100% + 2px)",left:0,minWidth:180,maxHeight:220,overflowY:"auto",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.12)",zIndex:300}}>
-          <button type="button" role="option" aria-selected={!value} onClick={()=>{onChange("");setOpen(false);btnRef.current?.focus();}} style={{width:"100%",textAlign:"left",border:"none",padding:"6px 10px",fontSize:12,color:"var(--color-text-tertiary)",cursor:"pointer",background:"var(--color-background-primary)"}}>—</button>
+        <div aria-label="Person" style={{position:"absolute",top:"calc(100% + 2px)",left:0,minWidth:180,maxHeight:220,overflowY:"auto",background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,boxShadow:"0 4px 12px rgba(0,0,0,0.12)",zIndex:300}}>
+          <button type="button" aria-pressed={!value} onClick={()=>{onChange("");setOpen(false);btnRef.current?.focus();}} style={{width:"100%",textAlign:"left",border:"none",padding:"6px 10px",fontSize:12,color:"var(--color-text-tertiary)",cursor:"pointer",background:"var(--color-background-primary)"}}>—</button>
           {options.map(m => (
-            <button key={m} type="button" role="option" aria-selected={value===m} onClick={()=>{onChange(m);setOpen(false);btnRef.current?.focus();}} style={{width:"100%",textAlign:"left",border:"none",display:"flex",alignItems:"center",gap:6,padding:"6px 10px",fontSize:12,cursor:"pointer",color:"var(--color-text-primary)",background:"var(--color-background-primary)"}}>
+            <button key={m} type="button" aria-pressed={value===m} onClick={()=>{onChange(m);setOpen(false);btnRef.current?.focus();}} style={{width:"100%",textAlign:"left",border:"none",display:"flex",alignItems:"center",gap:6,padding:"6px 10px",fontSize:12,cursor:"pointer",color:"var(--color-text-primary)",background:"var(--color-background-primary)"}}>
               <Avatar name={m} size={18}/><span>{m}</span>
             </button>
           ))}
