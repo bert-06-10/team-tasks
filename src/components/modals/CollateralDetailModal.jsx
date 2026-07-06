@@ -54,7 +54,7 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, busi
             <>
               <LabeledField label="Title"><input value={val.title||""} onChange={e=>setVal(v=>({...v,title:e.target.value}))} style={inp} autoFocus/></LabeledField>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 24px"}}>
-                <LabeledField label="Owner (business line)">
+                <LabeledField label="Business Line">
                   <select value={val.owner||""} onChange={e=>setVal(v=>({...v,owner:e.target.value}))} style={sel}>
                     <option value="">—</option>
                     {val.owner && !businessLines.includes(val.owner) && <option value={val.owner}>{val.owner} (legacy)</option>}
@@ -96,7 +96,7 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, busi
           ) : (
             <>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"0 32px"}}>
-                <LabeledField label="Owner (business line)"><PersonPill name={doc.owner}/></LabeledField>
+                <LabeledField label="Business Line"><PersonPill name={doc.owner}/></LabeledField>
                 <LabeledField label="Audience"><TextVal v={doc.audience}/></LabeledField>
                 <LabeledField label="Content Owner"><PersonPill name={doc.content_owner}/></LabeledField>
                 <LabeledField label="Assist"><PersonPill name={doc.assist}/></LabeledField>
