@@ -343,7 +343,9 @@ export default function App() {
       if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && s) {
         handled = true;
         handleAuthSuccess(s);
-      } else if (event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !s)) {
+      } else if (event === "SIGNED_OUT") {
+        resetState();
+      } else if (event === "INITIAL_SESSION" && !s) {
         if (!handled) { setSession(null); setLoading(false); }
       }
     });
