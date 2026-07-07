@@ -73,8 +73,19 @@ export function Field({label,children}) {
 export function TagInput({tags,suggestions,onChange}) {
   const [input,setInput] = useState("");
   const [showSugg,setShowSugg] = useState(false);
+  const [activeIndex,setActiveIndex] = useState(-1);
+  const listId = useId();
   const filtered = (suggestions||[]).filter(s=>s.toLowerCase().includes(input.toLowerCase())&&!tags.includes(s));
-  const add = val => { const t=(val||input).trim(); if(t&&!tags.includes(t))onChange([...tags,t]); setInput(""); setShowSugg(false); };
+  const add = val => { const t=(val||input).trim(); if(t&&!tags.includes(t))onChange([...tags,t]); setInput(""); setShowSugg(false); setActiveIndex(-1); };
+  const onKeyDown = e => {
+    if (e.key==="Enter") { if(showSugg&&activeIndex>=0&&filtered[activeIndex]) add(filtered[activeIndex]); else add(); return; }
+    if (e.key==="Escape") { setShowSugg(false); return; }
+    if (!showSugg||filtered.length===0) return;
+    if (e.key==="ArrowDown") { e.preventDefault(); setActiveIndex(i=>Math.min(i+1,filtered.length-1)); }
+    else if (e.key==="ArrowUp") { e.preventDefault(); setActiveIndex(i=>Math.max(i-1,0)); }
+    else if (e.key==="Home") { e.preventDefault(); setActiveIndex(0); }
+    else if (e.key==="End") { e.preventDefault(); setActiveIndex(filtered.length-1); }
+  };
   return (
     <div>
       <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
@@ -86,12 +97,23 @@ export function TagInput({tags,suggestions,onChange}) {
       </div>
       <div style={{position:"relative"}}>
         <div style={{display:"flex",gap:8}}>
-          <input value={input} onChange={e=>{setInput(e.target.value);setShowSugg(true);}} onKeyDown={e=>{if(e.key==="Enter")add();if(e.key==="Escape")setShowSugg(false);}} onFocus={()=>setShowSugg(true)} placeholder="Add a tag..."/>
+          <input
+            role="combobox"
+            aria-expanded={showSugg && filtered.length > 0}
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-activedescendant={activeIndex >= 0 ? `${listId}-opt-${activeIndex}` : undefined}
+            value={input}
+            onChange={e=>{setInput(e.target.value);setShowSugg(true);setActiveIndex(0);}}
+            onKeyDown={onKeyDown}
+            onFocus={()=>setShowSugg(true)}
+            onBlur={()=>setTimeout(()=>setShowSugg(false),150)}
+            placeholder="Add a tag..."/>
           <button onClick={()=>add()} style={{fontSize:13,padding:"0 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)",color:"var(--color-text-secondary)",cursor:"pointer"}}>Add</button>
         </div>
         {showSugg&&filtered.length>0&&(
-          <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"var(--color-background-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",zIndex:400,maxHeight:140,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
-            {filtered.map(s => <div key={s} onClick={()=>add(s)} style={{padding:"7px 12px",fontSize:13,cursor:"pointer",color:"var(--color-text-primary)"}}>{s}</div>)}
+          <div id={listId} role="listbox" style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"var(--color-background-primary)",border:"1px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",zIndex:400,maxHeight:140,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.1)"}}>
+            {filtered.map((s,i) => <div key={s} id={`${listId}-opt-${i}`} role="option" aria-selected={i===activeIndex} onMouseDown={()=>add(s)} onMouseEnter={()=>setActiveIndex(i)} style={{padding:"7px 12px",fontSize:13,cursor:"pointer",color:"var(--color-text-primary)",background:i===activeIndex?"var(--color-background-secondary)":"transparent"}}>{s}</div>)}
           </div>
         )}
       </div>
