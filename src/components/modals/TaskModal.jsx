@@ -45,7 +45,7 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
           </Field>
         </div>
       )}
-      {task.type==="program"&&task.due&&task.title&&(
+      {task.due&&task.title&&(
         <div style={{textAlign:"right",marginTop:-8}}>
           <AddToCalendarLink title={task.title} date={task.due} details={task.notes} />
         </div>
