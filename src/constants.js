@@ -30,4 +30,4 @@ export const DEFAULT_PREFS = {
 export const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 export const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 export const AVATAR_BG = ["#B5D4F4","#9FE1CB","#F5C4B3","#F4C0D1","#C0DD97","#D3D1C7","#FAC775"];
-export const AVATAR_TX = ["#185FA5","#0F6E56","#993C1D","#993556","#3B6D11","#5F5E5A","#854F0B"];
+export const AVATAR_TX = ["#17599b","#0e654f","#963b1c","#963454","#366510","#595855","#804c0b"];
