@@ -1,7 +1,7 @@
 import { useState, useEffect, useId, useRef } from "react";
 import { Toggle } from "./Primitives.jsx";
 import * as db from "../lib/db.js";
-import { useIsMobile } from "../utils.js";
+import { useIsMobile, useFocusTrap } from "../utils.js";
 import { STATUSES, DEFAULT_STATUS_COLORS, VIEWS, VIEW_LABELS, DEFAULT_PREFS } from "../constants.js";
 
 const TIMEZONES = [
@@ -360,6 +360,8 @@ export function SettingsModal({initialTab,members,setMembers,departments,setDepa
   const isMobile = useIsMobile();
   const titleId = useId();
   const closeRef = useRef(null);
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
   useEffect(() => {
     closeRef.current?.focus();
     const onKey = e => { if (e.key === "Escape") onClose(); };
@@ -378,7 +380,7 @@ export function SettingsModal({initialTab,members,setMembers,departments,setDepa
   };
   return (
     <div style={{position:"fixed",inset:0,background:isMobile?"#ffffff":"rgba(0,0,0,0.45)",display:"flex",alignItems:isMobile?"stretch":"center",justifyContent:"center",zIndex:500}}>
-      <div role="dialog" aria-modal="true" aria-labelledby={titleId} style={{background:"#ffffff",borderRadius:isMobile?0:12,border:isMobile?"none":"1px solid #e0e3e6",width:"100%",maxWidth:isMobile?"none":580,height:isMobile?"100%":"90vh",maxHeight:isMobile?"100%":"90vh",display:"flex",flexDirection:"column",boxSizing:"border-box",boxShadow:isMobile?"none":"0 8px 32px rgba(0,0,0,0.18)"}}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} style={{background:"#ffffff",borderRadius:isMobile?0:12,border:isMobile?"none":"1px solid #e0e3e6",width:"100%",maxWidth:isMobile?"none":580,height:isMobile?"100%":"90vh",maxHeight:isMobile?"100%":"90vh",display:"flex",flexDirection:"column",boxSizing:"border-box",boxShadow:isMobile?"none":"0 8px 32px rgba(0,0,0,0.18)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:isMobile?"14px 16px":"18px 24px 16px",borderBottom:"1px solid #e0e3e6",flexShrink:0}}>
           <span id={titleId} style={{fontSize:16,fontWeight:500,color:"#1a1a18"}}>Settings</span>
           <button ref={closeRef} onClick={onClose} aria-label="Close settings" style={{background:"#eaecef",border:"none",borderRadius:8,width:isMobile?36:28,height:isMobile?36:28,fontSize:isMobile?20:16,color:"#888780",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>×</button>
