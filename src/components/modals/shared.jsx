@@ -7,7 +7,7 @@ export function SearchablePicker({options, onSelect, placeholder="Search…"}) {
   const [open,  setOpen]    = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const listId = useId();
-  const filtered = options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()));
+  const filtered = query.trim() ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase())) : [];
 
   const select = o => { onSelect(o.value); setQuery(""); setOpen(false); setActiveIndex(-1); };
 
