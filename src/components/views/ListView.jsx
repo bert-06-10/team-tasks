@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { TaskCard, ListRow, ListHeader } from "../TaskViews.jsx";
 import { fmtDate } from "../../utils.js";
+import { STATUSES, DEFAULT_STATUS_COLORS } from "../../constants.js";
 
 export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isReadOnly,listGroup,setListGroup,openTask,onAddTask,onAddMilestone,onEditMilestone,updateStatus,getBlockedStatus,statusColors,onDeleteSelected,sessions,onNavigateToClasses,isMobile}) {
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -34,6 +35,11 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
     setSelectedIds(new Set());
   };
 
+  const bulkSetStatus = status => {
+    visibleSelected.forEach(id => updateStatus(id, status));
+    setSelectedIds(new Set());
+  };
+
   const groupBy = (ts,key) => { const g={}; ts.forEach(t=>{const k=t[key]||"Unassigned";if(!g[k])g[k]=[];g[k].push(t);}); return g; };
 
   const renderList = ts => isMobile ? (
@@ -61,9 +67,16 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
   const Toolbar = () => (
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8}}>
       {visibleSelected.length > 0 && !isMobile ? (
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{visibleSelected.length} of {visibleIds.length} selected</span>
           {!selectedAll && <button onClick={handleSelectAll} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Select all {visibleIds.length}</button>}
+          <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>Set status:</span>
+          {STATUSES.map(s => {
+            const sc = statusColors[s] || DEFAULT_STATUS_COLORS[s];
+            return (
+              <button key={s} onClick={() => bulkSetStatus(s)} style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:sc.bg,color:sc.color,border:`1px solid ${sc.border}`,cursor:"pointer",fontWeight:500,whiteSpace:"nowrap"}}>{s}</button>
+            );
+          })}
           <button onClick={handleDeleteSelected} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer"}}>
             Delete {visibleSelected.length === 1 ? "task" : `${visibleSelected.length} tasks`}
           </button>
