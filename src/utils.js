@@ -244,3 +244,27 @@ export function parseCollateralCSV(rows) {
     };
   });
 }
+
+// Traps Tab/Shift+Tab within a container (e.g. an open modal) so keyboard
+// focus can't escape to the page behind it. Wraps from the last focusable
+// element back to the first, and vice versa for Shift+Tab.
+const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+export function useFocusTrap(containerRef) {
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const onKey = e => {
+      if (e.key !== 'Tab') return;
+      const focusable = Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(el => el.offsetParent !== null);
+      if (focusable.length === 0) return;
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    };
+    container.addEventListener('keydown', onKey);
+    return () => container.removeEventListener('keydown', onKey);
+  }, [containerRef]);
+}
