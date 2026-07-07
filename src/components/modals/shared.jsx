@@ -1,32 +1,67 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 
 // ── Shared helpers used by multiple modals ─────────────────────────────────────
 
 export function SearchablePicker({options, onSelect, placeholder="Search…"}) {
   const [query, setQuery]   = useState("");
   const [open,  setOpen]    = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const listId = useId();
   const filtered = options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()));
+
+  const select = o => { onSelect(o.value); setQuery(""); setOpen(false); setActiveIndex(-1); };
+
+  const onKeyDown = e => {
+    if (!open || filtered.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex(i => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex(i => Math.max(i - 1, 0));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActiveIndex(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActiveIndex(filtered.length - 1);
+    } else if (e.key === "Enter") {
+      if (activeIndex >= 0 && filtered[activeIndex]) {
+        e.preventDefault();
+        select(filtered[activeIndex]);
+      }
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
   return (
     <div style={{position:"relative"}}>
       <input
+        role="combobox"
+        aria-expanded={open && filtered.length > 0}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        aria-activedescendant={activeIndex >= 0 ? `${listId}-opt-${activeIndex}` : undefined}
         value={query}
-        onChange={e=>{setQuery(e.target.value);setOpen(true);}}
+        onChange={e=>{setQuery(e.target.value);setOpen(true);setActiveIndex(0);}}
         onFocus={()=>setOpen(true)}
         onBlur={()=>setTimeout(()=>setOpen(false),150)}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         style={{width:"100%",fontSize:13,padding:"5px 8px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",boxSizing:"border-box"}}
       />
       {open && filtered.length > 0 && (
-        <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",boxShadow:"0 4px 12px rgba(0,0,0,0.1)",zIndex:300,maxHeight:200,overflowY:"auto"}}>
-          {filtered.map(o => (
-            <div key={o.value} onMouseDown={()=>{onSelect(o.value);setQuery("");setOpen(false);}} style={{padding:"7px 10px",fontSize:13,cursor:"pointer",color:"var(--color-text-primary)"}} onMouseEnter={e=>e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e=>e.currentTarget.style.background=""}>
+        <div id={listId} role="listbox" style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",boxShadow:"0 4px 12px rgba(0,0,0,0.1)",zIndex:300,maxHeight:200,overflowY:"auto"}}>
+          {filtered.map((o,i) => (
+            <div key={o.value} id={`${listId}-opt-${i}`} role="option" aria-selected={i===activeIndex} onMouseDown={()=>select(o)} onMouseEnter={()=>setActiveIndex(i)} style={{padding:"7px 10px",fontSize:13,cursor:"pointer",color:"var(--color-text-primary)",background:i===activeIndex?"var(--color-background-secondary)":"transparent"}}>
               {o.label}
             </div>
           ))}
         </div>
       )}
       {open && query && filtered.length === 0 && (
-        <div style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",padding:"8px 10px",fontSize:13,color:"var(--color-text-tertiary)",zIndex:300}}>No matches</div>
+        <div role="status" style={{position:"absolute",top:"calc(100% + 2px)",left:0,right:0,background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-md)",padding:"8px 10px",fontSize:13,color:"var(--color-text-tertiary)",zIndex:300}}>No matches</div>
       )}
     </div>
   );
