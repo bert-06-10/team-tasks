@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect, useId } from "react";
 import { TagInput } from "../Primitives.jsx";
-import { avatarBg, avatarTx, fmtDateYear } from "../../utils.js";
+import { avatarBg, avatarTx, fmtDateYear, useFocusTrap } from "../../utils.js";
 
 export function CollateralDetailModal({doc, members, audiences, globalTags, businessLines=[], onSave, onDelete, onClose, isReadOnly}) {
   const [editing, setEditing] = useState(false);
   const [val,     setVal]     = useState({...doc});
   const titleId = useId();
   const closeRef = useRef(null);
+  const dialogRef = useRef(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  useFocusTrap(dialogRef);
   useEffect(() => {
     closeRef.current?.focus();
     const onKey = e => { if (e.key === "Escape") onCloseRef.current(); };
@@ -38,7 +40,7 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, busi
 
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:500}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-      <div role="dialog" aria-modal="true" aria-labelledby={titleId} style={{background:"var(--color-background-primary)",borderRadius:12,border:"1px solid var(--color-border-secondary)",width:"100%",maxWidth:680,maxHeight:"88vh",overflowY:"auto",boxSizing:"border-box"}}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} style={{background:"var(--color-background-primary)",borderRadius:12,border:"1px solid var(--color-border-secondary)",width:"100%",maxWidth:680,maxHeight:"88vh",overflowY:"auto",boxSizing:"border-box"}}>
         {/* Header */}
         <div style={{display:"flex",alignItems:"center",gap:12,padding:"18px 24px 16px",borderBottom:"1px solid var(--color-border-tertiary)"}}>
           <span id={titleId} style={{fontSize:16,fontWeight:500,color:"var(--color-text-primary)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{editing ? val.title : doc.title}</span>
