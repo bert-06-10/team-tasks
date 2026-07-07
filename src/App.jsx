@@ -60,7 +60,11 @@ export default function App() {
   // ── UI state ────────────────────────────────────────────────────────────────
   const [toasts,                    setToasts]                    = useState([]);
   const [view, setViewRaw] = useState(() => { const s = sessionStorage.getItem('teamtasks_view'); return (s && s !== 'classes') ? s : 'board'; });
-  const setView = useCallback((v) => { setViewRaw(v); sessionStorage.setItem('teamtasks_view', v); }, []);
+  const setView = useCallback((v) => {
+    setViewRaw(v);
+    sessionStorage.setItem('teamtasks_view', v);
+    if (v === 'board') { setTaskTypeFilterRaw('program'); sessionStorage.setItem('teamtasks_type', 'program'); }
+  }, []);
   const [taskTypeFilter, setTaskTypeFilterRaw] = useState(() => { const t = sessionStorage.getItem('teamtasks_type'); return (t && t !== 'runofshow') ? t : 'program'; });
   const setTaskTypeFilter = useCallback((v) => { setTaskTypeFilterRaw(v); sessionStorage.setItem('teamtasks_type', v); }, []);
   const [taskSearch,                setTaskSearch]                = useState("");
