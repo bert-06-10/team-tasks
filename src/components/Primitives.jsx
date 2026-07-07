@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useId, cloneElement, isValidElement } from "react";
-import { avatarBg, avatarTx, initials, useIsMobile } from "../utils.js";
+import { avatarBg, avatarTx, initials, useIsMobile, useFocusTrap } from "../utils.js";
 import { STATUSES, DEFAULT_STATUS_COLORS } from "../constants.js";
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
@@ -30,6 +30,8 @@ export function Modal({children,title,onClose,minHeight}) {
   const isMobile = useIsMobile();
   const titleId = useId();
   const closeRef = useRef(null);
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
   useEffect(() => {
     closeRef.current?.focus();
     const onKey = e => { if (e.key === "Escape") onClose(); };
@@ -38,7 +40,7 @@ export function Modal({children,title,onClose,minHeight}) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div style={{position:"fixed",inset:0,background:isMobile?"var(--color-background-primary)":"rgba(0,0,0,0.45)",display:"flex",alignItems:isMobile?"stretch":"center",justifyContent:"center",zIndex:500}}>
-      <div role="dialog" aria-modal="true" aria-labelledby={titleId} style={{background:"var(--color-background-primary)",borderRadius:isMobile?0:12,border:isMobile?"none":"1px solid var(--color-border-secondary)",width:"100%",maxWidth:isMobile?"none":520,height:isMobile?"100%":undefined,maxHeight:isMobile?"100%":"88vh",overflowY:"auto",boxSizing:"border-box",...(minHeight&&!isMobile?{minHeight}:{})}}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} style={{background:"var(--color-background-primary)",borderRadius:isMobile?0:12,border:isMobile?"none":"1px solid var(--color-border-secondary)",width:"100%",maxWidth:isMobile?"none":520,height:isMobile?"100%":undefined,maxHeight:isMobile?"100%":"88vh",overflowY:"auto",boxSizing:"border-box",...(minHeight&&!isMobile?{minHeight}:{})}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:isMobile?"14px 16px":"18px 24px 16px",borderBottom:"1px solid var(--color-border-tertiary)",position:isMobile?"sticky":"static",top:0,background:"var(--color-background-primary)",zIndex:1}}>
           <span id={titleId} style={{fontSize:16,fontWeight:500,color:"var(--color-text-primary)"}}>{title}</span>
           <button ref={closeRef} onClick={onClose} aria-label="Close dialog" style={{background:"var(--color-background-secondary)",border:"none",borderRadius:8,width:isMobile?36:28,height:isMobile?36:28,fontSize:isMobile?20:16,color:"var(--color-text-secondary)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>×</button>
