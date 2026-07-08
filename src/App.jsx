@@ -1152,10 +1152,13 @@ export default function App() {
               </div>
             )}
             <div ref={notifRef} style={{ position: "relative" }}>
-              <button onClick={() => setOpenDropdown(openDropdown === 'notifications' ? null : 'notifications')} aria-haspopup="true" aria-expanded={openDropdown === 'notifications'} aria-label={unreadNotifCount > 0 ? `Notifications, ${unreadNotifCount} unread` : "Notifications"} style={{ position: "relative", width: 32, height: 32, borderRadius: "50%", border: "none", background: openDropdown === 'notifications' ? "var(--color-background-secondary)" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: "var(--color-text-secondary)", flexShrink: 0 }}>
-                🔔
+              <button onClick={() => setOpenDropdown(openDropdown === 'notifications' ? null : 'notifications')} aria-haspopup="true" aria-expanded={openDropdown === 'notifications'} aria-label={unreadNotifCount > 0 ? `Notifications, ${unreadNotifCount} unread` : "Notifications"} style={{ position: "relative", width: 28, height: 28, borderRadius: "50%", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'notifications' ? "var(--color-background-secondary)" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-secondary)" }}>
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
                 {unreadNotifCount > 0 && (
-                  <span aria-hidden="true" style={{ position: "absolute", top: 2, right: 3, minWidth: 15, height: 15, borderRadius: 8, background: "#A32D2D", color: "#fff", fontSize: 9, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px", boxSizing: "border-box" }}>{unreadNotifCount > 9 ? "9+" : unreadNotifCount}</span>
+                  <span aria-hidden="true" style={{ position: "absolute", top: 1, right: 1, minWidth: 14, height: 14, borderRadius: 8, background: "#A32D2D", color: "#fff", fontSize: 9, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px", boxSizing: "border-box" }}>{unreadNotifCount > 9 ? "9+" : unreadNotifCount}</span>
                 )}
               </button>
               {openDropdown === 'notifications' && (
