@@ -24,6 +24,40 @@ const DEFAULT_USER_PREFS = {
   notifications: { ...DEFAULT_PREFS.notifications },
 };
 
+// Sidebar (Cycle/Program/Classes/Import menus) collapses to icons or expands to
+// roughly the width of the board view's Overdue column (260px, see BoardView.jsx).
+const SIDEBAR_WIDTH_EXPANDED  = 260;
+const SIDEBAR_WIDTH_COLLAPSED = 56;
+
+const SIDEBAR_ICON_PATHS = {
+  cycle:   <><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></>,
+  program: <><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></>,
+  classes: <><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.657 2.686 3 6 3s6-1.343 6-3v-5"/></>,
+  import:  <><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></>,
+  settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+};
+
+function SidebarIcon({ name }) {
+  return (
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      {SIDEBAR_ICON_PATHS[name]}
+    </svg>
+  );
+}
+
+// Sidebar submenu items render inline, indented under the parent, pushing
+// later parent rows down — styled like the parent row rather than a popover card.
+function SidebarInlineItems({ items }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", padding: "2px 0 6px" }}>
+      {items.map((it, i) => it.divider
+        ? <div key={i} style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "4px 12px 4px 34px" }} />
+        : <button key={i} type="button" onClick={it.onClick} style={{ display: "flex", alignItems: "center", fontSize: 13, padding: "10px 12px 10px 34px", cursor: "pointer", color: it.danger ? "#A32D2D" : "var(--color-text-primary)", border: "none", borderRadius: "var(--border-radius-md)", background: "transparent", width: "100%", textAlign: "left", fontFamily: "inherit" }} onMouseEnter={e => e.currentTarget.style.background = "var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>{it.label}</button>
+      )}
+    </div>
+  );
+}
+
 
 // Apply saved timezone immediately so dates render correctly before prefs finish loading
 const _cachedTz = localStorage.getItem('teamtasks_timezone');
@@ -99,6 +133,16 @@ export default function App() {
   const [renamingCycle,             setRenamingCycle]             = useState(false);
   const [renameValue,               setRenameValue]               = useState('');
   const [openDropdown,              setOpenDropdown]              = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsedRaw] = useState(() => { try { return JSON.parse(localStorage.getItem('teamtasks_sidebar_collapsed')) ?? false; } catch { return false; } });
+  const setSidebarCollapsed = useCallback(v => { setSidebarCollapsedRaw(v); localStorage.setItem('teamtasks_sidebar_collapsed', JSON.stringify(v)); }, []);
+  // Each sidebar section (Cycle/Program/Classes/Import) toggles independently so several
+  // can be open — pushing later rows down — at once. Clicking a section while the sidebar
+  // is collapsed expands the sidebar first, then reveals that section's items inline,
+  // rather than popping out a flyout.
+  const [expandedSidebar, setExpandedSidebar] = useState({});
+  const toggleSidebarSection = key => setExpandedSidebar(prev => ({ ...prev, [key]: !prev[key] }));
+  const closeSidebarSection  = key => setExpandedSidebar(prev => ({ ...prev, [key]: false }));
+  const openSidebarSectionExpanding = key => { setSidebarCollapsed(false); setExpandedSidebar(prev => ({ ...prev, [key]: true })); };
   const [settingsTab,               setSettingsTab]               = useState("owners");
   const [editTask,      setEditTask]      = useState(null);
   const [editDoc,       setEditDoc]       = useState(null);
@@ -128,7 +172,7 @@ export default function App() {
   // closes the menu and lets focus continue naturally to the next thing on
   // the page (per spec, Tab does NOT cycle within a real menu the way it
   // would in a plain list of buttons — that's what tripped this up last time).
-  const ACTION_MENU_KEYS = ['cycle', 'program', 'classes', 'import', 'mobileMenu'];
+  const ACTION_MENU_KEYS = ['mobileMenu'];
   useEffect(() => {
     if (!ACTION_MENU_KEYS.includes(openDropdown)) return;
     const panel = document.querySelector('[role="menu"]');
@@ -1043,89 +1087,7 @@ export default function App() {
             {isReadOnly && <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: "#FAEEDA", color: "#854F0B" }}>read-only</span>}
           </div>
 
-          {/* Action dropdowns — desktop only; mobile gets one consolidated menu below */}
-          {!isMobile && (
-          <div ref={dropdownsRef} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-
-            {/* Cycle dropdown — cycle lifecycle is admin-only */}
-            {isAdmin && (
-            <div style={{ position: "relative", zIndex: 100 }}>
-              <button onClick={() => setOpenDropdown(openDropdown === 'cycle' ? null : 'cycle')} aria-haspopup="menu" aria-expanded={openDropdown === 'cycle'} style={{ fontSize: 13, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'cycle' ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>Cycle ▾</button>
-              {openDropdown === 'cycle' && (
-                <div role="menu" style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 190, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200 }}>
-                  {viewingArchive ? (
-                    <>
-                      <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); startRenameCycle(); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Rename cycle</button>
-                      <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); reactivateCycle(viewingArchive); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Reactivate cycle</button>
-                      <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "2px 0" }} />
-                      <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); deleteArchivedCycle(viewingArchive); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "#A32D2D", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Delete cycle</button>
-                    </>
-                  ) : (
-                    <>
-                      <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); startRenameCycle(); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Rename cycle</button>
-                      <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "2px 0" }} />
-                      <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); deleteActiveCycle(); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "#A32D2D", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Delete cycle</button>
-                      <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "2px 0" }} />
-                      {draftCycle
-                        ? <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setShowCycleModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Edit draft</button>
-                        : <>
-                            <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setNewCycleType("spring"); setShowCycleModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>+ New Spring cycle</button>
-                            <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setNewCycleType("fall"); setShowCycleModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>+ New Fall cycle</button>
-                          </>
-                      }
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-            )}
-
-            {/* Program dropdown */}
-            {!isReadOnly && (
-              <div style={{ position: "relative", zIndex: 100 }}>
-                <button onClick={() => setOpenDropdown(openDropdown === 'program' ? null : 'program')} aria-haspopup="menu" aria-expanded={openDropdown === 'program'} style={{ fontSize: 13, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'program' ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>Program ▾</button>
-                {openDropdown === 'program' && (
-                  <div role="menu" style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 180, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200 }}>
-                    <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setEditTask({ ...newTaskBase }); setShowTaskModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add new task</button>
-                    <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setEditMilestone({ title: "", date: "", deps: [], collateralDeps: [] }); setShowMilestoneModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add milestone</button>
-                    <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: "", content_owner: "", assist: "", url: "", shareable_link: "", tags: [] }); setShowDocModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add collateral</button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Classes dropdown */}
-            {!isReadOnly && (
-              <div style={{ position: "relative", zIndex: 100 }}>
-                <button onClick={() => setOpenDropdown(openDropdown === 'classes' ? null : 'classes')} aria-haspopup="menu" aria-expanded={openDropdown === 'classes'} style={{ fontSize: 13, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'classes' ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>Classes ▾</button>
-                {openDropdown === 'classes' && (
-                  <div role="menu" style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 170, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200 }}>
-                    <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); openAddSession(); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Add session</button>
-                    <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setShowStandardTasksModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background="transparent"}>Standard tasks</button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Import dropdown */}
-            {!isReadOnly && (
-              <div style={{ position: "relative", zIndex: 100 }}>
-                <button onClick={() => setOpenDropdown(openDropdown === 'import' ? null : 'import')} aria-haspopup="menu" aria-expanded={openDropdown === 'import'} style={{ fontSize: 13, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'import' ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>Import / Export ▾</button>
-                {openDropdown === 'import' && (
-                  <div role="menu" style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, minWidth: 180, background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 200 }}>
-                    <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setImportModalTab("program"); setShowImportModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Import tasks from CSV</button>
-                    <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setShowImportCollateralModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Import collateral from CSV</button>
-                    <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setImportModalTab("history"); setShowImportModal(true); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Undo an import…</button>
-                    <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "2px 0" }} />
-                    <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); exportTasksToCSV(displayProgramTasks, displayClassTasks, (viewingArchive ? viewingArchive.cycle : activeCycle)?.name); }} style={{ fontSize: 13, padding: "8px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }} onMouseEnter={e => e.currentTarget.style.background="var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background=""}>Export tasks to CSV</button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          )}
-
-          {/* Mobile consolidated "+ Add" menu — merges Program/Classes/Import into one button */}
+          {/* Mobile consolidated "+ Add" menu — merges Program/Classes/Import into one button (desktop equivalents now live in the left sidebar) */}
           {isMobile && !isReadOnly && (
             <div style={{ position: "relative", zIndex: 100 }}>
               <button onClick={() => setOpenDropdown(openDropdown === 'mobileMenu' ? null : 'mobileMenu')} aria-haspopup="menu" aria-expanded={openDropdown === 'mobileMenu'} style={{ fontSize: 13, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'mobileMenu' ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>+ Add ▾</button>
@@ -1185,12 +1147,6 @@ export default function App() {
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <button onClick={() => openSettings("preferences")} aria-label="Settings" title="Settings" style={{ width: 28, height: 28, borderRadius: "50%", background: "transparent", border: "0.5px solid var(--color-border-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-secondary)" }}>
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
-              </button>
               <button onClick={() => openSettings("preferences")} title="My preferences" style={{ width: 28, height: 28, borderRadius: "50%", background: avatarBg(myUser), border: "none", fontSize: 11, fontWeight: 500, color: avatarTx(myUser), cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{initials(myUser)}</button>
               {!isMobile && <span style={{ fontSize: 13, color: "var(--color-text-primary)" }}>{myUser}</span>}
               <button onClick={signOut} title="Sign out" style={{ fontSize: 12, padding: isMobile ? "4px 8px" : "4px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer", flexShrink: 0 }}>{isMobile ? "⏻" : "Sign out"}</button>
@@ -1202,8 +1158,127 @@ export default function App() {
         </div>
       </div>
 
-      {/* Main content */}
-      <div style={{ flex: 1, padding: isMobile ? 12 : 24 }}>
+      {/* Body: collapsible action sidebar (desktop) + main content */}
+      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        {!isMobile && (
+          <div style={{ width: sidebarCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED, flexShrink: 0, display: "flex", flexDirection: "column", background: "var(--color-background-primary)", borderRight: "0.5px solid var(--color-border-tertiary)", transition: "width 0.15s ease" }}>
+            <div style={{ display: "flex", justifyContent: sidebarCollapsed ? "center" : "flex-end", padding: 8 }}>
+              <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} aria-label={sidebarCollapsed ? "Expand menu" : "Collapse menu"} title={sidebarCollapsed ? "Expand menu" : "Collapse menu"} style={{ width: 28, height: 28, borderRadius: "50%", border: "0.5px solid var(--color-border-secondary)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-secondary)", transform: sidebarCollapsed ? "rotate(180deg)" : "none" }}>
+                  <path d="M11 17 6 12l5-5"/>
+                  <path d="M18 17l-5-5 5-5"/>
+                </svg>
+              </button>
+            </div>
+
+            <div ref={dropdownsRef} style={{ display: "flex", flexDirection: "column", gap: 2, padding: "0 8px 8px", overflowY: "auto" }}>
+
+              {/* Cycle — cycle lifecycle is admin-only */}
+              {isAdmin && (() => {
+                const cycleItems = viewingArchive ? [
+                  { label: "Rename cycle",     onClick: () => { closeSidebarSection('cycle'); startRenameCycle(); } },
+                  { label: "Reactivate cycle", onClick: () => { closeSidebarSection('cycle'); reactivateCycle(viewingArchive); } },
+                  { divider: true },
+                  { label: "Delete cycle", danger: true, onClick: () => { closeSidebarSection('cycle'); deleteArchivedCycle(viewingArchive); } },
+                ] : [
+                  { label: "Rename cycle", onClick: () => { closeSidebarSection('cycle'); startRenameCycle(); } },
+                  { divider: true },
+                  { label: "Delete cycle", danger: true, onClick: () => { closeSidebarSection('cycle'); deleteActiveCycle(); } },
+                  { divider: true },
+                  ...(draftCycle
+                    ? [{ label: "Edit draft", onClick: () => { closeSidebarSection('cycle'); setShowCycleModal(true); } }]
+                    : [
+                        { label: "+ New Spring cycle", onClick: () => { closeSidebarSection('cycle'); setNewCycleType("spring"); setShowCycleModal(true); } },
+                        { label: "+ New Fall cycle",   onClick: () => { closeSidebarSection('cycle'); setNewCycleType("fall"); setShowCycleModal(true); } },
+                      ]),
+                ];
+                const isOpen = !!expandedSidebar.cycle;
+                return (
+                  <div style={{ position: "relative" }}>
+                    <button onClick={() => sidebarCollapsed ? openSidebarSectionExpanding('cycle') : toggleSidebarSection('cycle')} aria-expanded={isOpen} title={sidebarCollapsed ? "Cycle" : undefined} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", fontSize: 13, padding: sidebarCollapsed ? "10px 0" : "10px 12px", justifyContent: sidebarCollapsed ? "center" : "flex-start", borderRadius: "var(--border-radius-md)", border: "none", background: isOpen ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>
+                      <SidebarIcon name="cycle" />
+                      {!sidebarCollapsed && <span style={{ flex: 1, textAlign: "left" }}>Cycle</span>}
+                      {!sidebarCollapsed && <span aria-hidden="true" style={{ fontSize: 11, color: "var(--color-text-tertiary)", display: "inline-block", transition: "transform 0.15s ease", transform: isOpen ? "rotate(90deg)" : "none" }}>▸</span>}
+                    </button>
+                    {!sidebarCollapsed && isOpen && <SidebarInlineItems items={cycleItems} />}
+                  </div>
+                );
+              })()}
+
+              {/* Program */}
+              {!isReadOnly && (() => {
+                const programItems = [
+                  { label: "Add new task",   onClick: () => { closeSidebarSection('program'); setEditTask({ ...newTaskBase }); setShowTaskModal(true); } },
+                  { label: "Add milestone",  onClick: () => { closeSidebarSection('program'); setEditMilestone({ title: "", date: "", deps: [], collateralDeps: [] }); setShowMilestoneModal(true); } },
+                  { label: "Add collateral", onClick: () => { closeSidebarSection('program'); setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: "", content_owner: "", assist: "", url: "", shareable_link: "", tags: [] }); setShowDocModal(true); } },
+                ];
+                const isOpen = !!expandedSidebar.program;
+                return (
+                  <div style={{ position: "relative" }}>
+                    <button onClick={() => sidebarCollapsed ? openSidebarSectionExpanding('program') : toggleSidebarSection('program')} aria-expanded={isOpen} title={sidebarCollapsed ? "Program" : undefined} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", fontSize: 13, padding: sidebarCollapsed ? "10px 0" : "10px 12px", justifyContent: sidebarCollapsed ? "center" : "flex-start", borderRadius: "var(--border-radius-md)", border: "none", background: isOpen ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>
+                      <SidebarIcon name="program" />
+                      {!sidebarCollapsed && <span style={{ flex: 1, textAlign: "left" }}>Program</span>}
+                      {!sidebarCollapsed && <span aria-hidden="true" style={{ fontSize: 11, color: "var(--color-text-tertiary)", display: "inline-block", transition: "transform 0.15s ease", transform: isOpen ? "rotate(90deg)" : "none" }}>▸</span>}
+                    </button>
+                    {!sidebarCollapsed && isOpen && <SidebarInlineItems items={programItems} />}
+                  </div>
+                );
+              })()}
+
+              {/* Classes */}
+              {!isReadOnly && (() => {
+                const classesItems = [
+                  { label: "Add session",    onClick: () => { closeSidebarSection('classes'); openAddSession(); } },
+                  { label: "Standard tasks", onClick: () => { closeSidebarSection('classes'); setShowStandardTasksModal(true); } },
+                ];
+                const isOpen = !!expandedSidebar.classes;
+                return (
+                  <div style={{ position: "relative" }}>
+                    <button onClick={() => sidebarCollapsed ? openSidebarSectionExpanding('classes') : toggleSidebarSection('classes')} aria-expanded={isOpen} title={sidebarCollapsed ? "Classes" : undefined} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", fontSize: 13, padding: sidebarCollapsed ? "10px 0" : "10px 12px", justifyContent: sidebarCollapsed ? "center" : "flex-start", borderRadius: "var(--border-radius-md)", border: "none", background: isOpen ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>
+                      <SidebarIcon name="classes" />
+                      {!sidebarCollapsed && <span style={{ flex: 1, textAlign: "left" }}>Classes</span>}
+                      {!sidebarCollapsed && <span aria-hidden="true" style={{ fontSize: 11, color: "var(--color-text-tertiary)", display: "inline-block", transition: "transform 0.15s ease", transform: isOpen ? "rotate(90deg)" : "none" }}>▸</span>}
+                    </button>
+                    {!sidebarCollapsed && isOpen && <SidebarInlineItems items={classesItems} />}
+                  </div>
+                );
+              })()}
+
+              {/* Import / Export */}
+              {!isReadOnly && (() => {
+                const importItems = [
+                  { label: "Import tasks from CSV",       onClick: () => { closeSidebarSection('import'); setImportModalTab("program"); setShowImportModal(true); } },
+                  { label: "Import collateral from CSV",  onClick: () => { closeSidebarSection('import'); setShowImportCollateralModal(true); } },
+                  { label: "Undo an import…",             onClick: () => { closeSidebarSection('import'); setImportModalTab("history"); setShowImportModal(true); } },
+                  { divider: true },
+                  { label: "Export tasks to CSV",         onClick: () => { closeSidebarSection('import'); exportTasksToCSV(displayProgramTasks, displayClassTasks, (viewingArchive ? viewingArchive.cycle : activeCycle)?.name); } },
+                ];
+                const isOpen = !!expandedSidebar.import;
+                return (
+                  <div style={{ position: "relative" }}>
+                    <button onClick={() => sidebarCollapsed ? openSidebarSectionExpanding('import') : toggleSidebarSection('import')} aria-expanded={isOpen} title={sidebarCollapsed ? "Import / Export" : undefined} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", fontSize: 13, padding: sidebarCollapsed ? "10px 0" : "10px 12px", justifyContent: sidebarCollapsed ? "center" : "flex-start", borderRadius: "var(--border-radius-md)", border: "none", background: isOpen ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>
+                      <SidebarIcon name="import" />
+                      {!sidebarCollapsed && <span style={{ flex: 1, textAlign: "left" }}>Import / Export</span>}
+                      {!sidebarCollapsed && <span aria-hidden="true" style={{ fontSize: 11, color: "var(--color-text-tertiary)", display: "inline-block", transition: "transform 0.15s ease", transform: isOpen ? "rotate(90deg)" : "none" }}>▸</span>}
+                    </button>
+                    {!sidebarCollapsed && isOpen && <SidebarInlineItems items={importItems} />}
+                  </div>
+                );
+              })()}
+
+              <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: sidebarCollapsed ? "6px 4px" : "6px 8px" }} />
+
+              {/* Settings */}
+              <button onClick={() => openSettings("preferences")} title={sidebarCollapsed ? "Settings" : undefined} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", fontSize: 13, padding: sidebarCollapsed ? "10px 0" : "10px 12px", justifyContent: sidebarCollapsed ? "center" : "flex-start", borderRadius: "var(--border-radius-md)", border: "none", background: "transparent", color: "var(--color-text-primary)", cursor: "pointer" }}>
+                <SidebarIcon name="settings" />
+                {!sidebarCollapsed && <span style={{ flex: 1, textAlign: "left" }}>Settings</span>}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Main content */}
+        <div style={{ flex: 1, padding: isMobile ? 12 : 24, minWidth: 0 }}>
         {(view === "board" || view === "list" || view === "mytasks") && (
           <div style={{ display: "flex", gap: 8, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ display: "flex", gap: 4, padding: "4px", background: "var(--color-background-secondary)", borderRadius: "var(--border-radius-lg)", flexShrink: 0 }}>
@@ -1268,6 +1343,7 @@ export default function App() {
 
         <div style={{display:view==="search"?"":"none"}}>
           <SearchView displayTasks={displayAllTasks} displayDocs={displayDocs} isReadOnly={isReadOnly} openTask={openTask} openDoc={openDoc} updateStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} />
+        </div>
         </div>
       </div>
 
