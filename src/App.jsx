@@ -149,7 +149,6 @@ export default function App() {
   // rather than popping out a flyout.
   const [expandedSidebar, setExpandedSidebar] = useState({});
   const toggleSidebarSection = key => setExpandedSidebar(prev => ({ ...prev, [key]: !prev[key] }));
-  const closeSidebarSection  = key => setExpandedSidebar(prev => ({ ...prev, [key]: false }));
   const openSidebarSectionExpanding = key => { setSidebarCollapsed(false); setExpandedSidebar(prev => ({ ...prev, [key]: true })); };
   const [settingsTab,               setSettingsTab]               = useState("owners");
   const [editTask,      setEditTask]      = useState(null);
@@ -1190,20 +1189,20 @@ export default function App() {
               {/* Cycle — cycle lifecycle is admin-only */}
               {isAdmin && (() => {
                 const cycleItems = viewingArchive ? [
-                  { label: "Rename cycle",     onClick: () => { closeSidebarSection('cycle'); startRenameCycle(); } },
-                  { label: "Reactivate cycle", onClick: () => { closeSidebarSection('cycle'); reactivateCycle(viewingArchive); } },
+                  { label: "Rename cycle",     onClick: () => { startRenameCycle(); } },
+                  { label: "Reactivate cycle", onClick: () => { reactivateCycle(viewingArchive); } },
                   { divider: true },
-                  { label: "Delete cycle", danger: true, onClick: () => { closeSidebarSection('cycle'); deleteArchivedCycle(viewingArchive); } },
+                  { label: "Delete cycle", danger: true, onClick: () => { deleteArchivedCycle(viewingArchive); } },
                 ] : [
-                  { label: "Rename cycle", onClick: () => { closeSidebarSection('cycle'); startRenameCycle(); } },
+                  { label: "Rename cycle", onClick: () => { startRenameCycle(); } },
                   { divider: true },
-                  { label: "Delete cycle", danger: true, onClick: () => { closeSidebarSection('cycle'); deleteActiveCycle(); } },
+                  { label: "Delete cycle", danger: true, onClick: () => { deleteActiveCycle(); } },
                   { divider: true },
                   ...(draftCycle
-                    ? [{ label: "Edit draft", onClick: () => { closeSidebarSection('cycle'); setShowCycleModal(true); } }]
+                    ? [{ label: "Edit draft", onClick: () => { setShowCycleModal(true); } }]
                     : [
-                        { label: "+ New Spring cycle", onClick: () => { closeSidebarSection('cycle'); setNewCycleType("spring"); setShowCycleModal(true); } },
-                        { label: "+ New Fall cycle",   onClick: () => { closeSidebarSection('cycle'); setNewCycleType("fall"); setShowCycleModal(true); } },
+                        { label: "+ New Spring cycle", onClick: () => { setNewCycleType("spring"); setShowCycleModal(true); } },
+                        { label: "+ New Fall cycle",   onClick: () => { setNewCycleType("fall"); setShowCycleModal(true); } },
                       ]),
                 ];
                 const isOpen = !!expandedSidebar.cycle;
@@ -1222,9 +1221,9 @@ export default function App() {
               {/* Program */}
               {!isReadOnly && (() => {
                 const programItems = [
-                  { label: "Add new task",   onClick: () => { closeSidebarSection('program'); setEditTask({ ...newTaskBase }); setShowTaskModal(true); } },
-                  { label: "Add milestone",  onClick: () => { closeSidebarSection('program'); setEditMilestone({ title: "", date: "", deps: [], collateralDeps: [] }); setShowMilestoneModal(true); } },
-                  { label: "Add collateral", onClick: () => { closeSidebarSection('program'); setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: "", content_owner: "", assist: "", url: "", shareable_link: "", tags: [] }); setShowDocModal(true); } },
+                  { label: "Add new task",   onClick: () => { setEditTask({ ...newTaskBase }); setShowTaskModal(true); } },
+                  { label: "Add milestone",  onClick: () => { setEditMilestone({ title: "", date: "", deps: [], collateralDeps: [] }); setShowMilestoneModal(true); } },
+                  { label: "Add collateral", onClick: () => { setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: "", content_owner: "", assist: "", url: "", shareable_link: "", tags: [] }); setShowDocModal(true); } },
                 ];
                 const isOpen = !!expandedSidebar.program;
                 return (
@@ -1242,9 +1241,9 @@ export default function App() {
               {/* Classes */}
               {!isReadOnly && (() => {
                 const classesItems = [
-                  { label: "Add session",      onClick: () => { closeSidebarSection('classes'); openAddSession(); } },
-                  { label: "Manage sessions",  onClick: () => { closeSidebarSection('classes'); setShowSessionsListModal(true); } },
-                  { label: "Standard tasks",   onClick: () => { closeSidebarSection('classes'); setShowStandardTasksModal(true); } },
+                  { label: "Add session",      onClick: () => { openAddSession(); } },
+                  { label: "Manage sessions",  onClick: () => { setShowSessionsListModal(true); } },
+                  { label: "Standard tasks",   onClick: () => { setShowStandardTasksModal(true); } },
                 ];
                 const isOpen = !!expandedSidebar.classes;
                 return (
@@ -1262,11 +1261,11 @@ export default function App() {
               {/* Import / Export */}
               {!isReadOnly && (() => {
                 const importItems = [
-                  { label: "Import tasks from CSV",       onClick: () => { closeSidebarSection('import'); setImportModalTab("program"); setShowImportModal(true); } },
-                  { label: "Import collateral from CSV",  onClick: () => { closeSidebarSection('import'); setShowImportCollateralModal(true); } },
-                  { label: "Undo an import…",             onClick: () => { closeSidebarSection('import'); setImportModalTab("history"); setShowImportModal(true); } },
+                  { label: "Import tasks from CSV",       onClick: () => { setImportModalTab("program"); setShowImportModal(true); } },
+                  { label: "Import collateral from CSV",  onClick: () => { setShowImportCollateralModal(true); } },
+                  { label: "Undo an import…",             onClick: () => { setImportModalTab("history"); setShowImportModal(true); } },
                   { divider: true },
-                  { label: "Export tasks to CSV",         onClick: () => { closeSidebarSection('import'); exportTasksToCSV(displayProgramTasks, displayClassTasks, (viewingArchive ? viewingArchive.cycle : activeCycle)?.name); } },
+                  { label: "Export tasks to CSV",         onClick: () => { exportTasksToCSV(displayProgramTasks, displayClassTasks, (viewingArchive ? viewingArchive.cycle : activeCycle)?.name); } },
                 ];
                 const isOpen = !!expandedSidebar.import;
                 return (
