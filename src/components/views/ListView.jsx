@@ -86,6 +86,7 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           {!isMobile && !isReadOnly && visibleIds.length > 0 && <button onClick={handleSelectAll} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer",whiteSpace:"nowrap"}}>Select all</button>}
           {!isReadOnly && onAddTask && <button onClick={onAddTask} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",fontWeight:500,whiteSpace:"nowrap"}}>+ Add task</button>}
+          {!isReadOnly && onAddMilestone && <button onClick={onAddMilestone} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",fontWeight:500,whiteSpace:"nowrap"}}>+ Add milestone</button>}
         </div>
       )}
       <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
