@@ -46,6 +46,7 @@ export const isFlagged = (s,hols) => isWeekend(s)||(hols||[]).includes(s);
 export const nextBusinessDay = (s,hols) => { let d=s; while(isFlagged(d,hols)) d=addDays(d,1); return d; };
 export const fmtDate = s => { if(!s)return""; return new Intl.DateTimeFormat("en-US",{timeZone:_tz,month:"short",day:"numeric"}).format(etNoon(s)); };
 export const fmtDateYear = s => { if(!s)return""; return new Intl.DateTimeFormat("en-US",{timeZone:_tz,month:"short",day:"numeric",year:"numeric"}).format(etNoon(s)); };
+export const offsetLabel = n => { if(!n) return "Day of start"; const abs=Math.abs(n); return n<0 ? `${abs} day${abs!==1?"s":""} before` : `${abs} day${abs!==1?"s":""} after`; };
 
 export const genClassTasks = (sessions, template) => {
   let id = 1000;

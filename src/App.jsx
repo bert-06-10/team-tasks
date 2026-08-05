@@ -783,7 +783,7 @@ export default function App() {
   const importProgram = async (rows, cycleInfo) => {
     try {
       if (cycleInfo) {
-        const newCycle = await db.upsertActiveCycle({ name: cycleInfo.name, start: cycleInfo.start, end: null, holidays: [] });
+        const newCycle = await db.upsertActiveCycle({ name: cycleInfo.name, start: cycleInfo.start, end: cycleInfo.end, holidays: [] });
         setActiveCycle(newCycle);
       }
       const saved = await db.bulkInsertTasks(rows, sessions);
@@ -797,7 +797,7 @@ export default function App() {
   const importClass = async (rows, cycleInfo) => {
     try {
       if (cycleInfo) {
-        const newCycle = await db.upsertActiveCycle({ name: cycleInfo.name, start: cycleInfo.start, end: null, holidays: [] });
+        const newCycle = await db.upsertActiveCycle({ name: cycleInfo.name, start: cycleInfo.start, end: cycleInfo.end, holidays: [] });
         setActiveCycle(newCycle);
       }
       const saved = await db.bulkInsertTasks(rows, sessions);

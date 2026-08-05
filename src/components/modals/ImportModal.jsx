@@ -13,10 +13,11 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
   const [manualCycleStart,setManualCycleStart] = useState(cycle?.start||"");
   const [newCycleType,setNewCycleType] = useState("spring");
   const [newCycleName,setNewCycleName] = useState("");
+  const [newCycleEnd,setNewCycleEnd] = useState("");
   const [reversing,setReversing] = useState(null);
   const fileRef = useRef();
 
-  const effectiveCycleStart = cycle?.start || manualCycleStart;
+  const effectiveCycleStart = manualCycleStart || cycle?.start;
   const needsCycle = !cycle && (importType === "program" || importType === "class");
 
   const runPreview = text => {
@@ -53,8 +54,8 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
   const handlePreview = () => runPreview(csvText);
 
   const handleImport = () => {
-    const cycleInfo = needsCycle && newCycleName.trim() && manualCycleStart
-      ? { type: newCycleType, name: newCycleName.trim(), start: manualCycleStart }
+    const cycleInfo = needsCycle && newCycleName.trim() && manualCycleStart && newCycleEnd
+      ? { type: newCycleType, name: newCycleName.trim(), start: manualCycleStart, end: newCycleEnd }
       : null;
     if(importType==="program") onImportProgram(preview, cycleInfo);
     else if(importType==="class") {
@@ -115,29 +116,43 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
         Expected columns: <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>{schemaHint[importType]}</code>
         {(importType==="program"||importType==="class")&&(
           <div style={{marginTop:6}}>
-            {cycle?.start
-              ? <>Due dates computed from cycle start: <strong>{fmtDate(cycle.start)}</strong></>
-              : <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4,padding:"10px 12px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-tertiary)",border:"0.5px solid var(--color-border-secondary)"}}>
-                  <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-primary)"}}>No active cycle — create one for this import:</div>
-                  <div style={{display:"flex",gap:4}}>
-                    {["spring","fall"].map(t=>(
-                      <button key={t} onClick={()=>setNewCycleType(t)} style={{fontSize:12,padding:"3px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:newCycleType===t?"#E1F5EE":"transparent",color:newCycleType===t?"#0F6E56":"var(--color-text-secondary)",cursor:"pointer",fontWeight:newCycleType===t?500:400}}>
-                        {t==="spring"?"Spring":"Fall"}
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    value={newCycleName}
-                    onChange={e=>setNewCycleName(e.target.value)}
-                    placeholder={`Cycle name (e.g. ${newCycleType==="spring"?"Spring":"Fall"} 2026)`}
-                    style={{fontSize:12,padding:"4px 8px",borderRadius:4,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}
-                  />
-                  <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--color-text-secondary)"}}>
-                    Start date:
-                    <input type="date" value={manualCycleStart} onChange={e=>{setManualCycleStart(e.target.value);setPreview(null);}} style={{fontSize:12,padding:"3px 6px",borderRadius:4,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)"}}/>
-                  </label>
+            <div style={{marginBottom:6}}>Use negative values for <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>days_from_cycle_start</code> for tasks before the cycle start (participant onboarding), positive for tasks after.</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4,padding:"10px 12px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-tertiary)",border:"0.5px solid var(--color-border-secondary)"}}>
+              {needsCycle && (<>
+                <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-primary)"}}>No active cycle — create one for this import:</div>
+                <div style={{display:"flex",gap:4}}>
+                  {["spring","fall"].map(t=>(
+                    <button key={t} onClick={()=>setNewCycleType(t)} style={{fontSize:12,padding:"3px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:newCycleType===t?"#E1F5EE":"transparent",color:newCycleType===t?"#0F6E56":"var(--color-text-secondary)",cursor:"pointer",fontWeight:newCycleType===t?500:400}}>
+                      {t==="spring"?"Spring":"Fall"}
+                    </button>
+                  ))}
                 </div>
-            }
+                <input
+                  value={newCycleName}
+                  onChange={e=>setNewCycleName(e.target.value)}
+                  placeholder={`Cycle name (e.g. ${newCycleType==="spring"?"Spring":"Fall"} 2026)`}
+                  style={{fontSize:12,padding:"4px 8px",borderRadius:4,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}
+                />
+              </>)}
+              <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--color-text-secondary)"}}>
+                {needsCycle ? "Start date:" : "Cycle start date:"}
+                <input type="date" value={manualCycleStart} onChange={e=>{setManualCycleStart(e.target.value);setPreview(null);}} style={{fontSize:12,padding:"3px 6px",borderRadius:4,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)"}}/>
+              </label>
+              {needsCycle && (
+                <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--color-text-secondary)"}}>
+                  End date:
+                  <input type="date" value={newCycleEnd} onChange={e=>setNewCycleEnd(e.target.value)} style={{fontSize:12,padding:"3px 6px",borderRadius:4,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)"}}/>
+                </label>
+              )}
+              {!needsCycle && cycle?.start && (
+                manualCycleStart===cycle.start
+                  ? <div style={{fontSize:11,color:"var(--color-text-tertiary)"}}>Matches active cycle "{cycle.name}". Due dates below are computed from this date — change it above if it's wrong.</div>
+                  : <div style={{fontSize:11,color:"#854F0B"}}>Overriding for this import only — active cycle "{cycle.name}" starts <strong>{fmtDate(cycle.start)}</strong>.</div>
+              )}
+            </div>
+            {!cycle?.start && !needsCycle && !manualCycleStart && (
+              <div style={{marginTop:6,fontSize:11,color:"var(--color-text-tertiary)"}}>No start date set — due dates will be left blank until you set one.</div>
+            )}
           </div>
         )}
       </div>
@@ -204,7 +219,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
       <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:8}}>
         <button onClick={onClose} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
         {!preview&&<button onClick={handlePreview} disabled={!csvText.trim()} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:csvText.trim()?"var(--color-background-secondary)":"transparent",color:csvText.trim()?"var(--color-text-primary)":"var(--color-text-tertiary)",cursor:csvText.trim()?"pointer":"default"}}>Preview</button>}
-        {preview&&<button onClick={handleImport} disabled={needsCycle&&(!newCycleName.trim()||!manualCycleStart)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:(needsCycle&&(!newCycleName.trim()||!manualCycleStart))?"transparent":"#E1F5EE",color:(needsCycle&&(!newCycleName.trim()||!manualCycleStart))?"var(--color-text-tertiary)":"#0F6E56",cursor:(needsCycle&&(!newCycleName.trim()||!manualCycleStart))?"default":"pointer",fontWeight:500}}>{needsCycle?`Create cycle & import ${preview.length} rows`:`Import ${preview.length} rows`}</button>}
+        {preview&&<button onClick={handleImport} disabled={needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:(needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd))?"transparent":"#E1F5EE",color:(needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd))?"var(--color-text-tertiary)":"#0F6E56",cursor:(needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd))?"default":"pointer",fontWeight:500}}>{needsCycle?`Create cycle & import ${preview.length} rows`:`Import ${preview.length} rows`}</button>}
       </div>
       </>)}
     </Modal>

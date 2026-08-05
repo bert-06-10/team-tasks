@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Modal } from "../Primitives.jsx";
+import { offsetLabel } from "../../utils.js";
 
 // ── Add/Duplicate Session Modal ──────────────────────────────────────────────────
 
@@ -67,8 +68,7 @@ const DEFAULT_STANDARD_TEMPLATE = [
 
 function stdOffsetLabel(n) {
   if (n === 0) return "Day of class";
-  if (n < 0)   return `${Math.abs(n)} day${Math.abs(n) !== 1 ? "s" : ""} before`;
-  return `${n} day${n !== 1 ? "s" : ""} after`;
+  return offsetLabel(n);
 }
 
 export function StandardTasksModal({ template: templateProp, members, sessions, onSaveTemplate, onApplyTemplate, onClose }) {

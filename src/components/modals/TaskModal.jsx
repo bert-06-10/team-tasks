@@ -53,10 +53,10 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
       {task.type==="program"&&(
         <div style={twoCol}>
           <Field label="Spring: days from start">
-            <input type="number" min="0" value={task.offset||0} onChange={e=>onChange({...task,offset:parseInt(e.target.value)||0})}/>
+            <input type="number" value={task.offset||0} onChange={e=>onChange({...task,offset:parseInt(e.target.value)||0})}/>
           </Field>
           <Field label="Fall: days from start">
-            <input type="number" min="0" value={task.fallOffset??task.offset??0} onChange={e=>onChange({...task,fallOffset:parseInt(e.target.value)||0})}/>
+            <input type="number" value={task.fallOffset??task.offset??0} onChange={e=>onChange({...task,fallOffset:parseInt(e.target.value)||0})}/>
           </Field>
         </div>
       )}
