@@ -27,8 +27,9 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
       if(importType==="program"||importType==="class") {
         const parsed = importType==="program" ? parseProgramTasksCSV(rows) : parseClassTasksCSV(rows);
         const holidays = cycle?.holidays || [];
-        const withDue = !effectiveCycleStart ? parsed : parsed.map(t =>
-          t.due ? t : { ...t, due: nextBusinessDay(addDays(effectiveCycleStart, t.offset), holidays) }
+        const dueBasis = importType==="class" ? sessions.find(s=>s.id===targetSession)?.date : effectiveCycleStart;
+        const withDue = !dueBasis ? parsed : parsed.map(t =>
+          t.due ? t : { ...t, due: nextBusinessDay(addDays(dueBasis, t.offset), holidays) }
         );
         setPreview(withDue);
       } else {
@@ -116,9 +117,14 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
         Expected columns: <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>{schemaHint[importType]}</code>
         {(importType==="program"||importType==="class")&&(
           <div style={{marginTop:6}}>
-            <div style={{marginBottom:6}}>Use negative values for <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>days_from_cycle_start</code> for tasks before the cycle start (participant onboarding), positive for tasks after.</div>
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4,padding:"10px 12px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-tertiary)",border:"0.5px solid var(--color-border-secondary)"}}>
-              {needsCycle && (<>
+            <div style={{marginBottom:6}}>
+              {importType==="class"
+                ? <>Use negative values for <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>days_from_cycle_start</code> for tasks before the selected class session's date, positive for tasks after.</>
+                : <>Use negative values for <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>days_from_cycle_start</code> for tasks before the cycle start (participant onboarding), positive for tasks after.</>
+              }
+            </div>
+            {needsCycle && (
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4,padding:"10px 12px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-tertiary)",border:"0.5px solid var(--color-border-secondary)"}}>
                 <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-primary)"}}>No active cycle — create one for this import:</div>
                 <div style={{display:"flex",gap:4}}>
                   {["spring","fall"].map(t=>(
@@ -133,32 +139,50 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
                   placeholder={`Cycle name (e.g. ${newCycleType==="spring"?"Spring":"Fall"} 2026)`}
                   style={{fontSize:12,padding:"4px 8px",borderRadius:4,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)"}}
                 />
-              </>)}
-              <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--color-text-secondary)"}}>
-                {needsCycle ? "Start date:" : "Cycle start date:"}
-                <input type="date" value={manualCycleStart} onChange={e=>{setManualCycleStart(e.target.value);setPreview(null);}} style={{fontSize:12,padding:"3px 6px",borderRadius:4,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)"}}/>
-              </label>
-              {needsCycle && (
+                <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--color-text-secondary)"}}>
+                  Start date:
+                  <input type="date" value={manualCycleStart} onChange={e=>{setManualCycleStart(e.target.value);setPreview(null);}} style={{fontSize:12,padding:"3px 6px",borderRadius:4,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)"}}/>
+                </label>
                 <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--color-text-secondary)"}}>
                   End date:
                   <input type="date" value={newCycleEnd} onChange={e=>setNewCycleEnd(e.target.value)} style={{fontSize:12,padding:"3px 6px",borderRadius:4,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)"}}/>
                 </label>
-              )}
-              {!needsCycle && cycle?.start && (
-                manualCycleStart===cycle.start
-                  ? <div style={{fontSize:11,color:"var(--color-text-tertiary)"}}>Matches active cycle "{cycle.name}". Due dates below are computed from this date — change it above if it's wrong.</div>
-                  : <div style={{fontSize:11,color:"#854F0B"}}>Overriding for this import only — active cycle "{cycle.name}" starts <strong>{fmtDate(cycle.start)}</strong>.</div>
-              )}
-            </div>
-            {!cycle?.start && !needsCycle && !manualCycleStart && (
+                {importType==="class" && <div style={{fontSize:11,color:"var(--color-text-tertiary)"}}>Only needed to create the cycle record — class task due dates are computed from the selected session's date below, not this date.</div>}
+              </div>
+            )}
+            {importType==="program" && !needsCycle && (
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4,padding:"10px 12px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-tertiary)",border:"0.5px solid var(--color-border-secondary)"}}>
+                <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--color-text-secondary)"}}>
+                  Cycle start date:
+                  <input type="date" value={manualCycleStart} onChange={e=>{setManualCycleStart(e.target.value);setPreview(null);}} style={{fontSize:12,padding:"3px 6px",borderRadius:4,border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)"}}/>
+                </label>
+                {cycle?.start && (
+                  manualCycleStart===cycle.start
+                    ? <div style={{fontSize:11,color:"var(--color-text-tertiary)"}}>Matches active cycle "{cycle.name}". Due dates below are computed from this date — change it above if it's wrong.</div>
+                    : <div style={{fontSize:11,color:"#854F0B"}}>Overriding for this import only — active cycle "{cycle.name}" starts <strong>{fmtDate(cycle.start)}</strong>.</div>
+                )}
+              </div>
+            )}
+            {importType==="program" && !cycle?.start && !needsCycle && !manualCycleStart && (
               <div style={{marginTop:6,fontSize:11,color:"var(--color-text-tertiary)"}}>No start date set — due dates will be left blank until you set one.</div>
             )}
+            {importType==="class" && (() => {
+              const sessDate = sessions.find(s=>s.id===targetSession)?.date;
+              return (
+                <div style={{marginTop:needsCycle?8:4,fontSize:12,color:"var(--color-text-secondary)"}}>
+                  {sessDate
+                    ? <>Due dates computed from the selected session's date: <strong>{fmtDate(sessDate)}</strong> (change the target session below).</>
+                    : <>Select a target session below to compute due dates from its class date.</>
+                  }
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
       {(importType==="class"||importType==="runofshow")&&(
         <Field label="Target session">
-          <select value={targetSession} onChange={e=>setTargetSession(e.target.value)}>
+          <select value={targetSession} onChange={e=>{setTargetSession(e.target.value);setPreview(null);}}>
             {sessions.map(s=><option key={s.id} value={s.id}>{s.name} — {fmtDate(s.date)}</option>)}
           </select>
         </Field>
