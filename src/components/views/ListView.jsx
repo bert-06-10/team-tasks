@@ -8,6 +8,7 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
   const selectable = !isReadOnly;
 
   const hasSessionGrouping = !!sessions?.length;
+  const isClassView = sessions !== undefined;
   const visibleTasks = filteredTasks;
 
   const toggleSelect = id => setSelectedIds(prev => {
@@ -187,9 +188,9 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
         </div>
       );
     }
-    // Program tasks: group by date with date headers, milestones interleaved chronologically
+    // Program tasks: group by date with date headers, milestones interleaved chronologically (never for class tasks)
     const taskItems = visibleTasks.map(t => ({ type:'task', date:t.due||'', item:t }));
-    const milestoneItems = (milestones||[]).map(m => ({ type:'milestone', date:m.date||'', item:m }));
+    const milestoneItems = isClassView ? [] : (milestones||[]).map(m => ({ type:'milestone', date:m.date||'', item:m }));
     const sorted    = [...taskItems, ...milestoneItems].sort((a,b) => {
       if (!a.date && !b.date) return 0;
       if (!a.date) return 1;
