@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TaskCard, ListRow, ListHeader } from "../TaskViews.jsx";
+import { TaskCard, ListRow, ListHeader, MilestoneBar } from "../TaskViews.jsx";
 import { fmtDate } from "../../utils.js";
 import { STATUSES, DEFAULT_STATUS_COLORS } from "../../constants.js";
 
@@ -228,6 +228,7 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
     return (
       <div>
         <Toolbar/>
+        {milestones?.length>0 && <MilestoneBar milestones={milestones} tasks={displayTasks} onEdit={onEditMilestone}/>}
         {isMobile ? (
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
             {displayList.length===0&&<div style={{padding:"12px 4px",fontSize:13,color:"var(--color-text-tertiary)"}}>No tasks.</div>}
@@ -265,6 +266,7 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
   return (
     <div>
       <Toolbar/>
+      {milestones?.length>0 && <MilestoneBar milestones={milestones} tasks={displayTasks} onEdit={onEditMilestone}/>}
       {Object.keys(listGroups).sort().map(k => (
         <div key={k}>
           <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",letterSpacing:"0.04em",marginBottom:8}}>{k.toUpperCase()} · {listGroups[k].length}</div>
