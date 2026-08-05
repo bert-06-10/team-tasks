@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Modal } from "../Primitives.jsx";
 import { offsetLabel } from "../../utils.js";
+import { COHORT_OPTIONS } from "../../constants.js";
 
 // ── Add/Duplicate Session Modal ──────────────────────────────────────────────────
 

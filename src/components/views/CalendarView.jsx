@@ -119,7 +119,6 @@ export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
 }
 
 // ── Classes View ──────────────────────────────────────────────────────────────
-const COHORT_OPTIONS = ["Cohort 1", "Cohort 2"];
 const DEFAULT_TEMPLATE = [
   { title: "Prepare session materials", offset: 0, assignee: "", assist: "", notes: "" },
   { title: "Send participant reminder", offset: 0, assignee: "", assist: "", notes: "" },
