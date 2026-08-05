@@ -1,7 +1,38 @@
+import { useState } from "react";
 import { Modal, Field, TagInput } from "../Primitives.jsx";
 import { STATUSES } from "../../constants.js";
-import { fmtDate, isWeekend, closestBusinessDay, useIsMobile } from "../../utils.js";
+import { fmtDate, isWeekend, closestBusinessDay, useIsMobile, splitLinks, joinLinks, isUrl } from "../../utils.js";
 import { SearchablePicker, AddToCalendarLink } from "./shared.jsx";
+
+// ── Links Input (add/remove multiple links, stored newline-delimited) ──────────
+function LinksInput({links,onChange}) {
+  const [input,setInput] = useState("");
+  const add = () => {
+    const v = input.trim();
+    if (v && !links.includes(v)) onChange([...links,v]);
+    setInput("");
+  };
+  return (
+    <div>
+      {links.length>0 && (
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:8}}>
+          {links.map((l,i) => (
+            <div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:12}}>
+              {isUrl(l)
+                ? <a href={l} target="_blank" rel="noopener noreferrer" style={{flex:1,minWidth:0,color:"var(--color-text-secondary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l}</a>
+                : <span style={{flex:1,minWidth:0,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l}</span>}
+              <button onClick={()=>onChange(links.filter((_,j)=>j!==i))} aria-label={`Remove link ${l}`} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:0,lineHeight:1,flexShrink:0}}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{display:"flex",gap:8}}>
+        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();add();}}} placeholder="https://..."/>
+        <button onClick={add} style={{fontSize:13,padding:"0 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-secondary)",color:"var(--color-text-secondary)",cursor:"pointer"}}>Add</button>
+      </div>
+    </div>
+  );
+}
 
 export function TaskModal({task,tasks,docs,milestones=[],members,departments,globalTags,prefs,sessions,profileIdByName={},onChange,onSave,onDelete,onClose}) {
   const isNew = !task.id;
@@ -67,6 +98,7 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
       </Field>
       <Field label="Notes"><textarea value={task.notes} onChange={e=>onChange({...task,notes:e.target.value})} rows={3} style={{resize:"vertical"}}/></Field>
       <Field label="Tags"><TagInput tags={task.tags||[]} suggestions={globalTags} onChange={tags=>onChange({...task,tags})}/></Field>
+      <Field label="Links"><LinksInput links={splitLinks(task.links)} onChange={links=>onChange({...task,links:joinLinks(links)})}/></Field>
       {task.type==="program"&&(()=>{
         const dependentTasks = tasks.filter(t => t.id !== task.id && (t.deps||[]).includes(task.id));
         const dependentMilestones = milestones.filter(m => (m.deps||[]).includes(task.id));

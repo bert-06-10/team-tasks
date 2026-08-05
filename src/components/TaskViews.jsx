@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Avatar, Badge, StatusPill, FilterDropdown } from "./Primitives.jsx";
 import { CollateralDetailModal } from "./modals/CollateralDetailModal.jsx";
-import { fmtDate, fmtDateYear, isOverdue, avatarBg, avatarTx, addDays } from "../utils.js";
+import { fmtDate, fmtDateYear, isOverdue, avatarBg, avatarTx, addDays, splitLinks, isUrl } from "../utils.js";
 import { DEFAULT_STATUS_COLORS } from "../constants.js";
 
 const LIST_COLS       = "1fr 70px 70px 90px 110px 130px 80px 1fr";
@@ -83,7 +83,7 @@ export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlocke
   const bs = getBlockedStatus(task);
   const overdue = task.status!=="Done"&&isOverdue(task.due);
   const cols = selectable ? LIST_COLS_SEL : LIST_COLS;
-  const isUrl = s => /^https?:\/\//i.test(s);
+  const links = splitLinks(task.links);
   const sep = {borderRight:"1px solid var(--color-border-tertiary)"};
   return (
     <div onClick={onEdit} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",cursor:readOnly?"default":"pointer",background:selected?"var(--color-background-secondary)":rowBg||"transparent"}}>
@@ -125,12 +125,13 @@ export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlocke
         {!task.flagged&&bs!=="blocked"&&bs!=="at-risk"&&bs!=="clear"&&!(task.collateralDeps||[]).length&&<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
       {/* Links */}
-      <div style={{padding:"11px 12px",...sep}} onClick={e=>e.stopPropagation()}>
-        {task.links
-          ? isUrl(task.links)
-            ? <a href={task.links} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}}>↗ Link</a>
-            : <span style={{fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}} title={task.links}>{task.links}</span>
-          : <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      <div style={{padding:"11px 12px",display:"flex",flexDirection:"column",gap:2,...sep}} onClick={e=>e.stopPropagation()}>
+        {links.length===0
+          ? <span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>
+          : links.map((l,i) => isUrl(l)
+              ? <a key={i} href={l} target="_blank" rel="noopener noreferrer" title={l} style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}}>↗ Link{links.length>1?` ${i+1}`:""}</a>
+              : <span key={i} title={l} style={{fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",display:"block"}}>{l}</span>
+            )}
       </div>
       {/* Notes */}
       <div style={{padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}} title={task.notes||""}>{task.notes||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
