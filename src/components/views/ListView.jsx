@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TaskCard, ListRow, ListHeader, MilestoneBar } from "../TaskViews.jsx";
+import { TaskCard, ListRow, ListHeader, MilestoneRow } from "../TaskViews.jsx";
 import { fmtDate } from "../../utils.js";
 import { STATUSES, DEFAULT_STATUS_COLORS } from "../../constants.js";
 
@@ -187,9 +187,10 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
         </div>
       );
     }
-    // Program tasks: group by date with date headers
+    // Program tasks: group by date with date headers, milestones interleaved chronologically
     const taskItems = visibleTasks.map(t => ({ type:'task', date:t.due||'', item:t }));
-    const sorted    = [...taskItems].sort((a,b) => {
+    const milestoneItems = (milestones||[]).map(m => ({ type:'milestone', date:m.date||'', item:m }));
+    const sorted    = [...taskItems, ...milestoneItems].sort((a,b) => {
       if (!a.date && !b.date) return 0;
       if (!a.date) return 1;
       if (!b.date) return -1;
@@ -228,7 +229,6 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
     return (
       <div>
         <Toolbar/>
-        {milestones?.length>0 && <MilestoneBar milestones={milestones} tasks={displayTasks} onEdit={onEditMilestone}/>}
         {isMobile ? (
           <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
             {displayList.length===0&&<div style={{padding:"12px 4px",fontSize:13,color:"var(--color-text-tertiary)"}}>No tasks.</div>}
@@ -236,6 +236,11 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
               <div key={`dh-${entry.date}-${i}`} style={{padding:"4px 2px",display:"flex",alignItems:"center",gap:8,marginTop:i===0?0:4}}>
                 <span style={{fontSize:11,fontWeight:600,color:"var(--color-text-secondary)",letterSpacing:"0.05em"}}>{fmtWeekHeader(entry.date)}</span>
                 <span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>{entry.count} {entry.count===1?"item":"items"}</span>
+              </div>
+            ) : entry.type==='milestone' ? (
+              <div key={`m-${entry.item.id}`} onClick={onEditMilestone?()=>onEditMilestone(entry.item):undefined} style={{background:"#E6F1FB",borderRadius:"var(--border-radius-lg)",padding:"12px 14px",cursor:onEditMilestone?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                <span style={{fontSize:13,fontWeight:600,color:"#185FA5"}}>{entry.item.title}</span>
+                <span style={{fontSize:12,color:"#185FA5"}}>{fmtDate(entry.item.date)}</span>
               </div>
             ) : (
               <TaskCard key={entry.item.id} task={entry.item} tasks={displayTasks} docs={displayDocs} readOnly={isReadOnly} onEdit={()=>openTask(entry.item)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} showGroup statusColors={statusColors}/>
@@ -255,6 +260,9 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
                 );
               }
               const last = i===arr.length-1 || arr[i+1]?.type==='date-header';
+              if (entry.type==='milestone') {
+                return <MilestoneRow key={`m-${entry.item.id}`} milestone={entry.item} last={last} selectable={selectable} onEdit={onEditMilestone?()=>onEditMilestone(entry.item):undefined}/>;
+              }
               return <ListRow key={entry.item.id} task={entry.item} tasks={displayTasks} docs={displayDocs} last={last} readOnly={isReadOnly} onEdit={()=>openTask(entry.item)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} statusColors={statusColors} selectable={selectable} selected={selectedIds.has(entry.item.id)} onSelect={toggleSelect}/>;
             })}
           </div>
@@ -266,7 +274,6 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
   return (
     <div>
       <Toolbar/>
-      {milestones?.length>0 && <MilestoneBar milestones={milestones} tasks={displayTasks} onEdit={onEditMilestone}/>}
       {Object.keys(listGroups).sort().map(k => (
         <div key={k}>
           <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",letterSpacing:"0.04em",marginBottom:8}}>{k.toUpperCase()} · {listGroups[k].length}</div>

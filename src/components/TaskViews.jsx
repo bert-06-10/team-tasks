@@ -58,6 +58,26 @@ export function TaskCard({task,tasks,docs,readOnly,onEdit,onStatus,getBlockedSta
   );
 }
 
+// ── Milestone Row (list view, inline in chronological flow) ────────────────────
+export function MilestoneRow({milestone,last,selectable,onEdit}) {
+  const cols = selectable ? LIST_COLS_SEL : LIST_COLS;
+  const blue = "#185FA5";
+  const sep = {borderRight:"1px solid var(--color-border-tertiary)"};
+  return (
+    <div onClick={onEdit} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",cursor:onEdit?"pointer":"default",background:"#E6F1FB"}}>
+      {selectable && <div style={{padding:"11px 10px",...sep}}/>}
+      <div style={{padding:"11px 12px",fontSize:13,fontWeight:600,color:blue,...sep}}>{milestone.title}</div>
+      <div style={{padding:"11px 10px",...sep}}/>
+      <div style={{padding:"11px 10px",...sep}}/>
+      <div style={{padding:"11px 12px",fontSize:12,color:blue,...sep}}>{fmtDate(milestone.date)||"—"}</div>
+      <div style={{padding:"11px 12px",...sep}}/>
+      <div style={{padding:"11px 12px",...sep}}/>
+      <div style={{padding:"11px 12px",...sep}}/>
+      <div style={{padding:"11px 12px"}}/>
+    </div>
+  );
+}
+
 // ── List Row ──────────────────────────────────────────────────────────────────
 export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlockedStatus,statusColors,selectable,selected,onSelect,rowBg}) {
   const bs = getBlockedStatus(task);
