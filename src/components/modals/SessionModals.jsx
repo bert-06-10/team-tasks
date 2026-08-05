@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Modal } from "../Primitives.jsx";
-import { offsetLabel } from "../../utils.js";
+import { offsetLabel, fmtDate } from "../../utils.js";
 import { COHORT_OPTIONS } from "../../constants.js";
 
-// ── Add/Duplicate Session Modal ──────────────────────────────────────────────────
+// ── Add/Duplicate/Edit Session Modal ──────────────────────────────────────────────
 
-export function AddSessionModal({ isDuplicate, initialData, template, onSave, onClose }) {
+export function AddSessionModal({ isDuplicate, isEdit, initialData, template, onSave, onClose }) {
   const [sess, setSess] = useState(initialData || { professor: "", cohort: "Cohort 1", date: "", addTasks: false });
   const [saving, setSaving] = useState(false);
   const labelStyle = { fontSize: 11, fontWeight: 500, color: "var(--color-text-secondary)", letterSpacing: "0.06em", marginBottom: 6 };
@@ -20,7 +20,7 @@ export function AddSessionModal({ isDuplicate, initialData, template, onSave, on
   };
 
   return (
-    <Modal title={isDuplicate ? "Duplicate session" : "Add class session"} onClose={onClose}>
+    <Modal title={isEdit ? "Edit session" : isDuplicate ? "Duplicate session" : "Add class session"} onClose={onClose}>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
         <div style={{ flex: "1 1 180px" }}>
           <div style={labelStyle}>PROFESSOR</div>
@@ -37,7 +37,7 @@ export function AddSessionModal({ isDuplicate, initialData, template, onSave, on
           <input type="date" value={sess.date} onChange={e => setSess(p => ({ ...p, date: e.target.value }))} style={inputStyle} />
         </div>
       </div>
-      {isDuplicate ? (
+      {isEdit ? null : isDuplicate ? (
         <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 16 }}>Tasks from the original session will be copied and shifted to the new date.</p>
       ) : (
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 16, cursor: "pointer", userSelect: "none" }}>
@@ -47,9 +47,47 @@ export function AddSessionModal({ isDuplicate, initialData, template, onSave, on
       )}
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={handleSave} disabled={saving || !sess.professor.trim() || !sess.date} style={{ fontSize: 13, padding: "6px 16px", borderRadius: "var(--border-radius-md)", border: "0.5px solid #9FE1CB", background: "#E1F5EE", color: "#0F6E56", cursor: (saving || !sess.professor.trim() || !sess.date) ? "default" : "pointer", opacity: (!sess.professor.trim() || !sess.date) ? 0.5 : 1 }}>
-          {saving ? "Saving…" : isDuplicate ? "Duplicate" : "Add session"}
+          {saving ? "Saving…" : isEdit ? "Save changes" : isDuplicate ? "Duplicate" : "Add session"}
         </button>
         <button onClick={onClose} style={{ fontSize: 13, padding: "6px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Cancel</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ── Sessions List Modal (view, edit, duplicate, delete) ────────────────────────
+
+export function SessionsListModal({ sessions, classTasks, onEdit, onDuplicate, onDelete, onClose }) {
+  const sorted = [...(sessions || [])].sort((a, b) => (a.date || '') < (b.date || '') ? -1 : (a.date || '') > (b.date || '') ? 1 : 0);
+  const actionBtn = { fontSize: 12, padding: "4px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer", whiteSpace: "nowrap" };
+  return (
+    <Modal title="Class sessions" onClose={onClose}>
+      {sorted.length === 0 ? (
+        <div style={{ fontSize: 13, color: "var(--color-text-tertiary)", padding: "32px 0", textAlign: "center" }}>No sessions yet.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 420, overflowY: "auto" }}>
+          {sorted.map(s => {
+            const taskCount = (classTasks || []).filter(t => t.sessionId === s.id).length;
+            return (
+              <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)" }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {s.professor || s.name || "Untitled session"}{s.cohort ? ` — ${s.cohort}` : ""}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{s.date ? fmtDate(s.date) : "No date"} · {taskCount} task{taskCount !== 1 ? "s" : ""}</div>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <button onClick={() => onEdit(s)} style={actionBtn}>Edit</button>
+                  <button onClick={() => onDuplicate(s)} style={actionBtn}>Duplicate</button>
+                  <button onClick={() => onDelete(s.id)} style={{ ...actionBtn, border: "0.5px solid #F7C1C1", background: "#FCEBEB", color: "#A32D2D" }}>Delete</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+        <button onClick={onClose} style={{ fontSize: 13, padding: "6px 14px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Close</button>
       </div>
     </Modal>
   );

@@ -11,7 +11,7 @@ import { TaskModal } from "./components/modals/TaskModal.jsx";
 import { DocModal } from "./components/modals/DocModal.jsx";
 import { ImportModal, ImportCollateralModal } from "./components/modals/ImportModal.jsx";
 import { CycleModal } from "./components/modals/CycleModal.jsx";
-import { AddSessionModal, StandardTasksModal } from "./components/modals/SessionModals.jsx";
+import { AddSessionModal, StandardTasksModal, SessionsListModal } from "./components/modals/SessionModals.jsx";
 import { AuthScreen } from "./components/AuthScreen.jsx";
 import { VIEWS, VIEW_LABELS, DEFAULT_STATUS_COLORS, DEFAULT_PREFS } from "./constants.js";
 import { avatarBg, avatarTx, initials, isOverdue, isWeekend, addDays, isFlagged, closestBusinessDay, genClassTasks, exportTasksToCSV, fmtDate, setDefaultTimezone, useIsMobile } from "./utils.js";
@@ -118,6 +118,8 @@ export default function App() {
 
   const [showAddSessionModal,        setShowAddSessionModal]        = useState(false);
   const [addSessionDuplicateFrom,   setAddSessionDuplicateFrom]   = useState(null);
+  const [editingSession,            setEditingSession]            = useState(null);
+  const [showSessionsListModal,     setShowSessionsListModal]     = useState(false);
   const [showStandardTasksModal,    setShowStandardTasksModal]    = useState(false);
   const [showTaskModal,             setShowTaskModal]             = useState(false);
   const [showDocModal,              setShowDocModal]              = useState(false);
@@ -870,14 +872,19 @@ export default function App() {
 
   // ── Session handlers ────────────────────────────────────────────────────────
   const handleAddSessionFromModal = async (sessData) => {
-    await saveSession({
-      ...sessData,
-      ...(addSessionDuplicateFrom && { duplicateFromId: addSessionDuplicateFrom.id }),
-    });
+    if (editingSession) {
+      await updateSession({ ...sessData, id: editingSession.id, number: editingSession.number });
+    } else {
+      await saveSession({
+        ...sessData,
+        ...(addSessionDuplicateFrom && { duplicateFromId: addSessionDuplicateFrom.id }),
+      });
+    }
   };
 
-  const openAddSession = () => { setAddSessionDuplicateFrom(null); setShowAddSessionModal(true); };
-  const openDuplicateSession = (sess) => { setAddSessionDuplicateFrom(sess); setShowAddSessionModal(true); };
+  const openAddSession = () => { setAddSessionDuplicateFrom(null); setEditingSession(null); setShowAddSessionModal(true); };
+  const openDuplicateSession = (sess) => { setAddSessionDuplicateFrom(sess); setEditingSession(null); setShowAddSessionModal(true); };
+  const openEditSession = (sess) => { setEditingSession(sess); setAddSessionDuplicateFrom(null); setShowAddSessionModal(true); };
 
   const updateSession = async (sessionData) => {
     try {
@@ -1098,6 +1105,7 @@ export default function App() {
                   <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setEditDoc({ title: "", type: "Google Drive", audience: "", description: "", updated: new Date().toISOString().slice(0, 10), next_update: "", owner: "", content_owner: "", assist: "", url: "", shareable_link: "", tags: [] }); setShowDocModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }}>Add collateral</button>
                   <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "2px 0" }} />
                   <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); openAddSession(); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }}>Add session</button>
+                  <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setShowSessionsListModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }}>Manage sessions</button>
                   <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); setShowStandardTasksModal(true); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }}>Standard tasks</button>
                   <div style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "2px 0" }} />
                   <button type="button" role="menuitem" onClick={() => { setOpenDropdown(null); exportTasksToCSV(displayProgramTasks, displayClassTasks, (viewingArchive ? viewingArchive.cycle : activeCycle)?.name); }} style={{ fontSize: 13, padding: "10px 14px", cursor: "pointer", color: "var(--color-text-primary)", border: "none", background: "transparent", width: "100%", textAlign: "left", display: "block", font: "inherit" }}>Export tasks to CSV</button>
@@ -1228,8 +1236,9 @@ export default function App() {
               {/* Classes */}
               {!isReadOnly && (() => {
                 const classesItems = [
-                  { label: "Add session",    onClick: () => { closeSidebarSection('classes'); openAddSession(); } },
-                  { label: "Standard tasks", onClick: () => { closeSidebarSection('classes'); setShowStandardTasksModal(true); } },
+                  { label: "Add session",      onClick: () => { closeSidebarSection('classes'); openAddSession(); } },
+                  { label: "Manage sessions",  onClick: () => { closeSidebarSection('classes'); setShowSessionsListModal(true); } },
+                  { label: "Standard tasks",   onClick: () => { closeSidebarSection('classes'); setShowStandardTasksModal(true); } },
                 ];
                 const isOpen = !!expandedSidebar.classes;
                 return (
@@ -1348,7 +1357,8 @@ export default function App() {
       </div>
 
       {/* Modals */}
-      {showAddSessionModal && !isReadOnly && <AddSessionModal isDuplicate={!!addSessionDuplicateFrom} initialData={addSessionDuplicateFrom ? { professor: addSessionDuplicateFrom.professor || addSessionDuplicateFrom.name || "", cohort: addSessionDuplicateFrom.cohort || "Cohort 1", date: "", addTasks: false } : undefined} template={classTaskTemplate} onSave={handleAddSessionFromModal} onClose={() => { setShowAddSessionModal(false); setAddSessionDuplicateFrom(null); }} />}
+      {showAddSessionModal && !isReadOnly && <AddSessionModal isDuplicate={!!addSessionDuplicateFrom} isEdit={!!editingSession} initialData={editingSession ? { id: editingSession.id, professor: editingSession.professor || editingSession.name || "", cohort: editingSession.cohort || "Cohort 1", date: editingSession.date || "", addTasks: false } : addSessionDuplicateFrom ? { professor: addSessionDuplicateFrom.professor || addSessionDuplicateFrom.name || "", cohort: addSessionDuplicateFrom.cohort || "Cohort 1", date: "", addTasks: false } : undefined} template={classTaskTemplate} onSave={handleAddSessionFromModal} onClose={() => { setShowAddSessionModal(false); setAddSessionDuplicateFrom(null); setEditingSession(null); }} />}
+      {showSessionsListModal && !isReadOnly && <SessionsListModal sessions={sessions} classTasks={classTasks} onEdit={s => { setShowSessionsListModal(false); openEditSession(s); }} onDuplicate={s => { setShowSessionsListModal(false); openDuplicateSession(s); }} onDelete={deleteSession} onClose={() => setShowSessionsListModal(false)} />}
       {showStandardTasksModal && !isReadOnly && <StandardTasksModal template={classTaskTemplate} members={members} sessions={sessions} onSaveTemplate={saveClassTaskTemplate} onApplyTemplate={applyTemplateToSession} onClose={() => setShowStandardTasksModal(false)} />}
       {showTaskModal     && editTask     && <TaskModal task={editTask} tasks={allTasks} docs={docs} milestones={milestones} members={members} departments={departments} globalTags={globalTags} prefs={prefs} sessions={sessions} profileIdByName={profileIdByName} onChange={setEditTask} onSave={saveTask} onDelete={deleteTask} onClose={() => { setShowTaskModal(false); setEditTask(null); }} />}
       {showDocModal      && editDoc      && <DocModal doc={editDoc} members={members} audiences={audiences} globalTags={globalTags} businessLines={businessLines} prefs={prefs} profileIdByName={profileIdByName} onChange={setEditDoc} onSave={saveDoc} onDelete={deleteDoc} onClose={() => { setShowDocModal(false); setEditDoc(null); }} />}
