@@ -29,6 +29,12 @@ const DEFAULT_USER_PREFS = {
 const SIDEBAR_WIDTH_EXPANDED  = 260;
 const SIDEBAR_WIDTH_COLLAPSED = 56;
 
+// Appends newly-saved tasks, skipping any already added by the realtime
+// 'tasks' subscription's own broadcast of this same insert (a race that
+// widens with multi-row inserts, since each row's INSERT event can arrive
+// before the whole batch's local save promise resolves).
+const appendNewTasks = (prev, saved) => [...prev, ...saved.filter(t => !prev.some(p => p.id === t.id))];
+
 const SIDEBAR_ICON_PATHS = {
   cycle:   <><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></>,
   program: <><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></>,
@@ -570,8 +576,8 @@ export default function App() {
         if (saved.type === "program") setProgramTasks(p => p.map(t => t.id === saved.id ? saved : t));
         else setClassTasks(p => p.map(t => t.id === saved.id ? saved : t));
       } else {
-        if (saved.type === "program") setProgramTasks(p => [...p, saved]);
-        else setClassTasks(p => [...p, saved]);
+        if (saved.type === "program") setProgramTasks(p => appendNewTasks(p, [saved]));
+        else setClassTasks(p => appendNewTasks(p, [saved]));
       }
       setShowTaskModal(false);
       setEditTask(null);
@@ -789,7 +795,7 @@ export default function App() {
         setActiveCycle(newCycle);
       }
       const saved = await db.bulkInsertTasks(rows, sessions);
-      setProgramTasks(p => [...p, ...saved]);
+      setProgramTasks(p => appendNewTasks(p, saved));
       addToImportHistory('program', saved, `${saved.length} program task${saved.length !== 1 ? 's' : ''}`);
       setShowImportModal(false);
       toast(cycleInfo ? `Cycle "${cycleInfo.name}" created and ${saved.length} tasks imported.` : `${saved.length} program tasks imported.`);
@@ -803,7 +809,7 @@ export default function App() {
         setActiveCycle(newCycle);
       }
       const saved = await db.bulkInsertTasks(rows, sessions);
-      setClassTasks(p => [...p, ...saved]);
+      setClassTasks(p => appendNewTasks(p, saved));
       addToImportHistory('class', saved, `${saved.length} class task${saved.length !== 1 ? 's' : ''}`);
       setShowImportModal(false);
       toast(cycleInfo ? `Cycle "${cycleInfo.name}" created and ${saved.length} tasks imported.` : `${saved.length} class tasks imported.`);
@@ -925,11 +931,11 @@ export default function App() {
             return { ...t, id: undefined, sessionId: saved.id, sessionName: saved.professor || saved.name || "", due: newDue, status: "To Do", deps: [], collateralDeps: [] };
           });
           const newTasks = await db.bulkInsertTasks(clonedTasks, updatedSessions);
-          setClassTasks(prev => [...prev, ...newTasks]);
+          setClassTasks(prev => appendNewTasks(prev, newTasks));
         }
       } else if (sessionData.addTasks) {
         const newTasks = await db.bulkInsertTasks(genClassTasks([saved], classTaskTemplate), updatedSessions);
-        setClassTasks(prev => [...prev, ...newTasks]);
+        setClassTasks(prev => appendNewTasks(prev, newTasks));
       }
       toast(`Session added for ${saved.professor || saved.name}.`);
       return saved;
@@ -964,7 +970,7 @@ export default function App() {
     if (!sess) return;
     try {
       const newTasks = await db.bulkInsertTasks(genClassTasks([sess], items), sessions);
-      setClassTasks(prev => [...prev, ...newTasks]);
+      setClassTasks(prev => appendNewTasks(prev, newTasks));
       toast(`${newTasks.length} task${newTasks.length !== 1 ? "s" : ""} added.`);
     } catch (e) {
       toast("Failed to add tasks.");
@@ -977,7 +983,7 @@ export default function App() {
     if (!sess) return;
     try {
       const newTasks = await db.bulkInsertTasks(genClassTasks([sess], classTaskTemplate), sessions);
-      setClassTasks(prev => [...prev, ...newTasks]);
+      setClassTasks(prev => appendNewTasks(prev, newTasks));
       toast(`${newTasks.length} tasks added to ${sess.professor || sess.name}.`);
     } catch (e) {
       console.error("applyTemplateToSession error:", e);
