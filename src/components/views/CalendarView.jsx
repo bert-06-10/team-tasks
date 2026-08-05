@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DEFAULT_STATUS_COLORS, MONTHS, DAYS } from "../../constants.js";
 import { useIsMobile } from "../../utils.js";
 
-export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
+export function CalendarView({tasks,milestones,sessions=[],openTask,statusColors,myUser}) {
   const today = new Date();
   const isMobile = useIsMobile();
   const [month,setMonth] = useState(today.getMonth());
@@ -23,13 +23,17 @@ export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
     return !sq||(t.title||"").toLowerCase().includes(sq)||(t.assignee||"").toLowerCase().includes(sq)||(t.tags||[]).some(g=>g.toLowerCase().includes(sq));
   };
   const matchM = m => !sq||(m.title||"").toLowerCase().includes(sq);
+  const sessionLabel = s => `${s.professor||s.name||"Session"}${s.cohort?` — ${s.cohort}`:""}`;
+  const matchS = s => !sq||sessionLabel(s).toLowerCase().includes(sq);
   const tasksOnDay = d => tasks.filter(t=>t.due===dateStr(d)).filter(matchT);
   const msOnDay = d => milestones.filter(m=>m.date===dateStr(d)).filter(matchM);
+  const sessionsOnDay = d => sessions.filter(s=>s.date===dateStr(d)).filter(matchS);
   const typeChip = t => t.type==="class"
     ? {bg:"#FAEEDA",color:"#854F0B"}
     : {bg:"#E6F1FB",color:"#185FA5"};
   const selectedTasks = selected ? tasksOnDay(selected) : [];
   const selectedMs = selected ? msOnDay(selected) : [];
+  const selectedSessions = selected ? sessionsOnDay(selected) : [];
   const cellH = isMobile ? 56 : 96;
   const maxChips = isMobile ? 1 : 3;
   return (
@@ -61,8 +65,9 @@ export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
                 const isToday = d&&d===today.getDate()&&month===today.getMonth()&&year===today.getFullYear();
                 const dayTasks = d ? tasksOnDay(d) : [];
                 const dayMs = d ? msOnDay(d) : [];
+                const daySessions = d ? sessionsOnDay(d) : [];
                 const isSelected = selected===d;
-                const totalItems = dayMs.length + dayTasks.length;
+                const totalItems = dayMs.length + daySessions.length + dayTasks.length;
                 return (
                   <div key={di} onClick={()=>d&&setSelected(isSelected?null:d)} style={{height:cellH,overflow:"hidden",padding:isMobile?"3px 2px":"6px 6px 4px",borderRight:di===6?"none":"0.5px solid var(--color-border-tertiary)",background:isSelected?"var(--color-background-secondary)":d?"var(--color-background-primary)":"var(--color-background-tertiary)",cursor:d?"pointer":"default"}}>
                     {d&&(
@@ -75,6 +80,7 @@ export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
                     ) : (
                       <>
                         {dayMs.map(m => <div key={m.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:"#E6F1FB",color:"#185FA5",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>◆ {m.title}</div>)}
+                        {daySessions.map(s => <div key={s.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:"#FAEEDA",color:"#854F0B",fontWeight:500,marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>▣ {sessionLabel(s)}</div>)}
                         {dayTasks.slice(0,maxChips).map(t => {
                           const tc = typeChip(t);
                           return <div key={t.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:tc.bg,color:tc.color,marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.title}</div>;
@@ -98,7 +104,13 @@ export function CalendarView({tasks,milestones,openTask,statusColors,myUser}) {
               <span style={{fontSize:13,fontWeight:500,color:"#185FA5"}}>{m.title}</span>
             </div>
           ))}
-          {selectedTasks.length===0&&selectedMs.length===0&&<div style={{fontSize:13,color:"var(--color-text-tertiary)"}}>No items this day.</div>}
+          {selectedSessions.map(s => (
+            <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #F0C97A",background:"#FAEEDA",marginBottom:8}}>
+              <span aria-hidden="true" style={{color:"#854F0B"}}>▣</span>
+              <span style={{fontSize:13,fontWeight:500,color:"#854F0B"}}>{sessionLabel(s)}</span>
+            </div>
+          ))}
+          {selectedTasks.length===0&&selectedMs.length===0&&selectedSessions.length===0&&<div style={{fontSize:13,color:"var(--color-text-tertiary)"}}>No items this day.</div>}
           {selectedTasks.map(t => {
             const sc = statusColors[t.status]||DEFAULT_STATUS_COLORS[t.status];
             const tc = typeChip(t);

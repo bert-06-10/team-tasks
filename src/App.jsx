@@ -1343,7 +1343,7 @@ export default function App() {
         </div>
 
         <div style={{display:view==="calendar"?"":"none"}}>
-          <CalendarView tasks={displayAllTasks} milestones={milestones} openTask={openTask} statusColors={statusColors} myUser={myUser} />
+          <CalendarView tasks={displayAllTasks} milestones={milestones} sessions={sessions} openTask={openTask} statusColors={statusColors} myUser={myUser} />
         </div>
 
         <div style={{display:view==="collateral"?"":"none"}}>
