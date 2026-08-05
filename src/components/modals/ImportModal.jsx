@@ -69,7 +69,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
 
   const schemaHint = {
     program:   "task, owner, alternate_owner, due_date, days_from_cycle_start, status, notes, links",
-    class:     "task, owner, alternate_owner, due_date, days_from_cycle_start, status, notes, links",
+    class:     "task, owner, alternate_owner, due_date, days_from_class_date, status, notes, links",
     runofshow: "time, event, owner, assist, notes",
   };
   const typeLabels = [["program","Program tasks"],["class","Class tasks"],["runofshow","Run of show"],["history","History"]];
@@ -119,7 +119,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
           <div style={{marginTop:6}}>
             <div style={{marginBottom:6}}>
               {importType==="class"
-                ? <>Use negative values for <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>days_from_cycle_start</code> for tasks before the selected class session's date, positive for tasks after.</>
+                ? <>Use negative values for <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>days_from_class_date</code> for tasks before the selected class session's date, positive for tasks after.</>
                 : <>Use negative values for <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>days_from_cycle_start</code> for tasks before the cycle start (participant onboarding), positive for tasks after.</>
               }
             </div>

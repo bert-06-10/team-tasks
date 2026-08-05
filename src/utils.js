@@ -148,7 +148,7 @@ export function parseClassTasksCSV(rows) {
     links: row.links||row.link||"",
     tags: ["class"],
     deps: [], collateralDeps: [], attachedDocs: [],
-    offset: parseInt(row.days_from_cycle_start||"0")||0,
+    offset: parseInt(row.days_from_class_date||row.days_from_cycle_start||"0")||0,
     department: "", type: "class", sessionId: "", sessionName: "", flagged: false,
   }));
 }
@@ -177,7 +177,7 @@ export function exportTasksToCSV(programTasks, classTasks, cycleName) {
   };
   const row = cols => cols.map(escape).join(",");
 
-  const header = row(["type","task","owner","alternate_owner","due_date","days_from_cycle_start","fall_days_from_cycle_start","status","notes","links","department","tags","flagged"]);
+  const header = row(["type","task","owner","alternate_owner","due_date","days_from_cycle_start","days_from_class_date","fall_days_from_cycle_start","status","notes","links","department","tags","flagged"]);
 
   const taskRow = t => row([
     t.type,
@@ -185,7 +185,8 @@ export function exportTasksToCSV(programTasks, classTasks, cycleName) {
     t.assignee,
     t.assist,
     t.due,
-    t.offset ?? 0,
+    t.type==="class" ? "" : (t.offset ?? 0),
+    t.type==="class" ? (t.offset ?? 0) : "",
     t.fallOffset ?? 0,
     t.status,
     t.notes,
