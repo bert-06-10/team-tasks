@@ -153,6 +153,16 @@ export function parseClassTasksCSV(rows) {
   }));
 }
 
+export function parseStandardTasksCSV(rows) {
+  return rows.map(row => ({
+    title: row.task||row.title||"",
+    offset: parseInt(row.days_from_class_date||row.offset||"0")||0,
+    assignee: row.owner||row.assignee||"",
+    assist: row.assist||row.alternate_owner||"",
+    notes: row.notes||row.description||"",
+  })).filter(t => t.title.trim());
+}
+
 export function parseProgramTasksCSV(rows) {
   return rows.map((row,i) => ({
     id: Date.now()+i,

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Modal } from "../Primitives.jsx";
-import { offsetLabel, fmtDate } from "../../utils.js";
+import { offsetLabel, fmtDate, parseCSV, parseStandardTasksCSV } from "../../utils.js";
 import { COHORT_OPTIONS } from "../../constants.js";
 
 // ── Add/Duplicate/Edit Session Modal ──────────────────────────────────────────────
@@ -114,6 +114,11 @@ export function StandardTasksModal({ template: templateProp, members, sessions, 
   const template = (templateProp && templateProp.length > 0) ? templateProp : DEFAULT_STANDARD_TEMPLATE;
   const [applying, setApplying] = useState(false);
   const [applySessionId, setApplySessionId] = useState("");
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [csvText, setCsvText] = useState("");
+  const [csvPreview, setCsvPreview] = useState(null);
+  const [csvError, setCsvError] = useState("");
+  const fileRef = useRef();
   const inputStyle = { fontSize: 13, padding: "7px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", width: "100%", boxSizing: "border-box" };
 
   const updateItem = (i, field, val) => onSaveTemplate(template.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
@@ -127,9 +132,71 @@ export function StandardTasksModal({ template: templateProp, members, sessions, 
     finally { setApplying(false); }
   };
 
+  const runCsvPreview = text => {
+    try {
+      const rows = parseCSV(text);
+      if (!rows.length) { setCsvError("No rows found."); setCsvPreview(null); return; }
+      const parsed = parseStandardTasksCSV(rows);
+      if (!parsed.length) { setCsvError("No valid task rows found."); setCsvPreview(null); return; }
+      setCsvPreview(parsed);
+      setCsvError("");
+    } catch (e) { setCsvError("Could not parse CSV: " + (e.message || e)); setCsvPreview(null); }
+  };
+  const handleCsvFile = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = ev => { const text = ev.target.result; setCsvText(text); setCsvError(""); runCsvPreview(text); };
+    r.readAsText(f);
+  };
+  const resetCsvImport = () => { setCsvText(""); setCsvPreview(null); setCsvError(""); if (fileRef.current) fileRef.current.value = ""; };
+  const applyCsvImport = replace => {
+    onSaveTemplate(replace ? csvPreview : [...template, ...csvPreview]);
+    resetCsvImport();
+    setShowCsvImport(false);
+  };
+
   return (
     <Modal title="Standard tasks" onClose={onClose} minHeight={400}>
       <p style={{ fontSize: 12, color: "var(--color-text-tertiary)", marginTop: 0, marginBottom: 16 }}>Applied when adding a new session. Use negative offsets for tasks due before the class date.</p>
+      <div style={{ marginBottom: 16 }}>
+        <button onClick={() => setShowCsvImport(v => !v)} style={{ fontSize: 12, padding: "5px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: showCsvImport ? "var(--color-background-secondary)" : "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>
+          {showCsvImport ? "Hide CSV import ▾" : "Import from CSV ▸"}
+        </button>
+        {showCsvImport && (
+          <div style={{ marginTop: 8, padding: "10px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)" }}>
+            <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 8 }}>
+              Expected columns: <code style={{ fontSize: 11, background: "var(--color-background-tertiary)", padding: "1px 5px", borderRadius: 4 }}>task, days_from_class_date, owner, assist, notes</code>. Negative values are days before the class date, positive are after.
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <input ref={fileRef} type="file" accept=".csv" onChange={handleCsvFile} style={{ fontSize: 12 }} />
+            </div>
+            <textarea value={csvText} onChange={e => { setCsvText(e.target.value); setCsvPreview(null); }} rows={3} placeholder="task,days_from_class_date,owner,assist,notes" style={{ ...inputStyle, resize: "vertical", fontFamily: "monospace", fontSize: 12, marginBottom: 8 }} />
+            {csvError && <div style={{ fontSize: 12, color: "var(--color-text-danger)", marginBottom: 8 }}>{csvError}</div>}
+            {csvPreview && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: 6 }}>{csvPreview.length} task{csvPreview.length !== 1 ? "s" : ""} parsed:</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 140, overflowY: "auto" }}>
+                  {csvPreview.map((t, i) => (
+                    <div key={i} style={{ fontSize: 12, color: "var(--color-text-primary)", display: "flex", gap: 8, alignItems: "center" }}>
+                      <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</span>
+                      <span style={{ fontSize: 11, color: "var(--color-text-tertiary)", whiteSpace: "nowrap" }}>{stdOffsetLabel(t.offset)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              {!csvPreview && <button onClick={() => runCsvPreview(csvText)} disabled={!csvText.trim()} style={{ fontSize: 12, padding: "5px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: csvText.trim() ? "var(--color-background-primary)" : "transparent", color: csvText.trim() ? "var(--color-text-primary)" : "var(--color-text-tertiary)", cursor: csvText.trim() ? "pointer" : "default" }}>Preview</button>}
+              {csvPreview && (<>
+                <button onClick={() => applyCsvImport(false)} style={{ fontSize: 12, padding: "5px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", cursor: "pointer" }}>Append to template</button>
+                <button onClick={() => applyCsvImport(true)} style={{ fontSize: 12, padding: "5px 12px", borderRadius: "var(--border-radius-md)", border: "1px solid #9FE1CB", background: "#E1F5EE", color: "#0F6E56", cursor: "pointer", fontWeight: 500 }}>Replace template</button>
+                <button onClick={resetCsvImport} style={{ fontSize: 12, padding: "5px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Cancel</button>
+              </>)}
+            </div>
+          </div>
+        )}
+      </div>
       {template.map((item, i) => (
         <div key={i} style={{ marginBottom: 8, padding: "10px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-secondary)" }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 7, alignItems: "center" }}>
