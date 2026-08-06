@@ -2,6 +2,21 @@ import { useState, useRef } from "react";
 import { Modal, Field } from "../Primitives.jsx";
 import { addDays, nextBusinessDay, fmtDate, fmtDateYear, parseCSV, parseClassTasksCSV, parseProgramTasksCSV, parseRunOfShowCSV, parseCollateralCSV, diffCollateralSync } from "../../utils.js";
 
+// Fields worth calling out in the collateral sync preview's "Updated" diff —
+// title is the match key (never changes) so it's excluded.
+const DIFF_FIELDS = [
+  ["owner","Business Line"],
+  ["content_owner","Content Owner"],
+  ["assist","Assist"],
+  ["audience","Audience"],
+  ["url","Editable Link"],
+  ["shareable_link","Shareable Link"],
+  ["updated","Last Updated"],
+  ["next_update","Next Update"],
+  ["description","Description"],
+  ["tags","Tags"],
+];
+
 // ── Import/Export Modal (tasks, run of show) ─────────────────────────────────────
 
 export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,sessions,cycle,importHistory,onReverseImport,onClose,initialTab="program"}) {
@@ -273,6 +288,15 @@ export function ImportCollateralModal({ onImport, onSync, docs, onClose }) {
 
   const diff = (mode==="sync" && preview) ? diffCollateralSync(docs||[], preview) : null;
 
+  const fieldChanges = item => {
+    const before = item._before || {};
+    return DIFF_FIELDS.map(([key,label]) => {
+      const b = key==="tags" ? (before.tags||[]).join(", ") : (before[key]||"");
+      const a = key==="tags" ? (item.tags||[]).join(", ") : (item[key]||"");
+      return b!==a ? {label, before:b||"—", after:a||"—"} : null;
+    }).filter(Boolean);
+  };
+
   const handleFile = e => {
     const f = e.target.files[0];
     if (!f) return;
@@ -343,7 +367,48 @@ export function ImportCollateralModal({ onImport, onSync, docs, onClose }) {
           <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)"}}>{diff.toAdd.length} new · {diff.toUpdate.length} updated · {diff.toArchive.length} to archive</div>
           {[
             ["New", diff.toAdd, "#0F6E56", "#E1F5EE", "#9FE1CB"],
-            ["Updated", diff.toUpdate, "#185FA5", "#E6F1FB", "#B5D4F4"],
+          ].filter(([,items])=>items.length>0).map(([label,items,color,bg,border]) => (
+            <div key={label}>
+              <div style={{fontSize:12,fontWeight:500,color,marginBottom:6}}>{label} ({items.length})</div>
+              <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:140,overflowY:"auto"}}>
+                {items.map((d,i) => (
+                  <div key={d.id??i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"5px 10px",borderRadius:"var(--border-radius-md)",background:bg,border:`0.5px solid ${border}`,fontSize:12}}>
+                    <span style={{color,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.title}</span>
+                    {d.updated && <span style={{color,opacity:0.7,flexShrink:0,whiteSpace:"nowrap"}}>{fmtDateYear(d.updated)}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {diff.toUpdate.length>0 && (
+            <div>
+              <div style={{fontSize:12,fontWeight:500,color:"#185FA5",marginBottom:6}}>Updated ({diff.toUpdate.length})</div>
+              <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:220,overflowY:"auto"}}>
+                {diff.toUpdate.map((item,i) => {
+                  const changes = fieldChanges(item);
+                  const wasArchived = item._before?.archived === true;
+                  return (
+                    <div key={item.id??i} style={{padding:"6px 10px",borderRadius:"var(--border-radius-md)",background:"#E6F1FB",border:"0.5px solid #B5D4F4",fontSize:12}}>
+                      <div style={{color:"#185FA5",fontWeight:500,marginBottom:(changes.length||wasArchived)?4:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.title}</div>
+                      {wasArchived && <div style={{color:"#185FA5",opacity:0.85,fontStyle:"italic"}}>Will be unarchived</div>}
+                      {changes.length===0
+                        ? (!wasArchived && <div style={{color:"#185FA5",opacity:0.6}}>No field changes</div>)
+                        : changes.map(c => (
+                            <div key={c.label} style={{color:"#185FA5",opacity:0.9,display:"flex",gap:6,flexWrap:"wrap"}}>
+                              <span style={{fontWeight:500,flexShrink:0}}>{c.label}:</span>
+                              <span style={{textDecoration:"line-through",opacity:0.6,overflowWrap:"anywhere"}}>{c.before}</span>
+                              <span>→</span>
+                              <span style={{overflowWrap:"anywhere"}}>{c.after}</span>
+                            </div>
+                          ))
+                      }
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {[
             ["Archive (missing from CSV)", diff.toArchive, "#854F0B", "#FAEEDA", "#F0C97A"],
           ].filter(([,items])=>items.length>0).map(([label,items,color,bg,border]) => (
             <div key={label}>
