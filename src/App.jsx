@@ -538,7 +538,40 @@ export default function App() {
   const setDepartmentsSync = useCallback(n => syncList(setDepartments, departmentsRef, n, db.addDepartment, db.removeDepartment, db.updateDepartment), [syncList]);
   const setBusinessLinesSync = useCallback(n => syncList(setBusinessLines, businessLinesRef, n, db.addBusinessLine, db.removeBusinessLine, db.updateBusinessLine), [syncList]);
   const setAudiencesSync   = useCallback(n => syncList(setAudiences,   audiencesRef,   n, db.addAudience,   db.removeAudience,   db.updateAudience),   [syncList]);
-  const setGlobalTagsSync  = useCallback(n => syncList(setGlobalTags,  globalTagsRef,  n, db.addGlobalTag,  db.removeGlobalTag,  db.updateGlobalTag),  [syncList]);
+  // Renaming/removing a tag here only touches the global_tags suggestion
+  // list — any task/doc still carrying the old tag string would resurrect
+  // it right back into globalTags via the tags-in-use merge on next load.
+  // Cascade the same change across every task/doc that has it so a deleted
+  // tag actually stays deleted (and a renamed one shows the new name).
+  const setGlobalTagsSync = async newItems => {
+    const prevTags = globalTagsRef.current;
+    const added   = newItems.filter(t => !prevTags.includes(t));
+    const removed = prevTags.filter(t => !newItems.includes(t));
+    await syncList(setGlobalTags, globalTagsRef, newItems, db.addGlobalTag, db.removeGlobalTag, db.updateGlobalTag);
+    if (removed.length !== 1) return;
+    const [oldTag] = removed;
+    const newTag = added.length === 1 ? added[0] : null;
+    const applyTags = tags => !tags?.includes(oldTag) ? tags : (newTag ? tags.map(t => t === oldTag ? newTag : t) : tags.filter(t => t !== oldTag));
+
+    const affectedProgram = programTasks.filter(t => t.tags?.includes(oldTag));
+    const affectedClass   = classTasks.filter(t => t.tags?.includes(oldTag));
+    const affectedDocs    = docs.filter(d => d.tags?.includes(oldTag));
+    if (!affectedProgram.length && !affectedClass.length && !affectedDocs.length) return;
+
+    setProgramTasks(prev => prev.map(t => t.tags?.includes(oldTag) ? { ...t, tags: applyTags(t.tags) } : t));
+    setClassTasks(prev => prev.map(t => t.tags?.includes(oldTag) ? { ...t, tags: applyTags(t.tags) } : t));
+    setDocs(prev => prev.map(d => d.tags?.includes(oldTag) ? { ...d, tags: applyTags(d.tags) } : d));
+    try {
+      await Promise.all([
+        ...affectedProgram.map(t => db.setTaskTags(t.id, applyTags(t.tags))),
+        ...affectedClass.map(t => db.setTaskTags(t.id, applyTags(t.tags))),
+        ...affectedDocs.map(d => db.setDocTags(d.id, applyTags(d.tags))),
+      ]);
+    } catch (e) {
+      console.error('cascade tag update error:', e);
+      toast(`Tag ${newTag ? "renamed" : "removed"} from the tag list, but failed to update some items — refresh to check.`);
+    }
+  };
 
   // ── Prefs ───────────────────────────────────────────────────────────────────
   const updatePrefs = (key, val) => {

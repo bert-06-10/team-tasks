@@ -392,6 +392,11 @@ export async function deleteTask(id) {
   if (error) throw error
 }
 
+export async function setTaskTags(id, tags) {
+  const { error } = await supabase.from('tasks').update({ tags }).eq('id', id)
+  if (error) throw error
+}
+
 export async function bulkInsertTasks(tasks, sessions = []) {
   if (!tasks.length) return []
   // Use a plain .select() after insert (no embedded relations) — combining the
@@ -496,6 +501,11 @@ export async function deleteDoc(id) {
 
 export async function setDocArchived(id, archived) {
   const { error } = await supabase.from('docs').update({ archived }).eq('id', id)
+  if (error) throw error
+}
+
+export async function setDocTags(id, tags) {
+  const { error } = await supabase.from('docs').update({ tags }).eq('id', id)
   if (error) throw error
 }
 
