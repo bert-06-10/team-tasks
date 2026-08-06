@@ -283,7 +283,7 @@ export function ImportCollateralModal({ onImport, onSync, docs, onClose }) {
 
   const previewCols = [
     ["Title", r => r.title],
-    ["Owner", r => r.owner],
+    ["Business Line", r => r.owner],
     ["Content Owner", r => r.content_owner],
     ["Assist", r => r.assist],
     ["Audience", r => r.audience],
@@ -303,7 +303,7 @@ export function ImportCollateralModal({ onImport, onSync, docs, onClose }) {
         </div>
       )}
       <div style={{marginBottom:16,padding:"10px 14px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:12,color:"var(--color-text-secondary)",lineHeight:1.7}}>
-        Expected columns: <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>Title, Owner, Audience, Description, Editable Link, Shareable Link, Next Scheduled Update, Last Updated, Content Owner, Assist, Logo Wall, Impact Stats, Video Testimonial, Notes</code>
+        Expected columns: <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>Title, Business Line, Audience, Description, Editable Link, Shareable Link, Next Scheduled Update, Last Updated, Content Owner, Assist, Logo Wall, Impact Stats, Video Testimonial, Notes</code>
         <div style={{marginTop:6,fontSize:11,color:"var(--color-text-tertiary)"}}>Logo Wall, Impact Stats, and Video Testimonial are stored as tags when set to "yes", "true", or "x". Other extra fields are appended to the description.</div>
         {mode==="sync" && <div style={{marginTop:6,fontSize:11,color:"var(--color-text-tertiary)"}}>Sync matches items by title: existing items are updated with the CSV's data (and unarchived if they were archived), new titles are added, and active items whose title doesn't appear in the CSV are archived.</div>}
       </div>

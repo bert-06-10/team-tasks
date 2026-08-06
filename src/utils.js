@@ -246,7 +246,7 @@ export function parseCollateralCSV(rows) {
 
     return {
       title: row.title?.trim() || "(untitled)",
-      owner: row.owner?.trim() || "",
+      owner: row.business_line?.trim() || row.owner?.trim() || "",
       content_owner: row.content_owner?.trim() || "",
       assist: row.assist?.trim() || "",
       audience: row.audience?.trim() || "",
