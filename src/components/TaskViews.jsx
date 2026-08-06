@@ -248,8 +248,8 @@ function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
   return (
     <div style={{display:"contents"}}>
       {selectable && (
-        <div style={{...c({cursor:"default"}),padding:"11px 10px",justifyContent:"center",...sep}} onClick={e=>{e.stopPropagation();onSelect(doc.id);}}>
-          <input type="checkbox" checked={!!selected} onChange={()=>onSelect(doc.id)} style={{cursor:"pointer",margin:0}}/>
+        <div style={{...c({cursor:"default"}),padding:"11px 10px",justifyContent:"center",...sep}}>
+          <input type="checkbox" checked={!!selected} onChange={()=>onSelect(doc.id)} onClick={e=>e.stopPropagation()} style={{cursor:"pointer",margin:0}}/>
         </div>
       )}
       <div onClick={open} style={{...c(),padding:"11px 12px",minWidth:0,...sep}}>
