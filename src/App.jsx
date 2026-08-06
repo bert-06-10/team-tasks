@@ -611,6 +611,7 @@ export default function App() {
       const saved = await db.saveDoc(doc);
       if (doc.id) setDocs(p => p.map(d => d.id === saved.id ? saved : d));
       else setDocs(p => [...p, saved]);
+      if (saved.tags?.length) setGlobalTags(prev => [...new Set([...prev, ...saved.tags])].sort());
       setShowDocModal(false);
       setEditDoc(null);
     } catch {
@@ -851,6 +852,8 @@ export default function App() {
     try {
       const saved = await Promise.all(items.map(item => db.saveDoc(item)));
       setDocs(p => [...p, ...saved.filter(d => !p.some(x => x.id === d.id))]);
+      const newTags = saved.flatMap(d => d.tags || []);
+      if (newTags.length) setGlobalTags(prev => [...new Set([...prev, ...newTags])].sort());
       addToImportHistory('collateral', saved, `${saved.length} collateral item${saved.length !== 1 ? 's' : ''}`);
       setShowImportCollateralModal(false);
       toast(`${saved.length} collateral items imported.`);
@@ -870,6 +873,8 @@ export default function App() {
         const merged = p.map(d => updatedById.has(d.id) ? updatedById.get(d.id) : archivedIds.has(d.id) ? { ...d, archived: true } : d);
         return [...merged, ...added.filter(d => !merged.some(x => x.id === d.id))];
       });
+      const newTags = [...added, ...updated].flatMap(d => d.tags || []);
+      if (newTags.length) setGlobalTags(prev => [...new Set([...prev, ...newTags])].sort());
       setShowImportCollateralModal(false);
       toast(`Synced: ${added.length} added, ${updated.length} updated, ${toArchive.length} archived.`);
     } catch (e) { console.error("syncCollateral error:", e); toast("Failed to sync collateral: " + (e?.message || JSON.stringify(e))); }
