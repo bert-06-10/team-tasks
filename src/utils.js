@@ -61,7 +61,7 @@ export const genClassTasks = (sessions, template) => {
   sessions.forEach(s => {
     items.forEach(item => {
       const due = closestBusinessDay(item.offset ? addDays(s.date, item.offset) : s.date);
-      tasks.push({id:id++,title:item.title,assignee:item.assignee||"",assist:item.assist||"",notes:item.notes||"",due,status:"To Do",deps:[],collateralDeps:[],attachedDocs:[],tags:["class"],offset:item.offset||0,department:"",type:"class",sessionId:s.id,sessionName:s.name});
+      tasks.push({id:id++,title:item.title,assignee:item.assignee||"",assist:item.assist||"",notes:item.notes||"",due,status:"To Do",deps:[],collateralDeps:[],attachedDocs:[],tags:[],offset:item.offset||0,department:"",type:"class",sessionId:s.id,sessionName:s.name});
     });
   });
   return tasks;
@@ -146,7 +146,7 @@ export function parseClassTasksCSV(rows) {
     notes: row.notes||row.description||"",
     status: STATUSES.includes(row.status) ? row.status : "To Do",
     links: row.links||row.link||"",
-    tags: ["class"],
+    tags: [],
     deps: [], collateralDeps: [], attachedDocs: [],
     offset: parseInt(row.days_from_class_date||row.days_from_cycle_start||"0")||0,
     department: "", type: "class", sessionId: "", sessionName: "", flagged: false,
