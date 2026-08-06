@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Modal, Field, TagInput } from "../Primitives.jsx";
 import { STATUSES } from "../../constants.js";
-import { fmtDate, isWeekend, closestBusinessDay, useIsMobile, splitLinks, joinLinks, isUrl } from "../../utils.js";
+import { fmtDate, isWeekend, closestBusinessDay, useIsMobile, splitLinks, joinLinks, isUrl, offsetLabel } from "../../utils.js";
 import { SearchablePicker, AddToCalendarLink } from "./shared.jsx";
 
 // ── Links Input (add/remove multiple links, stored newline-delimited) ──────────
@@ -83,11 +83,13 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
       )}
       {task.type==="program"&&(
         <div style={twoCol}>
-          <Field label="Spring: days from start">
-            <input type="number" value={task.offset||0} onChange={e=>onChange({...task,offset:parseInt(e.target.value)||0})}/>
+          <Field label="Spring: days from cycle start">
+            <input type="number" value={task.offset||0} onChange={e=>onChange({...task,offset:parseInt(e.target.value)||0})} title="Negative = before the cycle start (participant onboarding), positive = after."/>
+            <span style={{fontSize:11,color:"var(--color-text-tertiary)",marginTop:2,display:"block"}}>{offsetLabel(task.offset||0)}</span>
           </Field>
-          <Field label="Fall: days from start">
-            <input type="number" value={task.fallOffset??task.offset??0} onChange={e=>onChange({...task,fallOffset:parseInt(e.target.value)||0})}/>
+          <Field label="Fall: days from cycle start">
+            <input type="number" value={task.fallOffset??task.offset??0} onChange={e=>onChange({...task,fallOffset:parseInt(e.target.value)||0})} title="Negative = before the cycle start (participant onboarding), positive = after."/>
+            <span style={{fontSize:11,color:"var(--color-text-tertiary)",marginTop:2,display:"block"}}>{offsetLabel(task.fallOffset??task.offset??0)}</span>
           </Field>
         </div>
       )}
