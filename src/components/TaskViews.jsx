@@ -255,8 +255,8 @@ function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
       <div onClick={open} style={{...c(),padding:"11px 12px",minWidth:0,...sep}}>
         <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",wordBreak:"break-word",lineHeight:1.4}}>{doc.title}</div>
       </div>
-      <div onClick={open} style={{...c(),padding:"11px 10px",...sep}}>
-        {doc.owner?<span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.owner),color:avatarTx(doc.owner),whiteSpace:"nowrap"}}>{doc.owner}</span>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
+      <div onClick={open} style={{...c(),padding:"11px 10px",minWidth:0,...sep}}>
+        {doc.owner?<span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.owner),color:avatarTx(doc.owner),wordBreak:"break-word",display:"inline-block",maxWidth:"100%"}}>{doc.owner}</span>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
       <div onClick={open} style={{...c(),padding:"11px 10px",...sep}}>
         {doc.content_owner?<Avatar name={doc.content_owner} size={26}/>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
