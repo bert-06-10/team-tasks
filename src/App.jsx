@@ -99,10 +99,11 @@ export default function App() {
 
   // ── UI state ────────────────────────────────────────────────────────────────
   const [toasts,                    setToasts]                    = useState([]);
-  const [view, setViewRaw] = useState(() => { const s = sessionStorage.getItem('teamtasks_view'); return (s && s !== 'classes') ? s : 'board'; });
+  // Not persisted across reload — the "default page" preference (below) is
+  // meant to always win on load, not just until the user's first navigation.
+  const [view, setViewRaw] = useState('board');
   const setView = useCallback((v) => {
     setViewRaw(v);
-    sessionStorage.setItem('teamtasks_view', v);
     if (v === 'board') { setTaskTypeFilterRaw('program'); sessionStorage.setItem('teamtasks_type', 'program'); }
   }, []);
   const [taskTypeFilter, setTaskTypeFilterRaw] = useState(() => { const t = sessionStorage.getItem('teamtasks_type'); return (t && t !== 'runofshow') ? t : 'program'; });
@@ -286,7 +287,7 @@ export default function App() {
         ? { ...DEFAULT_USER_PREFS, ...savedPrefs, statusColors: savedPrefs.statusColors || DEFAULT_STATUS_COLORS, notifications: savedPrefs.notifications || DEFAULT_PREFS.notifications }
         : DEFAULT_USER_PREFS;
       setUserPrefs(resolvedPrefs);
-      if (resolvedPrefs.defaultView && !sessionStorage.getItem('teamtasks_view')) setView(resolvedPrefs.defaultView);
+      setView(resolvedPrefs.defaultView || 'board');
       const tz = resolvedPrefs.timezone || DEFAULT_USER_PREFS.timezone;
       setDefaultTimezone(tz);
       localStorage.setItem('teamtasks_timezone', tz);
@@ -580,10 +581,7 @@ export default function App() {
       setDefaultTimezone(val);
       localStorage.setItem('teamtasks_timezone', val);
     }
-    // Switch to it now, which also refreshes the sessionStorage "last
-    // viewed" memory — otherwise a stale entry there (written on nearly
-    // every load) permanently blocks this preference from ever being
-    // re-applied on reload, since that memory only defers to it when empty.
+    // Switch to it immediately so the change is visible without a reload.
     if (key === 'defaultView') setView(val);
     setUserPrefs(p => {
       const next = { ...p, [key]: val };
