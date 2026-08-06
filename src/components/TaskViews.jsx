@@ -280,7 +280,7 @@ function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
   );
 }
 
-const BLANK_FILTERS = { owner:"All", contentOwner:"All", assist:"All", audience:"All", nextUpdate:"All", lastUpdated:"All", tag:"All" };
+const BLANK_FILTERS = { owner:"All", contentOwner:"All", audience:"All", nextUpdate:"All", lastUpdated:"All", tag:"All" };
 const DATE_FILTER_OPTS      = ["All","Has date","No date","Overdue","Next 30 days"];
 const LAST_UPDATED_OPTS     = ["All","Has date","No date","Past 30 days","Past 90 days"];
 
@@ -301,7 +301,6 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
   const uniq = field => ["All",...Array.from(new Set(activeDocs.map(d=>d[field]).filter(Boolean))).sort()];
   const ownerOpts        = uniq("owner");
   const contentOwnerOpts = uniq("content_owner");
-  const assistOpts       = uniq("assist");
   const audienceOpts     = uniq("audience");
   const tagOpts          = ["All", ...Array.from(new Set(activeDocs.flatMap(d => d.tags||[]))).sort()];
 
@@ -320,7 +319,6 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
   const filteredDocs = activeDocs.filter(d => {
     if (filters.owner        !== "All" && d.owner         !== filters.owner)        return false;
     if (filters.contentOwner !== "All" && d.content_owner !== filters.contentOwner) return false;
-    if (filters.assist       !== "All" && d.assist        !== filters.assist)       return false;
     if (filters.audience     !== "All" && d.audience      !== filters.audience)     return false;
     if (!applyDateFilter(filters.nextUpdate,  d.next_update)) return false;
     if (!applyDateFilter(filters.lastUpdated, d.updated))     return false;
@@ -363,7 +361,6 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
         <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginLeft:"auto"}}>
           <FilterDropdown label="Business Line"  options={ownerOpts}         value={filters.owner}        onChange={v=>setFilter("owner",v)}/>
           <FilterDropdown label="Content Owner" options={contentOwnerOpts}  value={filters.contentOwner} onChange={v=>setFilter("contentOwner",v)}/>
-          <FilterDropdown label="Assist"        options={assistOpts}        value={filters.assist}       onChange={v=>setFilter("assist",v)}/>
           <FilterDropdown label="Audience"      options={audienceOpts}      value={filters.audience}     onChange={v=>setFilter("audience",v)}/>
           <FilterDropdown label="Next Update"   options={DATE_FILTER_OPTS}  value={filters.nextUpdate}   onChange={v=>setFilter("nextUpdate",v)}/>
           <FilterDropdown label="Last Updated"  options={LAST_UPDATED_OPTS} value={filters.lastUpdated}  onChange={v=>setFilter("lastUpdated",v)}/>
