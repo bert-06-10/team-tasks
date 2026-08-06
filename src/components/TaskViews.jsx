@@ -350,15 +350,10 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
 
   return (
     <>
-      <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
+      <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center",flexWrap:"wrap"}}>
         {!isReadOnly && onAddDoc && <button onClick={onAddDoc} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",fontWeight:500,flexShrink:0}}>+ Add collateral</button>}
         <button onClick={()=>setShowArchived(true)} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer",flexShrink:0}}>Archive{archivedDocs.length>0?` (${archivedDocs.length})`:""}</button>
-        <div style={{position:"relative",flexShrink:0}}>
-          <span aria-hidden="true" style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search collateral…" style={{fontSize:13,padding:"5px 10px 5px 28px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:200}}/>
-          {search && <button onClick={()=>setSearch("")} aria-label="Clear search" style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",lineHeight:1,padding:0}}>×</button>}
-        </div>
-        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginLeft:"auto"}}>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           <FilterDropdown label="Business Line"  options={ownerOpts}         value={filters.owner}        onChange={v=>setFilter("owner",v)}/>
           <FilterDropdown label="Content Owner" options={contentOwnerOpts}  value={filters.contentOwner} onChange={v=>setFilter("contentOwner",v)}/>
           <FilterDropdown label="Audience"      options={audienceOpts}      value={filters.audience}     onChange={v=>setFilter("audience",v)}/>
@@ -366,6 +361,11 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
           <FilterDropdown label="Last Updated"  options={LAST_UPDATED_OPTS} value={filters.lastUpdated}  onChange={v=>setFilter("lastUpdated",v)}/>
           {tagOpts.length > 1 && <FilterDropdown label="Tag" options={tagOpts} value={filters.tag} onChange={v=>setFilter("tag",v)} align="right"/>}
           {anyFilter && <button onClick={()=>setFilters(BLANK_FILTERS)} style={{fontSize:12,padding:"5px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>}
+        </div>
+        <div style={{position:"relative",flexShrink:0,marginLeft:"auto"}}>
+          <span aria-hidden="true" style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search collateral…" style={{fontSize:13,padding:"5px 10px 5px 28px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:200}}/>
+          {search && <button onClick={()=>setSearch("")} aria-label="Clear search" style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",lineHeight:1,padding:0}}>×</button>}
         </div>
       </div>
       {visibleSelected.length>0 && (
