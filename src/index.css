@@ -6,6 +6,7 @@
   --color-background-primary: #ffffff;
   --color-background-secondary: #eaecef;
   --color-background-tertiary: #f0f2f4;
+  --color-background-zebra: #f7f8f9;
   --color-text-primary: #1a1a18;
   --color-text-secondary: #5f5e5a;
   --color-text-tertiary: #6b6a64;
@@ -38,6 +39,7 @@
   --color-background-primary: #1c1c1a;
   --color-background-secondary: #252523;
   --color-background-tertiary: #141412;
+  --color-background-zebra: #201f1d;
   --color-text-primary: #eeebe6;
   --color-text-secondary: #a8a5a0;
   --color-text-tertiary: #908d8b;

@@ -197,17 +197,19 @@ export function DocCard({doc,readOnly,onEdit,last}) {
 const DOC_COLS     = "3fr 130px 130px 130px 110px 130px 130px 110px 115px 1fr";
 const DOC_COLS_SEL = "36px 3fr 130px 130px 130px 110px 130px 130px 110px 115px 1fr";
 const DOC_HEADERS  = ["Title","Business Line","Content Owner","Assist","Audience","Editable Link","Shareable Link","Next Update","Last Updated","Tags"];
-const sep = {borderRight:"1px solid var(--color-border-secondary)"};
 const inp ={fontSize:12,width:"100%",boxSizing:"border-box",padding:"3px 6px",border:"1px solid var(--color-border-secondary)",borderRadius:4,background:"var(--color-background-primary)",color:"var(--color-text-primary)",fontFamily:"inherit"};
 
 const DOC_SORT_KEYS = [null,"owner","content_owner","assist","audience",null,null,"next_update","updated",null];
 
+// No vertical rules between columns — alignment alone carries the grid, and
+// zebra striping on rows (below) does the job hard borders used to do for
+// tracking across a line, without the spreadsheet feel.
 function DocListHeader({selectable,selectedAll,someSelected,onSelectAll,sort,onSort}) {
   const hCell = {background:"var(--color-background-secondary)",borderBottom:"1px solid var(--color-border-secondary)",position:"sticky",top:0,zIndex:2,display:"flex",alignItems:"center"};
   return (
     <div style={{display:"contents"}}>
       {selectable && (
-        <div style={{...hCell,padding:"8px 10px",justifyContent:"center",...sep}}>
+        <div style={{...hCell,padding:"8px 10px",justifyContent:"center"}}>
           <input type="checkbox" checked={selectedAll} ref={el=>{if(el)el.indeterminate=someSelected&&!selectedAll;}} onChange={onSelectAll} style={{cursor:"pointer",margin:0}}/>
         </div>
       )}
@@ -216,7 +218,7 @@ function DocListHeader({selectable,selectedAll,someSelected,onSelectAll,sort,onS
         const active = sort.col === key;
         return (
           <div key={i} onClick={key?()=>onSort(key):undefined}
-            style={{...hCell,padding:"8px 12px",fontSize:11,fontWeight:500,color:active?"var(--color-text-primary)":"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em",cursor:key?"pointer":"default",userSelect:"none",gap:4,...(i<DOC_HEADERS.length-1?sep:{})}}>
+            style={{...hCell,padding:"8px 12px",fontSize:11,fontWeight:500,color:active?"var(--color-text-primary)":"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em",cursor:key?"pointer":"default",userSelect:"none",gap:4}}>
             {h}
             {key&&<span style={{fontSize:10,opacity:active?1:0.35}}>{active?(sort.dir==="asc"?"▲":"▼"):"▲"}</span>}
           </div>
@@ -240,40 +242,39 @@ function CopyLink({url}) {
   );
 }
 
-function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
-  const bb = last?"none":"1px solid var(--color-border-secondary)";
-  const bg = selected?"var(--color-background-secondary)":"transparent";
-  const c  = (extra={}) => ({background:bg,borderBottom:bb,display:"flex",alignItems:"center",cursor:"pointer",...extra});
+function DocListRow({doc,even,selectable,selected,onSelect,onOpen}) {
+  const bg = selected?"var(--color-background-secondary)":even?"var(--color-background-zebra)":"transparent";
+  const c  = (extra={}) => ({background:bg,display:"flex",alignItems:"center",cursor:"pointer",...extra});
   const open = () => onOpen(doc);
   return (
     <div style={{display:"contents"}}>
       {selectable && (
-        <div style={{...c({cursor:"default"}),padding:"11px 10px",justifyContent:"center",...sep}}>
+        <div style={{...c({cursor:"default"}),padding:"13px 10px",justifyContent:"center"}}>
           <input type="checkbox" checked={!!selected} onChange={()=>onSelect(doc.id)} onClick={e=>e.stopPropagation()} style={{cursor:"pointer",margin:0}}/>
         </div>
       )}
-      <div onClick={open} style={{...c(),padding:"11px 12px",minWidth:0,...sep}}>
+      <div onClick={open} style={{...c(),padding:"13px 12px",minWidth:0}}>
         <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",wordBreak:"break-word",lineHeight:1.4}}>{doc.title}</div>
       </div>
-      <div onClick={open} style={{...c(),padding:"11px 10px",minWidth:0,...sep}}>
+      <div onClick={open} style={{...c(),padding:"13px 10px",minWidth:0}}>
         {doc.owner?<span style={{fontSize:11,fontWeight:500,padding:"2px 8px",borderRadius:10,background:avatarBg(doc.owner),color:avatarTx(doc.owner),wordBreak:"break-word",display:"inline-block",maxWidth:"100%"}}>{doc.owner}</span>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div onClick={open} style={{...c(),padding:"11px 10px",...sep}}>
+      <div onClick={open} style={{...c(),padding:"13px 10px"}}>
         {doc.content_owner?<Avatar name={doc.content_owner} size={26}/>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div onClick={open} style={{...c(),padding:"11px 10px",...sep}}>
+      <div onClick={open} style={{...c(),padding:"13px 10px"}}>
         {doc.assist?<Avatar name={doc.assist} size={26}/>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",wordBreak:"break-word",minWidth:0,...sep}}>{doc.audience||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
-      <div style={{...c({cursor:"default"}),padding:"11px 12px",...sep}}>
+      <div onClick={open} style={{...c(),padding:"13px 12px",fontSize:12,color:"var(--color-text-secondary)",wordBreak:"break-word",minWidth:0}}>{doc.audience||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div style={{...c({cursor:"default"}),padding:"13px 12px"}}>
         {doc.url?<a href={doc.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>↗ Open</a>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div style={{...c({cursor:"default"}),padding:"11px 12px",minWidth:0,...sep}}>
+      <div style={{...c({cursor:"default"}),padding:"13px 12px",minWidth:0}}>
         {doc.shareable_link?<CopyLink url={doc.shareable_link}/>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDateYear(doc.next_update)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
-      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDateYear(doc.updated)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
-      <div onClick={open} style={{...c(),padding:"11px 12px",flexWrap:"wrap",gap:4,...sep}}>
+      <div onClick={open} style={{...c(),padding:"13px 12px",fontSize:12,color:"var(--color-text-secondary)"}}>{fmtDateYear(doc.next_update)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div onClick={open} style={{...c(),padding:"13px 12px",fontSize:12,color:"var(--color-text-secondary)"}}>{fmtDateYear(doc.updated)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div onClick={open} style={{...c(),padding:"13px 12px",flexWrap:"wrap",gap:4}}>
         {(doc.tags||[]).length>0?doc.tags.map(t=><span key={t} style={{fontSize:11,padding:"2px 7px",borderRadius:10,background:"var(--color-background-secondary)",color:"var(--color-text-secondary)",whiteSpace:"nowrap"}}>{t}</span>):<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
     </div>
@@ -387,8 +388,8 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
           ? <div style={{padding:"16px",fontSize:13,color:"var(--color-text-tertiary)",gridColumn:"1/-1"}}>{anyFilter||sq?"No documents match the current filters.":"No documents."}</div>
           : <>
               <DocListHeader selectable={selectable} selectedAll={selectedAll} someSelected={someSelected} onSelectAll={handleSelectAll} sort={sort} onSort={toggleSort}/>
-              {displayDocs.map((d,i,arr)=>(
-                <DocListRow key={d.id} doc={d} last={i===arr.length-1}
+              {displayDocs.map((d,i)=>(
+                <DocListRow key={d.id} doc={d} even={i%2===1}
                   selectable={selectable} selected={selectedIds.has(d.id)} onSelect={toggleSelect}
                   onOpen={setDetailDoc}/>
               ))}
