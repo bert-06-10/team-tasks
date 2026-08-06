@@ -264,7 +264,7 @@ function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
       <div onClick={open} style={{...c(),padding:"11px 10px",...sep}}>
         {doc.assist?<Avatar name={doc.assist} size={26}/>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,...sep}} title={doc.audience||""}>{doc.audience||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",wordBreak:"break-word",minWidth:0,...sep}}>{doc.audience||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
       <div style={{...c({cursor:"default"}),padding:"11px 12px",...sep}}>
         {doc.url?<a href={doc.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--color-text-secondary)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>↗ Open</a>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
