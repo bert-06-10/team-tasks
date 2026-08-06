@@ -850,11 +850,29 @@ export default function App() {
   const importCollateral = async (items) => {
     try {
       const saved = await Promise.all(items.map(item => db.saveDoc(item)));
-      setDocs(p => [...p, ...saved]);
+      setDocs(p => [...p, ...saved.filter(d => !p.some(x => x.id === d.id))]);
       addToImportHistory('collateral', saved, `${saved.length} collateral item${saved.length !== 1 ? 's' : ''}`);
       setShowImportCollateralModal(false);
       toast(`${saved.length} collateral items imported.`);
     } catch (e) { console.error("importCollateral error:", e); toast("Failed to import collateral: " + (e?.message || JSON.stringify(e))); }
+  };
+
+  const syncCollateral = async ({ toAdd, toUpdate, toArchive }) => {
+    try {
+      const [added, updated] = await Promise.all([
+        Promise.all(toAdd.map(item => db.saveDoc(item))),
+        Promise.all(toUpdate.map(item => db.saveDoc(item))),
+      ]);
+      await Promise.all(toArchive.map(d => db.setDocArchived(d.id, true)));
+      const updatedById = new Map(updated.map(d => [d.id, d]));
+      const archivedIds = new Set(toArchive.map(d => d.id));
+      setDocs(p => {
+        const merged = p.map(d => updatedById.has(d.id) ? updatedById.get(d.id) : archivedIds.has(d.id) ? { ...d, archived: true } : d);
+        return [...merged, ...added.filter(d => !merged.some(x => x.id === d.id))];
+      });
+      setShowImportCollateralModal(false);
+      toast(`Synced: ${added.length} added, ${updated.length} updated, ${toArchive.length} archived.`);
+    } catch (e) { console.error("syncCollateral error:", e); toast("Failed to sync collateral: " + (e?.message || JSON.stringify(e))); }
   };
 
   const reverseImport = async (entry) => {
@@ -1392,7 +1410,7 @@ export default function App() {
       {showMilestoneModal && editMilestone && <MilestoneModal milestone={editMilestone} onChange={setEditMilestone} onSave={saveMilestone} onDelete={deleteMilestone} tasks={allTasks} docs={docs} onClose={() => { setShowMilestoneModal(false); setEditMilestone(null); }} />}
       {showCycleModal    && <CycleModal tasks={programTasks} activeCycle={activeCycle} initialDraft={draftCycle} sessions={sessions} cycleType={draftCycle?.cycleType || newCycleType} onSaveDraft={saveDraft} onLaunch={launchCycle} onClose={() => setShowCycleModal(false)} />}
       {showImportModal   && <ImportModal onImportProgram={importProgram} onImportClass={importClass} onImportRunOfShow={importROS} sessions={sessions} cycle={activeCycle} importHistory={importHistory} onReverseImport={reverseImport} initialTab={importModalTab} onClose={() => setShowImportModal(false)} />}
-      {showImportCollateralModal && <ImportCollateralModal onImport={importCollateral} onClose={() => setShowImportCollateralModal(false)} />}
+      {showImportCollateralModal && <ImportCollateralModal onImport={importCollateral} onSync={syncCollateral} docs={docs} onClose={() => setShowImportCollateralModal(false)} />}
       {showSettings      && <SettingsModal initialTab={settingsTab} members={members} setMembers={setMembersSync} departments={departments} setDepartments={setDepartmentsSync} audiences={audiences} setAudiences={setAudiencesSync} globalTags={globalTags} setGlobalTags={setGlobalTagsSync} businessLines={businessLines} setBusinessLines={setBusinessLinesSync} myUser={myUser} myUserId={userId} isAdmin={isAdmin} prefs={prefs} updatePrefs={updatePrefs} onClose={() => setShowSettings(false)} />}
     </div>
   );

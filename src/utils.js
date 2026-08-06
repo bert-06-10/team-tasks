@@ -261,6 +261,36 @@ export function parseCollateralCSV(rows) {
   });
 }
 
+// Diffs freshly-parsed collateral CSV rows against existing docs (matched by
+// trimmed/lowercased title) into adds, updates (existing fields overwritten
+// by the CSV, unarchiving matched docs), and archives (active docs whose
+// title didn't reappear in the CSV).
+export function diffCollateralSync(existingDocs, incomingItems) {
+  const norm = s => (s||"").trim().toLowerCase();
+  const byTitle = new Map(existingDocs.map(d => [norm(d.title), d]));
+  const matchedIds = new Set();
+  const toAdd = [];
+  const toUpdate = [];
+  const carryLinkedId = (oldName, oldId, newName) => (oldName && newName && norm(oldName)===norm(newName)) ? oldId : null;
+
+  incomingItems.forEach(item => {
+    const existing = byTitle.get(norm(item.title));
+    if (existing) {
+      matchedIds.add(existing.id);
+      toUpdate.push({
+        ...existing, ...item, id: existing.id, archived: false,
+        content_owner_id: carryLinkedId(existing.content_owner, existing.content_owner_id, item.content_owner),
+        assist_id: carryLinkedId(existing.assist, existing.assist_id, item.assist),
+      });
+    } else {
+      toAdd.push(item);
+    }
+  });
+
+  const toArchive = existingDocs.filter(d => !d.archived && !matchedIds.has(d.id));
+  return { toAdd, toUpdate, toArchive };
+}
+
 // Traps Tab/Shift+Tab within a container (e.g. an open modal) so keyboard
 // focus can't escape to the page behind it. Wraps from the last focusable
 // element back to the first, and vice versa for Shift+Tab.

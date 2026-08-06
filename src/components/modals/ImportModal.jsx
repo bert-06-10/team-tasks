@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Modal, Field } from "../Primitives.jsx";
-import { addDays, nextBusinessDay, fmtDate, parseCSV, parseClassTasksCSV, parseProgramTasksCSV, parseRunOfShowCSV, parseCollateralCSV } from "../../utils.js";
+import { addDays, nextBusinessDay, fmtDate, fmtDateYear, parseCSV, parseClassTasksCSV, parseProgramTasksCSV, parseRunOfShowCSV, parseCollateralCSV, diffCollateralSync } from "../../utils.js";
 
 // ── Import/Export Modal (tasks, run of show) ─────────────────────────────────────
 
@@ -252,7 +252,8 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
 
 // ── Import Collateral Modal ──────────────────────────────────────────────────────
 
-export function ImportCollateralModal({ onImport, onClose }) {
+export function ImportCollateralModal({ onImport, onSync, docs, onClose }) {
+  const [mode, setMode] = useState("add");
   const [csvText, setCsvText] = useState("");
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState("");
@@ -269,6 +270,8 @@ export function ImportCollateralModal({ onImport, onClose }) {
       setPreview(null);
     }
   };
+
+  const diff = (mode==="sync" && preview) ? diffCollateralSync(docs||[], preview) : null;
 
   const handleFile = e => {
     const f = e.target.files[0];
@@ -292,16 +295,24 @@ export function ImportCollateralModal({ onImport, onClose }) {
 
   return (
     <Modal onClose={onClose} title="Import collateral from CSV">
+      {onSync && (
+        <div style={{display:"flex",gap:4,marginBottom:16,padding:"4px",background:"var(--color-background-secondary)",borderRadius:"var(--border-radius-lg)",width:"fit-content"}}>
+          {[["add","Add new items"],["sync","Sync with existing"]].map(([m,l]) => (
+            <button key={m} onClick={()=>setMode(m)} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"none",background:mode===m?"var(--color-background-primary)":"transparent",color:mode===m?"var(--color-text-primary)":"var(--color-text-secondary)",cursor:"pointer",fontWeight:mode===m?500:400,boxShadow:mode===m?"0 1px 3px rgba(0,0,0,0.08)":"none"}}>{l}</button>
+          ))}
+        </div>
+      )}
       <div style={{marginBottom:16,padding:"10px 14px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:12,color:"var(--color-text-secondary)",lineHeight:1.7}}>
         Expected columns: <code style={{fontSize:11,background:"var(--color-background-tertiary)",padding:"1px 5px",borderRadius:4}}>Title, Owner, Audience, Description, Editable Link, Shareable Link, Next Scheduled Update, Last Updated, Content Owner, Assist, Logo Wall, Impact Stats, Video Testimonial, Notes</code>
         <div style={{marginTop:6,fontSize:11,color:"var(--color-text-tertiary)"}}>Logo Wall, Impact Stats, and Video Testimonial are stored as tags when set to "yes", "true", or "x". Other extra fields are appended to the description.</div>
+        {mode==="sync" && <div style={{marginTop:6,fontSize:11,color:"var(--color-text-tertiary)"}}>Sync matches items by title: existing items are updated with the CSV's data (and unarchived if they were archived), new titles are added, and active items whose title doesn't appear in the CSV are archived.</div>}
       </div>
       <Field label="Upload CSV file"><input ref={fileRef} type="file" accept=".csv" onChange={handleFile}/></Field>
       <Field label="Or paste CSV text">
         <textarea value={csvText} onChange={e=>{setCsvText(e.target.value);setPreview(null);}} rows={4} placeholder="Title,Owner,Audience,..." style={{resize:"vertical",fontFamily:"monospace",fontSize:12}}/>
       </Field>
       {error && <div style={{fontSize:12,color:"var(--color-text-danger)",marginBottom:12}}>{error}</div>}
-      {preview && (
+      {preview && mode==="add" && (
         <div style={{marginBottom:16}}>
           <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)",marginBottom:8}}>{preview.length} items — verify before importing:</div>
           <div style={{overflowX:"auto",border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-md)"}}>
@@ -327,10 +338,36 @@ export function ImportCollateralModal({ onImport, onClose }) {
           </div>
         </div>
       )}
+      {diff && (
+        <div style={{marginBottom:16,display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)"}}>{diff.toAdd.length} new · {diff.toUpdate.length} updated · {diff.toArchive.length} to archive</div>
+          {[
+            ["New", diff.toAdd, "#0F6E56", "#E1F5EE", "#9FE1CB"],
+            ["Updated", diff.toUpdate, "#185FA5", "#E6F1FB", "#B5D4F4"],
+            ["Archive (missing from CSV)", diff.toArchive, "#854F0B", "#FAEEDA", "#F0C97A"],
+          ].filter(([,items])=>items.length>0).map(([label,items,color,bg,border]) => (
+            <div key={label}>
+              <div style={{fontSize:12,fontWeight:500,color,marginBottom:6}}>{label} ({items.length})</div>
+              <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:140,overflowY:"auto"}}>
+                {items.map((d,i) => (
+                  <div key={d.id??i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"5px 10px",borderRadius:"var(--border-radius-md)",background:bg,border:`0.5px solid ${border}`,fontSize:12}}>
+                    <span style={{color,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.title}</span>
+                    {d.updated && <span style={{color,opacity:0.7,flexShrink:0,whiteSpace:"nowrap"}}>{fmtDateYear(d.updated)}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {diff.toAdd.length===0 && diff.toUpdate.length===0 && diff.toArchive.length===0 && (
+            <div style={{fontSize:13,color:"var(--color-text-tertiary)"}}>No changes — everything already matches.</div>
+          )}
+        </div>
+      )}
       <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:8}}>
         <button onClick={onClose} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
         {!preview && <button onClick={()=>runPreview(csvText)} disabled={!csvText.trim()} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:csvText.trim()?"var(--color-background-secondary)":"transparent",color:csvText.trim()?"var(--color-text-primary)":"var(--color-text-tertiary)",cursor:csvText.trim()?"pointer":"default"}}>Preview</button>}
-        {preview && <button onClick={()=>onImport(preview)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>Import {preview.length} items</button>}
+        {preview && mode==="add" && <button onClick={()=>onImport(preview)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>Import {preview.length} items</button>}
+        {diff && (diff.toAdd.length+diff.toUpdate.length+diff.toArchive.length)>0 && <button onClick={()=>onSync(diff)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>Apply sync</button>}
       </div>
     </Modal>
   );
