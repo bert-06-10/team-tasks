@@ -114,6 +114,7 @@ export default function App() {
   const [ownerFilter,               setOwnerFilter]               = useState("All");
   const [sessionFilter,             setSessionFilter]             = useState("all");
   const [dateFilter,                setDateFilter]                = useState("All");
+  const [blockedFilter,             setBlockedFilter]             = useState("All");
   const [viewingArchive,            setViewingArchive]            = useState(null);
   const [draftCycle,                setDraftCycle]                = useState(() => { try { return JSON.parse(localStorage.getItem('teamtasks_draft_cycle')); } catch { return null; } });
   const [classTaskTemplate,         setClassTaskTemplate]         = useState(() => { try { const s = localStorage.getItem('teamtasks_class_task_template'); return s ? JSON.parse(s) : null; } catch { return null; } });
@@ -1150,10 +1151,14 @@ export default function App() {
   };
   const _tsq = taskSearch.trim().toLowerCase();
   const matchesTaskSearch = t => !_tsq || (t.title||"").toLowerCase().includes(_tsq) || (t.assignee||"").toLowerCase().includes(_tsq) || (t.notes||"").toLowerCase().includes(_tsq) || (t.tags||[]).some(g => g.toLowerCase().includes(_tsq));
-  const filteredTasks       = sortByDue(displayTasks.filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter).filter(applyDateFilter).filter(matchesTaskSearch));
-  const myFilteredTasks     = sortByDue(displayTasks.filter(t => t.assignee === myUser || t.assist === myUser).filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter).filter(applyDateFilter).filter(matchesTaskSearch));
+  const applyBlockedFilter = t => blockedFilter === "All" || getBlockedStatus(t) === blockedFilter;
+  const filteredTasks       = sortByDue(displayTasks.filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter).filter(applyDateFilter).filter(applyBlockedFilter).filter(matchesTaskSearch));
+  const myFilteredTasks     = sortByDue(displayTasks.filter(t => t.assignee === myUser || t.assist === myUser).filter(t => deptFilter === "All" || t.department === deptFilter).filter(t => ownerFilter === "All" || t.assignee === ownerFilter || t.assist === ownerFilter).filter(t => sessionFilter === "all" || t.sessionId === sessionFilter).filter(applyDateFilter).filter(applyBlockedFilter).filter(matchesTaskSearch));
 
   const openTask     = t => { if (!isReadOnly) { setEditTask(t); setShowTaskModal(true); } };
+
+  const atRiskCount = allTasks.filter(t => t.status !== "Done" && getBlockedStatus(t) === "at-risk").length;
+  const goToAtRisk = () => { setTaskTypeFilter("program"); setBlockedFilter("at-risk"); setView("list"); };
 
   const unreadNotifCount = notifications.filter(n => !n.read).length;
   const markNotifRead = async id => {
@@ -1252,6 +1257,11 @@ export default function App() {
                 <button onClick={() => setShowCycleModal(true)} style={{ fontSize: 12, padding: "4px 6px 4px 12px", border: "none", background: "transparent", color: "#0F6E56", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#0F6E56", display: "inline-block" }}></span>{draftCycle.cycle.name}</button>
                 <button onClick={deleteDraft} title="Delete draft" aria-label="Delete draft" style={{ fontSize: 14, padding: "4px 10px 4px 4px", border: "none", background: "transparent", color: "#0F6E56", cursor: "pointer", lineHeight: 1 }}>×</button>
               </div>
+            )}
+            {atRiskCount > 0 && (
+              <button onClick={goToAtRisk} title={`${atRiskCount} task${atRiskCount !== 1 ? "s" : ""} at risk — a dependency is overdue`} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, border: "0.5px solid #F7C1C1", background: "#FCEBEB", color: "#A32D2D", cursor: "pointer", fontSize: 12, fontWeight: 500, flexShrink: 0, whiteSpace: "nowrap" }}>
+                <span aria-hidden="true">⚠</span>{atRiskCount} at risk
+              </button>
             )}
             <div ref={notifRef} style={{ position: "relative" }}>
               <button onClick={() => setOpenDropdown(openDropdown === 'notifications' ? null : 'notifications')} aria-haspopup="true" aria-expanded={openDropdown === 'notifications'} aria-label={unreadNotifCount > 0 ? `Notifications, ${unreadNotifCount} unread` : "Notifications"} style={{ position: "relative", width: 28, height: 28, borderRadius: "50%", border: "0.5px solid var(--color-border-secondary)", background: openDropdown === 'notifications' ? "var(--color-background-secondary)" : "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -1448,7 +1458,13 @@ export default function App() {
                 );
               })()}
               <FilterDropdown label="Due date" options={["All","Overdue","Due today","Next 7 days","Next 30 days","No due date"]} value={dateFilter} onChange={setDateFilter} />
-              {(deptFilter !== "All" || ownerFilter !== "All" || sessionFilter !== "all" || dateFilter !== "All") && <button onClick={() => { setDeptFilter("All"); setOwnerFilter("All"); setSessionFilter("all"); setDateFilter("All"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
+              <FilterDropdown
+                label="Status flag"
+                options={["All","At risk","Blocked","Clear"]}
+                value={blockedFilter==="All"?"All":blockedFilter==="at-risk"?"At risk":blockedFilter==="blocked"?"Blocked":"Clear"}
+                onChange={v => setBlockedFilter(v==="All"?"All":v==="At risk"?"at-risk":v==="Blocked"?"blocked":"clear")}
+              />
+              {(deptFilter !== "All" || ownerFilter !== "All" || sessionFilter !== "all" || dateFilter !== "All" || blockedFilter !== "All") && <button onClick={() => { setDeptFilter("All"); setOwnerFilter("All"); setSessionFilter("all"); setDateFilter("All"); setBlockedFilter("All"); }} style={{ fontSize: 12, padding: "5px 10px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Clear</button>}
               <div style={{ position: "relative", marginLeft: "auto" }}>
                 <span aria-hidden="true" style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "var(--color-text-tertiary)", pointerEvents: "none" }}>⌕</span>
                 <input value={taskSearch} onChange={e => setTaskSearch(e.target.value)} placeholder="Search..." style={{ fontSize: 13, padding: "5px 10px 5px 26px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", width: 180 }} />
