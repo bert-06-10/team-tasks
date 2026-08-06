@@ -253,10 +253,10 @@ export default function App() {
   }, [prefs.darkMode]);
 
   // ── Toast ───────────────────────────────────────────────────────────────────
-  const toast = useCallback((msg) => {
+  const toast = useCallback((msg, opts = {}) => {
     const id = Date.now();
-    setToasts(n => [...n, { id, msg }]);
-    setTimeout(() => setToasts(n => n.filter(x => x.id !== id)), 4000);
+    setToasts(n => [...n, { id, msg, action: opts.action }]);
+    setTimeout(() => setToasts(n => n.filter(x => x.id !== id)), opts.action ? 8000 : 4000);
     if (prefs.desktopNotifications && Notification.permission === "granted")
       new Notification("Team Tasks", { body: msg });
   }, [prefs.desktopNotifications]);
@@ -840,6 +840,7 @@ export default function App() {
       localStorage.setItem('teamtasks_import_history', JSON.stringify(next));
       return next;
     });
+    return entry;
   };
 
   // Sync entries mix adds, in-place updates, and archives — unlike a plain
@@ -857,6 +858,7 @@ export default function App() {
       localStorage.setItem('teamtasks_import_history', JSON.stringify(next));
       return next;
     });
+    return entry;
   };
 
   const importProgram = async (rows, cycleInfo) => {
@@ -867,9 +869,9 @@ export default function App() {
       }
       const saved = await db.bulkInsertTasks(rows, sessions);
       setProgramTasks(p => appendNewTasks(p, saved));
-      addToImportHistory('program', saved, `${saved.length} program task${saved.length !== 1 ? 's' : ''}`);
+      const entry = addToImportHistory('program', saved, `${saved.length} program task${saved.length !== 1 ? 's' : ''}`);
       setShowImportModal(false);
-      toast(cycleInfo ? `Cycle "${cycleInfo.name}" created and ${saved.length} tasks imported.` : `${saved.length} program tasks imported.`);
+      toast(cycleInfo ? `Cycle "${cycleInfo.name}" created and ${saved.length} tasks imported.` : `${saved.length} program tasks imported.`, { action: { label: "Undo", onClick: () => reverseImport(entry, { skipConfirm: true }) } });
     } catch (e) { console.error("importProgram error:", e); toast("Failed to import: " + (e?.message || JSON.stringify(e))); }
   };
 
@@ -881,9 +883,9 @@ export default function App() {
       }
       const saved = await db.bulkInsertTasks(rows, sessions);
       setClassTasks(p => appendNewTasks(p, saved));
-      addToImportHistory('class', saved, `${saved.length} class task${saved.length !== 1 ? 's' : ''}`);
+      const entry = addToImportHistory('class', saved, `${saved.length} class task${saved.length !== 1 ? 's' : ''}`);
       setShowImportModal(false);
-      toast(cycleInfo ? `Cycle "${cycleInfo.name}" created and ${saved.length} tasks imported.` : `${saved.length} class tasks imported.`);
+      toast(cycleInfo ? `Cycle "${cycleInfo.name}" created and ${saved.length} tasks imported.` : `${saved.length} class tasks imported.`, { action: { label: "Undo", onClick: () => reverseImport(entry, { skipConfirm: true }) } });
     } catch (e) { console.error("importClass error:", e); toast("Failed to import class tasks"); }
   };
 
@@ -892,9 +894,9 @@ export default function App() {
       const saved = await db.bulkInsertRunOfShow(sessionId, rows);
       setRunOfShow(prev => ({ ...prev, [sessionId]: [...(prev[sessionId] || []), ...saved] }));
       const sess = sessions.find(s => s.id === sessionId);
-      addToImportHistory('runofshow', saved, `${saved.length} run of show row${saved.length !== 1 ? 's' : ''}`, { sessionId, sessionLabel: sess ? (sess.professor || sess.name) : '' });
+      const entry = addToImportHistory('runofshow', saved, `${saved.length} run of show row${saved.length !== 1 ? 's' : ''}`, { sessionId, sessionLabel: sess ? (sess.professor || sess.name) : '' });
       setShowImportModal(false);
-      toast(`${saved.length} run of show rows imported.`);
+      toast(`${saved.length} run of show rows imported.`, { action: { label: "Undo", onClick: () => reverseImport(entry, { skipConfirm: true }) } });
     } catch (e) { console.error("importROS error:", e); toast("Failed to import run of show rows"); }
   };
 
@@ -904,9 +906,9 @@ export default function App() {
       setDocs(p => [...p, ...saved.filter(d => !p.some(x => x.id === d.id))]);
       const newTags = saved.flatMap(d => d.tags || []);
       if (newTags.length) setGlobalTags(prev => [...new Set([...prev, ...newTags])].sort());
-      addToImportHistory('collateral', saved, `${saved.length} collateral item${saved.length !== 1 ? 's' : ''}`);
+      const entry = addToImportHistory('collateral', saved, `${saved.length} collateral item${saved.length !== 1 ? 's' : ''}`);
       setShowImportCollateralModal(false);
-      toast(`${saved.length} collateral items imported.`);
+      toast(`${saved.length} collateral items imported.`, { action: { label: "Undo", onClick: () => reverseImport(entry, { skipConfirm: true }) } });
     } catch (e) { console.error("importCollateral error:", e); toast("Failed to import collateral: " + (e?.message || JSON.stringify(e))); }
   };
 
@@ -926,21 +928,23 @@ export default function App() {
       });
       const newTags = [...added, ...updated].flatMap(d => d.tags || []);
       if (newTags.length) setGlobalTags(prev => [...new Set([...prev, ...newTags])].sort());
-      addSyncHistoryEntry({
+      const entry = addSyncHistoryEntry({
         added, archived: toArchive,
         updatedBefore: updateBefore.map(({ id, before }) => ({ id, before })),
         label: `${added.length} added, ${updated.length} updated, ${toArchive.length} archived`,
       });
       setShowImportCollateralModal(false);
-      toast(`Synced: ${added.length} added, ${updated.length} updated, ${toArchive.length} archived.`);
+      toast(`Synced: ${added.length} added, ${updated.length} updated, ${toArchive.length} archived.`, { action: { label: "Undo", onClick: () => reverseImport(entry, { skipConfirm: true }) } });
     } catch (e) { console.error("syncCollateral error:", e); toast("Failed to sync collateral: " + (e?.message || JSON.stringify(e))); }
   };
 
-  const reverseImport = async (entry) => {
-    const confirmMsg = entry.type === 'collateral_sync'
-      ? `Reverse this sync? ${entry.addedIds.length} added item${entry.addedIds.length !== 1 ? 's' : ''} will be deleted, ${entry.updatedBefore.length} updated item${entry.updatedBefore.length !== 1 ? 's' : ''} will be restored to their prior values, and ${entry.archivedIds.length} archived item${entry.archivedIds.length !== 1 ? 's' : ''} will be unarchived.`
-      : `Remove ${entry.count} imported ${entry.type === 'runofshow' ? 'run of show rows' : entry.type === 'collateral' ? 'collateral items' : 'tasks'} from "${entry.label}"?`;
-    if (!window.confirm(confirmMsg)) return;
+  const reverseImport = async (entry, { skipConfirm = false } = {}) => {
+    if (!skipConfirm) {
+      const confirmMsg = entry.type === 'collateral_sync'
+        ? `Reverse this sync? ${entry.addedIds.length} added item${entry.addedIds.length !== 1 ? 's' : ''} will be deleted, ${entry.updatedBefore.length} updated item${entry.updatedBefore.length !== 1 ? 's' : ''} will be restored to their prior values, and ${entry.archivedIds.length} archived item${entry.archivedIds.length !== 1 ? 's' : ''} will be unarchived.`
+        : `Remove ${entry.count} imported ${entry.type === 'runofshow' ? 'run of show rows' : entry.type === 'collateral' ? 'collateral items' : 'tasks'} from "${entry.label}"?`;
+      if (!window.confirm(confirmMsg)) return;
+    }
     try {
       if (entry.type === 'program') {
         await Promise.all(entry.ids.map(id => db.deleteTask(id)));
@@ -1186,7 +1190,12 @@ export default function App() {
     <div style={{ fontFamily: "var(--font-sans)", minHeight: "100vh", background: "var(--color-background-tertiary)", display: "flex", flexDirection: "column" }}>
       {/* Toasts */}
       <div style={{ position: "fixed", top: 16, right: 16, zIndex: 999, display: "flex", flexDirection: "column", gap: 8 }}>
-        {toasts.map(n => <div key={n.id} style={{ background: "var(--color-background-primary)", border: "1px solid var(--color-border-secondary)", borderRadius: 8, padding: "10px 16px", fontSize: 13, color: "var(--color-text-primary)", maxWidth: 320, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>{n.msg}</div>)}
+        {toasts.map(n => (
+          <div key={n.id} style={{ background: "var(--color-background-primary)", border: "1px solid var(--color-border-secondary)", borderRadius: 8, padding: "10px 16px", fontSize: 13, color: "var(--color-text-primary)", maxWidth: 320, boxShadow: "0 2px 8px rgba(0,0,0,0.1)", display: "flex", alignItems: "center", gap: 14, justifyContent: "space-between" }}>
+            <span>{n.msg}</span>
+            {n.action && <button onClick={() => { n.action.onClick(); setToasts(ts => ts.filter(x => x.id !== n.id)); }} style={{ fontSize: 13, fontWeight: 600, color: "#185FA5", background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0, whiteSpace: "nowrap" }}>{n.action.label}</button>}
+          </div>
+        ))}
       </div>
 
       {/* Top nav */}
