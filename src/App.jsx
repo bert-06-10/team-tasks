@@ -579,6 +579,11 @@ export default function App() {
       setDefaultTimezone(val);
       localStorage.setItem('teamtasks_timezone', val);
     }
+    // Switch to it now, which also refreshes the sessionStorage "last
+    // viewed" memory — otherwise a stale entry there (written on nearly
+    // every load) permanently blocks this preference from ever being
+    // re-applied on reload, since that memory only defers to it when empty.
+    if (key === 'defaultView') setView(val);
     setUserPrefs(p => {
       const next = { ...p, [key]: val };
       if (userId) db.saveUserPrefs(userId, next).catch(e => console.error("Failed to save prefs:", e));
