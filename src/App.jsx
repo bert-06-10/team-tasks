@@ -484,7 +484,7 @@ export default function App() {
             owner: r.owner || '', content_owner: r.content_owner || '',
             assist: r.assist || '', shareable_link: r.shareable_link || '',
             updated: r.updated_date || '', tags: r.tags || [],
-            next_update: r.next_update || '',
+            next_update: r.next_update || '', archived: r.archived || false,
           };
           if (eventType === 'UPDATE') setDocs(p => p.map(x => x.id === d.id ? d : x));
           else setDocs(p => p.some(x => x.id === d.id) ? p : [...p, d]);
@@ -633,6 +633,27 @@ export default function App() {
     } catch (e) {
       console.error("deleteSelectedDocs error:", e);
       toast("Failed to delete some items");
+    }
+  };
+
+  const archiveSelectedDocs = async ids => {
+    setDocs(p => p.map(d => ids.includes(d.id) ? { ...d, archived: true } : d));
+    try {
+      await Promise.all(ids.map(id => db.setDocArchived(id, true)));
+      toast(`${ids.length} item${ids.length !== 1 ? "s" : ""} archived.`);
+    } catch (e) {
+      console.error("archiveSelectedDocs error:", e);
+      toast("Failed to archive some items");
+    }
+  };
+
+  const unarchiveDoc = async id => {
+    setDocs(p => p.map(d => d.id === id ? { ...d, archived: false } : d));
+    try {
+      await db.setDocArchived(id, false);
+    } catch (e) {
+      console.error("unarchiveDoc error:", e);
+      toast("Failed to unarchive item");
     }
   };
 
@@ -1352,7 +1373,7 @@ export default function App() {
         </div>
 
         <div style={{display:view==="collateral"?"":"none"}}>
-          <CollateralView docs={displayDocs} isReadOnly={isReadOnly} onSave={saveDoc} onDelete={deleteDoc} onDeleteSelected={deleteSelectedDocs} onAddDoc={()=>{setEditDoc({title:"",type:"Google Drive",audience:"",description:"",updated:new Date().toISOString().slice(0,10),next_update:"",owner:"",content_owner:"",assist:"",url:"",shareable_link:"",tags:[]});setShowDocModal(true);}} members={members} audiences={audiences} globalTags={globalTags} businessLines={businessLines} />
+          <CollateralView docs={displayDocs} isReadOnly={isReadOnly} onSave={saveDoc} onDelete={deleteDoc} onDeleteSelected={deleteSelectedDocs} onArchiveSelected={archiveSelectedDocs} onUnarchive={unarchiveDoc} onAddDoc={()=>{setEditDoc({title:"",type:"Google Drive",audience:"",description:"",updated:new Date().toISOString().slice(0,10),next_update:"",owner:"",content_owner:"",assist:"",url:"",shareable_link:"",tags:[]});setShowDocModal(true);}} members={members} audiences={audiences} globalTags={globalTags} businessLines={businessLines} />
         </div>
 
         <div style={{display:view==="search"?"":"none"}}>

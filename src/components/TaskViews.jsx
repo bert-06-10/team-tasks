@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Avatar, Badge, StatusPill, FilterDropdown } from "./Primitives.jsx";
+import { Avatar, Badge, StatusPill, FilterDropdown, Modal } from "./Primitives.jsx";
 import { CollateralDetailModal } from "./modals/CollateralDetailModal.jsx";
 import { fmtDate, fmtDateYear, isOverdue, avatarBg, avatarTx, addDays, splitLinks, isUrl } from "../utils.js";
 import { DEFAULT_STATUS_COLORS } from "../constants.js";
@@ -284,22 +284,26 @@ const BLANK_FILTERS = { owner:"All", contentOwner:"All", assist:"All", audience:
 const DATE_FILTER_OPTS      = ["All","Has date","No date","Overdue","Next 30 days"];
 const LAST_UPDATED_OPTS     = ["All","Has date","No date","Past 30 days","Past 90 days"];
 
-export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected,onAddDoc,members,audiences,globalTags,businessLines=[]}) {
+export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected,onArchiveSelected,onUnarchive,onAddDoc,members,audiences,globalTags,businessLines=[]}) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [detailDoc,   setDetailDoc]   = useState(null);
   const [filters,     setFilters]     = useState(BLANK_FILTERS);
   const [sort,        setSort]        = useState({col:"owner",dir:"asc"});
   const [search,      setSearch]      = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const selectable = !isReadOnly;
+
+  const activeDocs = docs.filter(d=>!d.archived);
+  const archivedDocs = docs.filter(d=>d.archived);
 
   const today = new Date().toISOString().slice(0,10);
 
-  const uniq = field => ["All",...Array.from(new Set(docs.map(d=>d[field]).filter(Boolean))).sort()];
+  const uniq = field => ["All",...Array.from(new Set(activeDocs.map(d=>d[field]).filter(Boolean))).sort()];
   const ownerOpts        = uniq("owner");
   const contentOwnerOpts = uniq("content_owner");
   const assistOpts       = uniq("assist");
   const audienceOpts     = uniq("audience");
-  const tagOpts          = ["All", ...Array.from(new Set(docs.flatMap(d => d.tags||[]))).sort()];
+  const tagOpts          = ["All", ...Array.from(new Set(activeDocs.flatMap(d => d.tags||[]))).sort()];
 
   const applyDateFilter = (val, dateStr, opts) => {
     if (val==="All")         return true;
@@ -313,7 +317,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
   };
 
   const sq = search.trim().toLowerCase();
-  const filteredDocs = docs.filter(d => {
+  const filteredDocs = activeDocs.filter(d => {
     if (filters.owner        !== "All" && d.owner         !== filters.owner)        return false;
     if (filters.contentOwner !== "All" && d.content_owner !== filters.contentOwner) return false;
     if (filters.assist       !== "All" && d.assist        !== filters.assist)       return false;
@@ -342,6 +346,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
   const someSelected  = visibleSelected.length>0 && !selectedAll;
   const handleSelectAll = () => setSelectedIds(selectedAll?new Set():new Set(visibleIds));
   const handleDelete  = async () => { if(!visibleSelected.length)return; await onDeleteSelected(visibleSelected); setSelectedIds(new Set()); };
+  const handleArchive = async () => { if(!visibleSelected.length||!onArchiveSelected)return; await onArchiveSelected(visibleSelected); setSelectedIds(new Set()); };
 
   const handleDetailSave = async doc => { await onSave(doc); setDetailDoc(null); };
 
@@ -349,6 +354,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
     <>
       <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
         {!isReadOnly && onAddDoc && <button onClick={onAddDoc} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer",fontWeight:500,flexShrink:0}}>+ Add collateral</button>}
+        <button onClick={()=>setShowArchived(true)} style={{fontSize:13,padding:"5px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer",flexShrink:0}}>Archive{archivedDocs.length>0?` (${archivedDocs.length})`:""}</button>
         <div style={{position:"relative",flexShrink:0}}>
           <span aria-hidden="true" style={{position:"absolute",left:9,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search collateral…" style={{fontSize:13,padding:"5px 10px 5px 28px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:200}}/>
@@ -368,6 +374,11 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
       {visibleSelected.length>0 && (
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
           <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{visibleSelected.length} selected</span>
+          {onArchiveSelected && (
+            <button onClick={handleArchive} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-secondary)",color:"var(--color-text-secondary)",cursor:"pointer"}}>
+              Archive {visibleSelected.length===1?"item":`${visibleSelected.length} items`}
+            </button>
+          )}
           <button onClick={handleDelete} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer"}}>
             Delete {visibleSelected.length===1?"item":`${visibleSelected.length} items`}
           </button>
@@ -392,7 +403,39 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
           onSave={handleDetailSave} onDelete={onDelete}
           onClose={()=>setDetailDoc(null)} isReadOnly={isReadOnly}/>
       )}
+      {showArchived && (
+        <ArchivedDocsModal docs={archivedDocs} isReadOnly={isReadOnly} onUnarchive={onUnarchive} onClose={()=>setShowArchived(false)}/>
+      )}
     </>
+  );
+}
+
+// ── Archived Collateral Modal ───────────────────────────────────────────────────
+function ArchivedDocsModal({docs,isReadOnly,onUnarchive,onClose}) {
+  const sorted = [...docs].sort((a,b) => (a.title||"").localeCompare(b.title||""));
+  return (
+    <Modal title="Archived collateral" onClose={onClose}>
+      {sorted.length===0 ? (
+        <div style={{fontSize:13,color:"var(--color-text-tertiary)",padding:"32px 0",textAlign:"center"}}>No archived collateral.</div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:420,overflowY:"auto"}}>
+          {sorted.map(d => (
+            <div key={d.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,padding:"10px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-secondary)"}}>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.title}</div>
+                <div style={{fontSize:11,color:"var(--color-text-tertiary)"}}>Last updated: {fmtDateYear(d.updated)||"—"}</div>
+              </div>
+              {!isReadOnly && onUnarchive && (
+                <button onClick={()=>onUnarchive(d.id)} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer",flexShrink:0,whiteSpace:"nowrap"}}>Unarchive</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"flex-end",marginTop:16}}>
+        <button onClick={onClose} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Close</button>
+      </div>
+    </Modal>
   );
 }
 

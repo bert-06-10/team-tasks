@@ -468,7 +468,7 @@ export async function fetchDocs() {
     id: r.id, title: r.title, type: r.type, url: r.url,
     audience: r.audience, description: r.description,
     owner: r.owner, content_owner: r.content_owner || '', content_owner_id: r.content_owner_id || null, assist: r.assist || '', assist_id: r.assist_id || null, shareable_link: r.shareable_link || '', updated: r.updated_date || '', tags: r.tags || [],
-    next_update: r.next_update || '',
+    next_update: r.next_update || '', archived: r.archived || false,
   }))
 }
 
@@ -477,7 +477,7 @@ export async function saveDoc(doc) {
     title: doc.title, type: doc.type, url: doc.url || '',
     audience: doc.audience || '', description: doc.description || '',
     owner: doc.owner || '', content_owner: doc.content_owner || '', content_owner_id: doc.content_owner_id || null, assist: doc.assist || '', assist_id: doc.assist_id || null, shareable_link: doc.shareable_link || '', updated_date: doc.updated || null, tags: doc.tags || [],
-    next_update: doc.next_update || null,
+    next_update: doc.next_update || null, archived: doc.archived || false,
   }
   if (doc.id) {
     const { error } = await supabase.from('docs').update(row).eq('id', doc.id)
@@ -491,6 +491,11 @@ export async function saveDoc(doc) {
 
 export async function deleteDoc(id) {
   const { error } = await supabase.from('docs').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function setDocArchived(id, archived) {
+  const { error } = await supabase.from('docs').update({ archived }).eq('id', id)
   if (error) throw error
 }
 
