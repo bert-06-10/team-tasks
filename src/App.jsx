@@ -809,6 +809,23 @@ export default function App() {
     });
   };
 
+  // Sync entries mix adds, in-place updates, and archives — unlike a plain
+  // import's flat id list, reversing one needs the pre-sync value of every
+  // updated doc plus which ids were newly added vs. only archived.
+  const addSyncHistoryEntry = ({ added, updatedBefore, archived, label }) => {
+    const entry = {
+      id: `import_${Date.now()}`, type: 'collateral_sync', label,
+      count: added.length + updatedBefore.length + archived.length,
+      addedIds: added.map(d => d.id), updatedBefore, archivedIds: archived.map(d => d.id),
+      timestamp: new Date().toISOString(),
+    };
+    setImportHistory(prev => {
+      const next = [entry, ...prev].slice(0, 30);
+      localStorage.setItem('teamtasks_import_history', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const importProgram = async (rows, cycleInfo) => {
     try {
       if (cycleInfo) {
@@ -862,9 +879,10 @@ export default function App() {
 
   const syncCollateral = async ({ toAdd, toUpdate, toArchive }) => {
     try {
+      const updateBefore = toUpdate.map(({ _before, ...item }) => ({ id: item.id, before: _before, item }));
       const [added, updated] = await Promise.all([
         Promise.all(toAdd.map(item => db.saveDoc(item))),
-        Promise.all(toUpdate.map(item => db.saveDoc(item))),
+        Promise.all(updateBefore.map(({ item }) => db.saveDoc(item))),
       ]);
       await Promise.all(toArchive.map(d => db.setDocArchived(d.id, true)));
       const updatedById = new Map(updated.map(d => [d.id, d]));
@@ -875,13 +893,21 @@ export default function App() {
       });
       const newTags = [...added, ...updated].flatMap(d => d.tags || []);
       if (newTags.length) setGlobalTags(prev => [...new Set([...prev, ...newTags])].sort());
+      addSyncHistoryEntry({
+        added, archived: toArchive,
+        updatedBefore: updateBefore.map(({ id, before }) => ({ id, before })),
+        label: `${added.length} added, ${updated.length} updated, ${toArchive.length} archived`,
+      });
       setShowImportCollateralModal(false);
       toast(`Synced: ${added.length} added, ${updated.length} updated, ${toArchive.length} archived.`);
     } catch (e) { console.error("syncCollateral error:", e); toast("Failed to sync collateral: " + (e?.message || JSON.stringify(e))); }
   };
 
   const reverseImport = async (entry) => {
-    if (!window.confirm(`Remove ${entry.count} imported ${entry.type === 'runofshow' ? 'run of show rows' : entry.type === 'collateral' ? 'collateral items' : 'tasks'} from "${entry.label}"?`)) return;
+    const confirmMsg = entry.type === 'collateral_sync'
+      ? `Reverse this sync? ${entry.addedIds.length} added item${entry.addedIds.length !== 1 ? 's' : ''} will be deleted, ${entry.updatedBefore.length} updated item${entry.updatedBefore.length !== 1 ? 's' : ''} will be restored to their prior values, and ${entry.archivedIds.length} archived item${entry.archivedIds.length !== 1 ? 's' : ''} will be unarchived.`
+      : `Remove ${entry.count} imported ${entry.type === 'runofshow' ? 'run of show rows' : entry.type === 'collateral' ? 'collateral items' : 'tasks'} from "${entry.label}"?`;
+    if (!window.confirm(confirmMsg)) return;
     try {
       if (entry.type === 'program') {
         await Promise.all(entry.ids.map(id => db.deleteTask(id)));
@@ -899,13 +925,23 @@ export default function App() {
       } else if (entry.type === 'collateral') {
         await Promise.all(entry.ids.map(id => db.deleteDoc(id)));
         setDocs(prev => prev.filter(d => !entry.ids.includes(d.id)));
+      } else if (entry.type === 'collateral_sync') {
+        await Promise.all([
+          ...entry.addedIds.map(id => db.deleteDoc(id)),
+          ...entry.updatedBefore.map(({ id, before }) => db.saveDoc({ ...before, id })),
+          ...entry.archivedIds.map(id => db.setDocArchived(id, false)),
+        ]);
+        const beforeById = new Map(entry.updatedBefore.map(u => [u.id, u.before]));
+        setDocs(prev => prev
+          .filter(d => !entry.addedIds.includes(d.id))
+          .map(d => beforeById.has(d.id) ? beforeById.get(d.id) : entry.archivedIds.includes(d.id) ? { ...d, archived: false } : d));
       }
       setImportHistory(prev => {
         const next = prev.filter(e => e.id !== entry.id);
         localStorage.setItem('teamtasks_import_history', JSON.stringify(next));
         return next;
       });
-      toast(`Import reversed — ${entry.count} record${entry.count !== 1 ? 's' : ''} removed.`);
+      toast(entry.type === 'collateral_sync' ? 'Sync reversed.' : `Import reversed — ${entry.count} record${entry.count !== 1 ? 's' : ''} removed.`);
     } catch (e) {
       console.error('reverseImport error:', e);
       toast('Failed to reverse import.');

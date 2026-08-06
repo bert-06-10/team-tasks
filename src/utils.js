@@ -281,6 +281,7 @@ export function diffCollateralSync(existingDocs, incomingItems) {
         ...existing, ...item, id: existing.id, archived: false,
         content_owner_id: carryLinkedId(existing.content_owner, existing.content_owner_id, item.content_owner),
         assist_id: carryLinkedId(existing.assist, existing.assist_id, item.assist),
+        _before: existing,
       });
     } else {
       toAdd.push(item);

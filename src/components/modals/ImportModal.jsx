@@ -74,7 +74,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
   };
   const typeLabels = [["program","Program tasks"],["class","Class tasks"],["runofshow","Run of show"],["history","History"]];
 
-  const typeDisplayLabels = { program: "Program tasks", class: "Class tasks", runofshow: "Run of show" };
+  const typeDisplayLabels = { program: "Program tasks", class: "Class tasks", runofshow: "Run of show", collateral: "Collateral", collateral_sync: "Collateral sync" };
 
   return (
     <Modal onClose={onClose} title="Import from CSV">
