@@ -58,7 +58,7 @@ function SidebarInlineItems({ items }) {
     <div style={{ display: "flex", flexDirection: "column", padding: "2px 0 6px" }}>
       {items.map((it, i) => it.divider
         ? <div key={i} style={{ height: "0.5px", background: "var(--color-border-tertiary)", margin: "4px 12px 4px 34px" }} />
-        : <button key={i} type="button" onClick={it.onClick} style={{ display: "flex", alignItems: "center", fontSize: 13, padding: "10px 12px 10px 34px", cursor: "pointer", color: it.danger ? "#A32D2D" : "var(--color-text-primary)", border: "none", borderRadius: "var(--border-radius-md)", background: "transparent", width: "100%", textAlign: "left", fontFamily: "inherit" }} onMouseEnter={e => e.currentTarget.style.background = "var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>{it.label}</button>
+        : <button key={i} type="button" onClick={it.onClick} style={{ display: "flex", alignItems: "center", fontSize: 13, padding: "10px 12px 10px 34px", cursor: "pointer", color: it.danger ? "var(--color-text-danger)" : "var(--color-text-primary)", border: "none", borderRadius: "var(--border-radius-md)", background: "transparent", width: "100%", textAlign: "left", fontFamily: "inherit" }} onMouseEnter={e => e.currentTarget.style.background = "var(--color-background-secondary)"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>{it.label}</button>
       )}
     </div>
   );
@@ -1203,7 +1203,7 @@ export default function App() {
         {toasts.map(n => (
           <div key={n.id} style={{ background: "var(--color-background-primary)", border: "1px solid var(--color-border-secondary)", borderRadius: 8, padding: "10px 16px", fontSize: 13, color: "var(--color-text-primary)", maxWidth: 320, boxShadow: "0 2px 8px rgba(0,0,0,0.1)", display: "flex", alignItems: "center", gap: 14, justifyContent: "space-between" }}>
             <span>{n.msg}</span>
-            {n.action && <button onClick={() => { n.action.onClick(); setToasts(ts => ts.filter(x => x.id !== n.id)); }} style={{ fontSize: 13, fontWeight: 600, color: "#185FA5", background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0, whiteSpace: "nowrap" }}>{n.action.label}</button>}
+            {n.action && <button onClick={() => { n.action.onClick(); setToasts(ts => ts.filter(x => x.id !== n.id)); }} style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-info)", background: "none", border: "none", cursor: "pointer", padding: 0, flexShrink: 0, whiteSpace: "nowrap" }}>{n.action.label}</button>}
           </div>
         ))}
       </div>
@@ -1219,7 +1219,7 @@ export default function App() {
             {renamingCycle ? (
               <>
                 <input autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') commitRenameCycle(); if (e.key === 'Escape') setRenamingCycle(false); }} style={{ fontSize: 13, border: "0.5px solid var(--color-border-secondary)", borderRadius: "var(--border-radius-md)", padding: "3px 8px", background: "var(--color-background-secondary)", color: "var(--color-text-primary)", width: 180 }} />
-                <button onClick={commitRenameCycle} style={{ fontSize: 12, padding: "2px 8px", borderRadius: "var(--border-radius-md)", border: "0.5px solid #9FE1CB", background: "#E1F5EE", color: "#0F6E56", cursor: "pointer" }}>Save</button>
+                <button onClick={commitRenameCycle} style={{ fontSize: 12, padding: "2px 8px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-success)", background: "var(--color-background-success)", color: "var(--color-text-success)", cursor: "pointer" }}>Save</button>
                 <button onClick={() => setRenamingCycle(false)} style={{ fontSize: 12, padding: "2px 8px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Cancel</button>
               </>
             ) : (
@@ -1228,7 +1228,7 @@ export default function App() {
                 {archivedCycles.map(a => <option key={a.cycle.id} value={String(a.cycle.id)}>{a.cycle.name} (archived)</option>)}
               </select>
             )}
-            {isReadOnly && <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: "#FAEEDA", color: "#854F0B" }}>read-only</span>}
+            {isReadOnly && <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: "var(--color-background-warning)", color: "var(--color-text-warning)" }}>read-only</span>}
           </div>
 
           {/* Mobile consolidated "+ Add" menu — merges Program/Classes/Import into one button (desktop equivalents now live in the left sidebar) */}
@@ -1257,13 +1257,13 @@ export default function App() {
 
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
             {draftCycle && !isMobile && (
-              <div style={{ display: "flex", alignItems: "center", borderRadius: 20, border: "1px solid #9FE1CB", background: "#E1F5EE", overflow: "hidden" }}>
-                <button onClick={() => setShowCycleModal(true)} style={{ fontSize: 12, padding: "4px 6px 4px 12px", border: "none", background: "transparent", color: "#0F6E56", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "#0F6E56", display: "inline-block" }}></span>{draftCycle.cycle.name}</button>
-                <button onClick={deleteDraft} title="Delete draft" aria-label="Delete draft" style={{ fontSize: 14, padding: "4px 10px 4px 4px", border: "none", background: "transparent", color: "#0F6E56", cursor: "pointer", lineHeight: 1 }}>×</button>
+              <div style={{ display: "flex", alignItems: "center", borderRadius: 20, border: "1px solid var(--color-border-success)", background: "var(--color-background-success)", overflow: "hidden" }}>
+                <button onClick={() => setShowCycleModal(true)} style={{ fontSize: 12, padding: "4px 6px 4px 12px", border: "none", background: "transparent", color: "var(--color-text-success)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--color-text-success)", display: "inline-block" }}></span>{draftCycle.cycle.name}</button>
+                <button onClick={deleteDraft} title="Delete draft" aria-label="Delete draft" style={{ fontSize: 14, padding: "4px 10px 4px 4px", border: "none", background: "transparent", color: "var(--color-text-success)", cursor: "pointer", lineHeight: 1 }}>×</button>
               </div>
             )}
             {atRiskCount > 0 && (
-              <button onClick={goToAtRisk} title={`${atRiskCount} task${atRiskCount !== 1 ? "s" : ""} at risk — a dependency is overdue`} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, border: "0.5px solid #F7C1C1", background: "#FCEBEB", color: "#A32D2D", cursor: "pointer", fontSize: 12, fontWeight: 500, flexShrink: 0, whiteSpace: "nowrap" }}>
+              <button onClick={goToAtRisk} title={`${atRiskCount} task${atRiskCount !== 1 ? "s" : ""} at risk — a dependency is overdue`} style={{ display: "flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, border: "0.5px solid var(--color-border-danger)", background: "var(--color-background-danger)", color: "var(--color-text-danger)", cursor: "pointer", fontSize: 12, fontWeight: 500, flexShrink: 0, whiteSpace: "nowrap" }}>
                 <span aria-hidden="true">⚠</span>{atRiskCount} at risk
               </button>
             )}
@@ -1274,7 +1274,7 @@ export default function App() {
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
                 {unreadNotifCount > 0 && (
-                  <span aria-hidden="true" style={{ position: "absolute", top: 1, right: 1, minWidth: 14, height: 14, borderRadius: 8, background: "#A32D2D", color: "#fff", fontSize: 9, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px", boxSizing: "border-box" }}>{unreadNotifCount > 9 ? "9+" : unreadNotifCount}</span>
+                  <span aria-hidden="true" style={{ position: "absolute", top: 1, right: 1, minWidth: 14, height: 14, borderRadius: 8, background: "var(--color-text-danger)", color: "#fff", fontSize: 9, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px", boxSizing: "border-box" }}>{unreadNotifCount > 9 ? "9+" : unreadNotifCount}</span>
                 )}
               </button>
               {openDropdown === 'notifications' && (
@@ -1289,7 +1289,7 @@ export default function App() {
                   {notifications.map(n => (
                     <button key={n.id} type="button" onClick={() => { openNotification(n); setOpenDropdown(null); }} style={{ width: "100%", textAlign: "left", display: "block", border: "none", borderBottom: "0.5px solid var(--color-border-tertiary)", background: n.read ? "transparent" : "var(--color-background-secondary)", padding: "10px 14px", cursor: "pointer", font: "inherit" }}>
                       <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                        {!n.read && <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: "#185FA5", flexShrink: 0, marginTop: 5 }} />}
+                        {!n.read && <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--color-text-info)", flexShrink: 0, marginTop: 5 }} />}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, color: "var(--color-text-primary)", marginBottom: 2 }}>{n.message}</div>
                           <div style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{new Date(n.created_at).toLocaleString()}</div>

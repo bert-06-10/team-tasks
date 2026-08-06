@@ -29,7 +29,7 @@ export function BoardView({filteredTasks,displayTasks,displayDocs,milestones,isR
           const isOverdueCol = k==="Overdue";
           return (
             <div key={k} onDrop={e=>!isOverdueCol&&onDrop(e,k)} onDragOver={!isOverdueCol?onDragOver:undefined} style={{minWidth:isMobile?"calc(100vw - 56px)":260,flex:isMobile?"0 0 calc(100vw - 56px)":"0 0 260px",borderRight:"0.5px solid var(--color-border-tertiary)",padding:"0 16px 16px",transition:"background 0.15s",scrollSnapAlign:isMobile?"start":undefined}}>
-              <div style={{fontSize:12,fontWeight:500,color:isOverdueCol?"#A32D2D":"var(--color-text-secondary)",margin:"0 0 12px",letterSpacing:"0.04em",paddingTop:4}}>
+              <div style={{fontSize:12,fontWeight:500,color:isOverdueCol?"var(--color-text-danger)":"var(--color-text-secondary)",margin:"0 0 12px",letterSpacing:"0.04em",paddingTop:4}}>
                 {k.toUpperCase()} · {(boardGroups[k]||[]).length}
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:10}}>

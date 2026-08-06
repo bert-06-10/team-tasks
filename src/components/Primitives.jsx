@@ -19,7 +19,7 @@ export function Badge({label,color,bg}) {
 // ── Toggle ────────────────────────────────────────────────────────────────────
 export function Toggle({value,onChange}) {
   return (
-    <div onClick={()=>onChange(!value)} style={{width:36,height:20,borderRadius:10,background:value?"#0F6E56":"#D3D1C7",cursor:"pointer",position:"relative",flexShrink:0}}>
+    <div onClick={()=>onChange(!value)} style={{width:36,height:20,borderRadius:10,background:value?"var(--color-text-success)":"#D3D1C7",cursor:"pointer",position:"relative",flexShrink:0}}>
       <div style={{position:"absolute",top:2,left:value?18:2,width:16,height:16,borderRadius:"50%",background:"#fff",transition:"left 0.15s"}}></div>
     </div>
   );

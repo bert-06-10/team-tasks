@@ -110,7 +110,7 @@ export function DepChip({t, onRemove}) {
   const done = t.status === "Done";
   return (
     <div style={{display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:13}}>
-      <span style={{color:done?"#0F6E56":"var(--color-text-tertiary)",fontSize:12,flexShrink:0}}>{done?"✓":"○"}</span>
+      <span style={{color:done?"var(--color-text-success)":"var(--color-text-tertiary)",fontSize:12,flexShrink:0}}>{done?"✓":"○"}</span>
       <span style={{flex:1,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
       <span style={{fontSize:11,color:"var(--color-text-tertiary)",flexShrink:0}}>{t.status}</span>
       {onRemove && <button onClick={onRemove} aria-label="Remove" style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>}

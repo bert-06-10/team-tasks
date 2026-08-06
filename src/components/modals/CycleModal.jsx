@@ -57,8 +57,8 @@ export function CycleModal({tasks,activeCycle,initialDraft,sessions,onSaveDraft,
           <Field label="Holidays to exclude">
             <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
               {holidays.map(h => (
-                <span key={h} style={{fontSize:12,padding:"3px 10px",borderRadius:20,background:"#FCEBEB",color:"#A32D2D",display:"flex",alignItems:"center",gap:5}}>
-                  {h}<button onClick={()=>setHolidays(hh=>hh.filter(x=>x!==h))} aria-label={`Remove holiday ${h}`} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#A32D2D",padding:0}}>×</button>
+                <span key={h} style={{fontSize:12,padding:"3px 10px",borderRadius:20,background:"var(--color-background-danger)",color:"var(--color-text-danger)",display:"flex",alignItems:"center",gap:5}}>
+                  {h}<button onClick={()=>setHolidays(hh=>hh.filter(x=>x!==h))} aria-label={`Remove holiday ${h}`} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"var(--color-text-danger)",padding:0}}>×</button>
                 </span>
               ))}
             </div>
@@ -102,18 +102,18 @@ export function CycleModal({tasks,activeCycle,initialDraft,sessions,onSaveDraft,
         <>
           <div style={{marginBottom:12}}>
             <p style={{fontSize:13,color:"var(--color-text-secondary)",margin:"0 0 4px"}}>Program task due dates from <strong style={{color:"var(--color-text-primary)"}}>{start}</strong>.</p>
-            {flaggedCount>0&&<div style={{fontSize:13,padding:"8px 12px",borderRadius:"var(--border-radius-md)",background:"#FAEEDA",color:"#854F0B",marginTop:8}}>{flaggedCount} task{flaggedCount>1?"s":""} flagged.</div>}
-            {!end&&<div style={{fontSize:13,padding:"8px 12px",borderRadius:"var(--border-radius-md)",background:"#FAEEDA",color:"#854F0B",marginTop:8}}>Program end date is required to launch — go back and set one.</div>}
+            {flaggedCount>0&&<div style={{fontSize:13,padding:"8px 12px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-warning)",color:"var(--color-text-warning)",marginTop:8}}>{flaggedCount} task{flaggedCount>1?"s":""} flagged.</div>}
+            {!end&&<div style={{fontSize:13,padding:"8px 12px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-warning)",color:"var(--color-text-warning)",marginTop:8}}>Program end date is required to launch — go back and set one.</div>}
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:260,overflowY:"auto"}}>
             {preview.map(t => (
-              <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:"var(--border-radius-md)",border:t.flagged?"1px solid #FAC775":"0.5px solid var(--color-border-tertiary)",background:t.flagged?"#FFFBF2":"var(--color-background-secondary)"}}>
+              <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:"var(--border-radius-md)",border:t.flagged?"1px solid var(--color-border-warning)":"0.5px solid var(--color-border-tertiary)",background:t.flagged?"var(--color-background-warning)":"var(--color-background-secondary)"}}>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",marginBottom:1}}>{t.title}</div>
                   <div style={{fontSize:11,color:"var(--color-text-secondary)"}}>{offsetLabel(t.effectiveOffset)} · {t.assignee}</div>
                 </div>
-                {t.flagged&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:"#FAEEDA",color:"#854F0B",flexShrink:0}}>review</span>}
-                <input type="date" value={overrides[t.id]!==undefined?overrides[t.id]:t.due} onChange={e=>setOverrides(o=>({...o,[t.id]:e.target.value}))} style={{fontSize:12,border:t.flagged?"1px solid #FAC775":"0.5px solid var(--color-border-secondary)",borderRadius:6,padding:"4px 8px",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:130}}/>
+                {t.flagged&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:"var(--color-background-warning)",color:"var(--color-text-warning)",flexShrink:0}}>review</span>}
+                <input type="date" value={overrides[t.id]!==undefined?overrides[t.id]:t.due} onChange={e=>setOverrides(o=>({...o,[t.id]:e.target.value}))} style={{fontSize:12,border:t.flagged?"1px solid var(--color-border-warning)":"0.5px solid var(--color-border-secondary)",borderRadius:6,padding:"4px 8px",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:130}}/>
               </div>
             ))}
           </div>
@@ -121,7 +121,7 @@ export function CycleModal({tasks,activeCycle,initialDraft,sessions,onSaveDraft,
             <button onClick={()=>setStep(2)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>← Back</button>
             <div style={{display:"flex",gap:8}}>
               <button onClick={()=>onSaveDraft({name,start,end,holidays},currentOverrides(),cycleType)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Save draft</button>
-              <button onClick={()=>onLaunch({name,start,end,holidays},currentOverrides(),sessionDates,cycleType)} disabled={!end} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:end?"#E1F5EE":"transparent",color:end?"#0F6E56":"var(--color-text-tertiary)",cursor:end?"pointer":"default",fontWeight:500}}>Launch "{name}"</button>
+              <button onClick={()=>onLaunch({name,start,end,holidays},currentOverrides(),sessionDates,cycleType)} disabled={!end} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid var(--color-border-success)",background:end?"var(--color-background-success)":"transparent",color:end?"var(--color-text-success)":"var(--color-text-tertiary)",cursor:end?"pointer":"default",fontWeight:500}}>Launch "{name}"</button>
             </div>
           </div>
         </>

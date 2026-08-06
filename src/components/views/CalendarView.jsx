@@ -29,8 +29,8 @@ export function CalendarView({tasks,milestones,sessions=[],openTask,statusColors
   const msOnDay = d => milestones.filter(m=>m.date===dateStr(d)).filter(matchM);
   const sessionsOnDay = d => sessions.filter(s=>s.date===dateStr(d)).filter(matchS);
   const typeChip = t => t.type==="class"
-    ? {bg:"#FAEEDA",color:"#854F0B"}
-    : {bg:"#E6F1FB",color:"#185FA5"};
+    ? {bg:"var(--color-background-warning)",color:"var(--color-text-warning)"}
+    : {bg:"var(--color-background-info)",color:"var(--color-text-info)"};
   const selectedTasks = selected ? tasksOnDay(selected) : [];
   const selectedMs = selected ? msOnDay(selected) : [];
   const selectedSessions = selected ? sessionsOnDay(selected) : [];
@@ -44,15 +44,15 @@ export function CalendarView({tasks,milestones,sessions=[],openTask,statusColors
           <span style={{fontSize:15,fontWeight:500,color:"var(--color-text-primary)",minWidth:isMobile?"auto":160,textAlign:"center"}}>{isMobile?MONTHS[month].slice(0,3):MONTHS[month]} {year}</span>
           <button onClick={()=>{if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);}} aria-label="Next month" style={{fontSize:16,background:"none",border:"none",cursor:"pointer",color:"var(--color-text-primary)",padding:"4px 8px"}}>›</button>
           <button onClick={()=>{setMonth(today.getMonth());setYear(today.getFullYear());}} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-secondary)",cursor:"pointer",marginLeft:4,whiteSpace:"nowrap"}}>Today</button>
-          {myUser && <button onClick={()=>setMyOnly(v=>!v)} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:myOnly?"1px solid #0F6E56":"0.5px solid var(--color-border-secondary)",background:myOnly?"#0F6E56":"var(--color-background-primary)",color:myOnly?"#fff":"var(--color-text-secondary)",cursor:"pointer",fontWeight:500,transition:"background 0.15s,color 0.15s,border 0.15s",whiteSpace:"nowrap"}}>My tasks</button>}
+          {myUser && <button onClick={()=>setMyOnly(v=>!v)} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:myOnly?"1px solid var(--color-text-success)":"0.5px solid var(--color-border-secondary)",background:myOnly?"var(--color-text-success)":"var(--color-background-primary)",color:myOnly?"#fff":"var(--color-text-secondary)",cursor:"pointer",fontWeight:500,transition:"background 0.15s,color 0.15s,border 0.15s",whiteSpace:"nowrap"}}>My tasks</button>}
           <div style={{position:"relative",marginLeft:isMobile?0:8}}>
             <span aria-hidden="true" style={{position:"absolute",left:8,top:"50%",transform:"translateY(-50%)",fontSize:13,color:"var(--color-text-tertiary)",pointerEvents:"none"}}>⌕</span>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{fontSize:12,padding:"4px 10px 4px 26px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"var(--color-background-primary)",color:"var(--color-text-primary)",width:isMobile?130:160}}/>
             {search&&<button onClick={()=>setSearch("")} aria-label="Clear search" style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:14,color:"var(--color-text-tertiary)",cursor:"pointer",padding:0,lineHeight:1}}>×</button>}
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:isMobile?0:"auto",flexWrap:"wrap"}}>
-            <span style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#185FA5"}}><span style={{width:10,height:10,borderRadius:2,background:"#E6F1FB",border:"1px solid #B5D4F4",display:"inline-block"}}/>Program</span>
-            <span style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"#854F0B"}}><span style={{width:10,height:10,borderRadius:2,background:"#FAEEDA",border:"1px solid #F0C97A",display:"inline-block"}}/>Class</span>
+            <span style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--color-text-info)"}}><span style={{width:10,height:10,borderRadius:2,background:"var(--color-background-info)",border:"1px solid var(--color-border-info)",display:"inline-block"}}/>Program</span>
+            <span style={{display:"flex",alignItems:"center",gap:4,fontSize:11,color:"var(--color-text-warning)"}}><span style={{width:10,height:10,borderRadius:2,background:"var(--color-background-warning)",border:"1px solid var(--color-border-warning)",display:"inline-block"}}/>Class</span>
           </div>
         </div>
         <div style={{border:"0.5px solid var(--color-border-tertiary)",borderRadius:"var(--border-radius-lg)",overflow:"hidden"}}>
@@ -71,7 +71,7 @@ export function CalendarView({tasks,milestones,sessions=[],openTask,statusColors
                 return (
                   <div key={di} onClick={()=>d&&setSelected(isSelected?null:d)} style={{height:cellH,overflow:"hidden",padding:isMobile?"3px 2px":"6px 6px 4px",borderRight:di===6?"none":"0.5px solid var(--color-border-tertiary)",background:isSelected?"var(--color-background-secondary)":d?"var(--color-background-primary)":"var(--color-background-tertiary)",cursor:d?"pointer":"default"}}>
                     {d&&(
-                      <div style={{width:isMobile?18:22,height:isMobile?18:22,borderRadius:"50%",background:isToday?"#185FA5":"transparent",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:isMobile?1:4,marginInline:isMobile?"auto":0}}>
+                      <div style={{width:isMobile?18:22,height:isMobile?18:22,borderRadius:"50%",background:isToday?"var(--color-text-info)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:isMobile?1:4,marginInline:isMobile?"auto":0}}>
                         <span style={{fontSize:isMobile?11:12,fontWeight:isToday?500:400,color:isToday?"#fff":"var(--color-text-primary)"}}>{d}</span>
                       </div>
                     )}
@@ -79,8 +79,8 @@ export function CalendarView({tasks,milestones,sessions=[],openTask,statusColors
                       totalItems>0 && <div style={{width:5,height:5,borderRadius:"50%",background:"var(--color-text-secondary)",margin:"0 auto"}}/>
                     ) : (
                       <>
-                        {dayMs.map(m => <div key={m.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:"#E6F1FB",color:"#185FA5",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>◆ {m.title}</div>)}
-                        {daySessions.map(s => <div key={s.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:"#FAEEDA",color:"#854F0B",fontWeight:500,marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>▣ {sessionLabel(s)}</div>)}
+                        {dayMs.map(m => <div key={m.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:"var(--color-background-info)",color:"var(--color-text-info)",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>◆ {m.title}</div>)}
+                        {daySessions.map(s => <div key={s.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:"var(--color-background-warning)",color:"var(--color-text-warning)",fontWeight:500,marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>▣ {sessionLabel(s)}</div>)}
                         {dayTasks.slice(0,maxChips).map(t => {
                           const tc = typeChip(t);
                           return <div key={t.id} style={{fontSize:10,padding:"1px 5px",borderRadius:3,background:tc.bg,color:tc.color,marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.title}</div>;
@@ -99,15 +99,15 @@ export function CalendarView({tasks,milestones,sessions=[],openTask,statusColors
         <div style={{width:isMobile?"100%":240,flexShrink:0}}>
           <div style={{fontSize:14,fontWeight:500,color:"var(--color-text-primary)",marginBottom:12}}>{MONTHS[month]} {selected}</div>
           {selectedMs.map(m => (
-            <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #B5D4F4",background:"#E6F1FB",marginBottom:8}}>
-              <span aria-hidden="true" style={{color:"#185FA5"}}>◆</span>
-              <span style={{fontSize:13,fontWeight:500,color:"#185FA5"}}>{m.title}</span>
+            <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid var(--color-border-info)",background:"var(--color-background-info)",marginBottom:8}}>
+              <span aria-hidden="true" style={{color:"var(--color-text-info)"}}>◆</span>
+              <span style={{fontSize:13,fontWeight:500,color:"var(--color-text-info)"}}>{m.title}</span>
             </div>
           ))}
           {selectedSessions.map(s => (
-            <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #F0C97A",background:"#FAEEDA",marginBottom:8}}>
-              <span aria-hidden="true" style={{color:"#854F0B"}}>▣</span>
-              <span style={{fontSize:13,fontWeight:500,color:"#854F0B"}}>{sessionLabel(s)}</span>
+            <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid var(--color-border-warning)",background:"var(--color-background-warning)",marginBottom:8}}>
+              <span aria-hidden="true" style={{color:"var(--color-text-warning)"}}>▣</span>
+              <span style={{fontSize:13,fontWeight:500,color:"var(--color-text-warning)"}}>{sessionLabel(s)}</span>
             </div>
           ))}
           {selectedTasks.length===0&&selectedMs.length===0&&selectedSessions.length===0&&<div style={{fontSize:13,color:"var(--color-text-tertiary)"}}>No items this day.</div>}

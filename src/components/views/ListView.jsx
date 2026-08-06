@@ -78,7 +78,7 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
               <button key={s} onClick={() => bulkSetStatus(s)} style={{fontSize:11,padding:"3px 10px",borderRadius:20,background:sc.bg,color:sc.color,border:`1px solid ${sc.border}`,cursor:"pointer",fontWeight:500,whiteSpace:"nowrap"}}>{s}</button>
             );
           })}
-          <button onClick={handleDeleteSelected} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer"}}>
+          <button onClick={handleDeleteSelected} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-danger)",background:"var(--color-background-danger)",color:"var(--color-text-danger)",cursor:"pointer"}}>
             Delete {visibleSelected.length === 1 ? "task" : `${visibleSelected.length} tasks`}
           </button>
           <button onClick={() => setSelectedIds(new Set())} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>
@@ -239,9 +239,9 @@ export function ListView({filteredTasks,displayTasks,displayDocs,milestones,isRe
                 <span style={{fontSize:11,color:"var(--color-text-tertiary)"}}>{entry.count} {entry.count===1?"item":"items"}</span>
               </div>
             ) : entry.type==='milestone' ? (
-              <div key={`m-${entry.item.id}`} onClick={onEditMilestone?()=>onEditMilestone(entry.item):undefined} style={{background:"#E6F1FB",borderRadius:"var(--border-radius-lg)",padding:"12px 14px",cursor:onEditMilestone?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                <span style={{fontSize:13,fontWeight:600,color:"#185FA5"}}>{entry.item.title}</span>
-                <span style={{fontSize:12,color:"#185FA5"}}>{fmtDate(entry.item.date)}</span>
+              <div key={`m-${entry.item.id}`} onClick={onEditMilestone?()=>onEditMilestone(entry.item):undefined} style={{background:"var(--color-background-info)",borderRadius:"var(--border-radius-lg)",padding:"12px 14px",cursor:onEditMilestone?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                <span style={{fontSize:13,fontWeight:600,color:"var(--color-text-info)"}}>{entry.item.title}</span>
+                <span style={{fontSize:12,color:"var(--color-text-info)"}}>{fmtDate(entry.item.date)}</span>
               </div>
             ) : (
               <TaskCard key={entry.item.id} task={entry.item} tasks={displayTasks} docs={displayDocs} readOnly={isReadOnly} onEdit={()=>openTask(entry.item)} onStatus={updateStatus} getBlockedStatus={getBlockedStatus} showGroup statusColors={statusColors}/>

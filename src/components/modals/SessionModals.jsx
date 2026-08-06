@@ -46,7 +46,7 @@ export function AddSessionModal({ isDuplicate, isEdit, initialData, template, on
         </label>
       )}
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={handleSave} disabled={saving || !sess.professor.trim() || !sess.date} style={{ fontSize: 13, padding: "6px 16px", borderRadius: "var(--border-radius-md)", border: "0.5px solid #9FE1CB", background: "#E1F5EE", color: "#0F6E56", cursor: (saving || !sess.professor.trim() || !sess.date) ? "default" : "pointer", opacity: (!sess.professor.trim() || !sess.date) ? 0.5 : 1 }}>
+        <button onClick={handleSave} disabled={saving || !sess.professor.trim() || !sess.date} style={{ fontSize: 13, padding: "6px 16px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-success)", background: "var(--color-background-success)", color: "var(--color-text-success)", cursor: (saving || !sess.professor.trim() || !sess.date) ? "default" : "pointer", opacity: (!sess.professor.trim() || !sess.date) ? 0.5 : 1 }}>
           {saving ? "Saving…" : isEdit ? "Save changes" : isDuplicate ? "Duplicate" : "Add session"}
         </button>
         <button onClick={onClose} style={{ fontSize: 13, padding: "6px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Cancel</button>
@@ -79,7 +79,7 @@ export function SessionsListModal({ sessions, classTasks, onEdit, onDuplicate, o
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   <button onClick={() => onEdit(s)} style={actionBtn}>Edit</button>
                   <button onClick={() => onDuplicate(s)} style={actionBtn}>Duplicate</button>
-                  <button onClick={() => onDelete(s.id)} style={{ ...actionBtn, border: "0.5px solid #F7C1C1", background: "#FCEBEB", color: "#A32D2D" }}>Delete</button>
+                  <button onClick={() => onDelete(s.id)} style={{ ...actionBtn, border: "0.5px solid var(--color-border-danger)", background: "var(--color-background-danger)", color: "var(--color-text-danger)" }}>Delete</button>
                 </div>
               </div>
             );
@@ -190,7 +190,7 @@ export function StandardTasksModal({ template: templateProp, members, sessions, 
               {!csvPreview && <button onClick={() => runCsvPreview(csvText)} disabled={!csvText.trim()} style={{ fontSize: 12, padding: "5px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: csvText.trim() ? "var(--color-background-primary)" : "transparent", color: csvText.trim() ? "var(--color-text-primary)" : "var(--color-text-tertiary)", cursor: csvText.trim() ? "pointer" : "default" }}>Preview</button>}
               {csvPreview && (<>
                 <button onClick={() => applyCsvImport(false)} style={{ fontSize: 12, padding: "5px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "var(--color-background-primary)", color: "var(--color-text-primary)", cursor: "pointer" }}>Append to template</button>
-                <button onClick={() => applyCsvImport(true)} style={{ fontSize: 12, padding: "5px 12px", borderRadius: "var(--border-radius-md)", border: "1px solid #9FE1CB", background: "#E1F5EE", color: "#0F6E56", cursor: "pointer", fontWeight: 500 }}>Replace template</button>
+                <button onClick={() => applyCsvImport(true)} style={{ fontSize: 12, padding: "5px 12px", borderRadius: "var(--border-radius-md)", border: "1px solid var(--color-border-success)", background: "var(--color-background-success)", color: "var(--color-text-success)", cursor: "pointer", fontWeight: 500 }}>Replace template</button>
                 <button onClick={resetCsvImport} style={{ fontSize: 12, padding: "5px 12px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-tertiary)", background: "transparent", color: "var(--color-text-secondary)", cursor: "pointer" }}>Cancel</button>
               </>)}
             </div>
@@ -226,7 +226,7 @@ export function StandardTasksModal({ template: templateProp, members, sessions, 
               <option value="">Apply to session…</option>
               {(sessions||[]).map(s => { const label = [s.professor||s.name, s.cohort?`— ${s.cohort}`:"", s.date?`· ${s.date}`:""].filter(Boolean).join(" "); return <option key={s.id} value={s.id}>{label}</option>; })}
             </select>
-            <button onClick={handleApply} disabled={applying || !applySessionId} style={{ fontSize: 12, padding: "5px 14px", borderRadius: "var(--border-radius-md)", border: "0.5px solid #9FE1CB", background: "#E1F5EE", color: "#0F6E56", cursor: (applying || !applySessionId) ? "default" : "pointer", opacity: !applySessionId ? 0.5 : 1 }}>
+            <button onClick={handleApply} disabled={applying || !applySessionId} style={{ fontSize: 12, padding: "5px 14px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-success)", background: "var(--color-background-success)", color: "var(--color-text-success)", cursor: (applying || !applySessionId) ? "default" : "pointer", opacity: !applySessionId ? 0.5 : 1 }}>
               {applying ? "Applying…" : "Apply"}
             </button>
           </>

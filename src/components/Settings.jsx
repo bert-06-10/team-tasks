@@ -59,10 +59,10 @@ export function IntegrationRow({icon,name,description,connected,onToggle}) {
       </div>
       {connected
         ? <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:"#E1F5EE",color:"#0F6E56"}}>Connected</span>
+            <span style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:"var(--color-background-success)",color:"var(--color-text-success)"}}>Connected</span>
             <button onClick={()=>onToggle(false)} style={{fontSize:12,padding:"4px 10px",borderRadius:6,border:"0.5px solid #787878",background:"transparent",color:"#888780",cursor:"pointer"}}>Disconnect</button>
           </div>
-        : <button onClick={()=>onToggle(true)} style={{fontSize:12,padding:"5px 12px",borderRadius:6,border:"0.5px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>Connect</button>
+        : <button onClick={()=>onToggle(true)} style={{fontSize:12,padding:"5px 12px",borderRadius:6,border:"0.5px solid var(--color-border-success)",background:"var(--color-background-success)",color:"var(--color-text-success)",cursor:"pointer",fontWeight:500}}>Connect</button>
       }
     </div>
   );
@@ -168,13 +168,13 @@ export function ListEditor({label,items,setItems}) {
             {editing===item
               ? <>
                   <input autoFocus value={editVal} onChange={e=>setEditVal(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")saveEdit();if(e.key==="Escape")setEditing(null);}} style={{flex:1,fontSize:13,padding:"4px 8px",borderRadius:4,border:"1px solid #595959",color:"#1a1a18",background:"#fff"}}/>
-                  <button onClick={saveEdit} style={{fontSize:12,padding:"3px 10px",borderRadius:4,border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer"}}>Save</button>
+                  <button onClick={saveEdit} style={{fontSize:12,padding:"3px 10px",borderRadius:4,border:"1px solid var(--color-border-success)",background:"var(--color-background-success)",color:"var(--color-text-success)",cursor:"pointer"}}>Save</button>
                   <button onClick={()=>setEditing(null)} style={{fontSize:12,padding:"3px 10px",borderRadius:4,border:"0.5px solid #787878",background:"transparent",color:"#888780",cursor:"pointer"}}>Cancel</button>
                 </>
               : <>
                   <span style={{flex:1,fontSize:13,color:"#1a1a18"}}>{item}</span>
                   <button onClick={()=>startEdit(item)} style={{fontSize:12,padding:"3px 10px",borderRadius:4,border:"0.5px solid #787878",background:"transparent",color:"#5f5e5a",cursor:"pointer"}}>Edit</button>
-                  <button onClick={()=>remove(item)} style={{fontSize:12,padding:"3px 10px",borderRadius:4,border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer"}}>Delete</button>
+                  <button onClick={()=>remove(item)} style={{fontSize:12,padding:"3px 10px",borderRadius:4,border:"0.5px solid var(--color-border-danger)",background:"var(--color-background-danger)",color:"var(--color-text-danger)",cursor:"pointer"}}>Delete</button>
                 </>
             }
           </div>
@@ -236,7 +236,7 @@ export function TeamRoles({ myUserId }) {
         Controls who can view vs. edit vs. manage cycles. Changes take effect immediately for that person.
       </div>
       {error && (
-        <div style={{ fontSize: 12, color: "#A32D2D", padding: "8px 12px", background: "#FCEBEB", borderRadius: 8, border: "0.5px solid #F7C1C1", marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: "var(--color-text-danger)", padding: "8px 12px", background: "var(--color-background-danger)", borderRadius: 8, border: "0.5px solid var(--color-border-danger)", marginBottom: 12 }}>
           {error}
         </div>
       )}
@@ -303,7 +303,7 @@ function ActivityLog() {
 
   if (entries === null) {
     return error
-      ? <div style={{ fontSize: 12, color: "#A32D2D", padding: "8px 12px", background: "#FCEBEB", borderRadius: 8, border: "0.5px solid #F7C1C1" }}>{error}</div>
+      ? <div style={{ fontSize: 12, color: "var(--color-text-danger)", padding: "8px 12px", background: "var(--color-background-danger)", borderRadius: 8, border: "0.5px solid var(--color-border-danger)" }}>{error}</div>
       : <div style={{ fontSize: 13, color: "#888780" }}>Loading activity…</div>;
   }
 
@@ -313,7 +313,7 @@ function ActivityLog() {
         A record of who created, edited, or deleted tasks and cycles. Most recent first.
       </div>
       {error && (
-        <div style={{ fontSize: 12, color: "#A32D2D", padding: "8px 12px", background: "#FCEBEB", borderRadius: 8, border: "0.5px solid #F7C1C1", marginBottom: 12 }}>{error}</div>
+        <div style={{ fontSize: 12, color: "var(--color-text-danger)", padding: "8px 12px", background: "var(--color-background-danger)", borderRadius: 8, border: "0.5px solid var(--color-border-danger)", marginBottom: 12 }}>{error}</div>
       )}
       {entries.length === 0 && <div style={{ fontSize: 13, color: "#888780" }}>No activity recorded yet.</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

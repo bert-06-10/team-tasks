@@ -13,6 +13,25 @@
   --color-border-primary: #595959;
   --color-border-secondary: #787878;
   --color-border-tertiary: #ffffff;
+
+  /* Status/category accents — used for badges, pills, and highlights across
+     task, milestone, and collateral views. Kept as named tokens (rather than
+     inline hex) so dark mode can retune them instead of showing washed-out
+     light pastels on a dark page. */
+  --color-text-success: #0f6e56;
+  --color-background-success: #e1f5ee;
+  --color-border-success: #9fe1cb;
+
+  --color-text-info: #185fa5;
+  --color-background-info: #e6f1fb;
+  --color-border-info: #b5d4f4;
+
+  --color-text-warning: #854f0b;
+  --color-background-warning: #faeeda;
+  --color-border-warning: #f0c97a;
+
+  --color-background-danger: #fcebeb;
+  --color-border-danger: #f7c1c1;
 }
 
 [data-theme="dark"] {
@@ -26,6 +45,21 @@
   --color-border-primary: #4a4a46;
   --color-border-secondary: #3a3a38;
   --color-border-tertiary: #2a2a28;
+
+  --color-text-success: #5fd9ae;
+  --color-background-success: #123b30;
+  --color-border-success: #1f5c48;
+
+  --color-text-info: #7cb8f0;
+  --color-background-info: #1b2e42;
+  --color-border-info: #2f4c6b;
+
+  --color-text-warning: #e8b860;
+  --color-background-warning: #3d2e10;
+  --color-border-warning: #5c4419;
+
+  --color-background-danger: #3d1f1f;
+  --color-border-danger: #5c2e2e;
 }
 
 * {

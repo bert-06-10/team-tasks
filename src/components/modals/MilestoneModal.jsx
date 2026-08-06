@@ -14,17 +14,17 @@ export function MilestoneDetailModal({milestone, tasks=[], docs=[], onEdit, onCl
   return (
     <Modal onClose={onClose} title="Milestone">
       {/* Header */}
-      <div style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 16px",borderRadius:"var(--border-radius-lg)",background:allDone?"#E1F5EE":"#E6F1FB",border:`1px solid ${allDone?"#9FE1CB":"#B5D4F4"}`,marginBottom:16}}>
-        <span aria-hidden="true" style={{fontSize:20,color:allDone?"#0F6E56":"#185FA5",marginTop:2}}>◆</span>
+      <div style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 16px",borderRadius:"var(--border-radius-lg)",background:allDone?"var(--color-background-success)":"var(--color-background-info)",border:`1px solid ${allDone?"var(--color-border-success)":"var(--color-border-info)"}`,marginBottom:16}}>
+        <span aria-hidden="true" style={{fontSize:20,color:allDone?"var(--color-text-success)":"var(--color-text-info)",marginTop:2}}>◆</span>
         <div style={{flex:1}}>
-          <div style={{fontSize:15,fontWeight:600,color:allDone?"#0F6E56":"#185FA5",marginBottom:2}}>{milestone.title}</div>
+          <div style={{fontSize:15,fontWeight:600,color:allDone?"var(--color-text-success)":"var(--color-text-info)",marginBottom:2}}>{milestone.title}</div>
           <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-            <span style={{fontSize:12,color:allDone?"#0F6E56":"#185FA5",opacity:0.75}}>{fmtDateYear(milestone.date)}</span>
-            {gcal && <a href={gcal} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:allDone?"#0F6E56":"#185FA5",opacity:0.7,textDecoration:"none"}}>+ Google Calendar</a>}
+            <span style={{fontSize:12,color:allDone?"var(--color-text-success)":"var(--color-text-info)",opacity:0.75}}>{fmtDateYear(milestone.date)}</span>
+            {gcal && <a href={gcal} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:allDone?"var(--color-text-success)":"var(--color-text-info)",opacity:0.7,textDecoration:"none"}}>+ Google Calendar</a>}
           </div>
         </div>
         {deps.length > 0 && (
-          <span style={{fontSize:12,fontWeight:600,padding:"2px 8px",borderRadius:10,background:allDone?"#C6F0E0":"#D0E8FC",color:allDone?"#0F6E56":"#185FA5",flexShrink:0}}>
+          <span style={{fontSize:12,fontWeight:600,padding:"2px 8px",borderRadius:10,background:allDone?"#C6F0E0":"#D0E8FC",color:allDone?"var(--color-text-success)":"var(--color-text-info)",flexShrink:0}}>
             {doneCount}/{deps.length} done
           </span>
         )}

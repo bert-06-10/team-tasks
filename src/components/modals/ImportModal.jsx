@@ -115,7 +115,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
                 <button
                   onClick={async () => { setReversing(entry.id); await onReverseImport(entry); setReversing(null); }}
                   disabled={reversing === entry.id}
-                  style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FEF2F2",color:"#A32D2D",cursor:reversing===entry.id?"default":"pointer",opacity:reversing===entry.id?0.6:1,whiteSpace:"nowrap",flexShrink:0,marginLeft:16}}
+                  style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-danger)",background:"var(--color-background-danger)",color:"var(--color-text-danger)",cursor:reversing===entry.id?"default":"pointer",opacity:reversing===entry.id?0.6:1,whiteSpace:"nowrap",flexShrink:0,marginLeft:16}}
                 >
                   {reversing === entry.id ? "Reversing…" : "Reverse"}
                 </button>
@@ -143,7 +143,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
                 <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-primary)"}}>No active cycle — create one for this import:</div>
                 <div style={{display:"flex",gap:4}}>
                   {["spring","fall"].map(t=>(
-                    <button key={t} onClick={()=>setNewCycleType(t)} style={{fontSize:12,padding:"3px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:newCycleType===t?"#E1F5EE":"transparent",color:newCycleType===t?"#0F6E56":"var(--color-text-secondary)",cursor:"pointer",fontWeight:newCycleType===t?500:400}}>
+                    <button key={t} onClick={()=>setNewCycleType(t)} style={{fontSize:12,padding:"3px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:newCycleType===t?"var(--color-background-success)":"transparent",color:newCycleType===t?"var(--color-text-success)":"var(--color-text-secondary)",cursor:"pointer",fontWeight:newCycleType===t?500:400}}>
                       {t==="spring"?"Spring":"Fall"}
                     </button>
                   ))}
@@ -174,7 +174,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
                 {cycle?.start && (
                   manualCycleStart===cycle.start
                     ? <div style={{fontSize:11,color:"var(--color-text-tertiary)"}}>Matches active cycle "{cycle.name}". Due dates below are computed from this date — change it above if it's wrong.</div>
-                    : <div style={{fontSize:11,color:"#854F0B"}}>Overriding for this import only — active cycle "{cycle.name}" starts <strong>{fmtDate(cycle.start)}</strong>.</div>
+                    : <div style={{fontSize:11,color:"var(--color-text-warning)"}}>Overriding for this import only — active cycle "{cycle.name}" starts <strong>{fmtDate(cycle.start)}</strong>.</div>
                 )}
               </div>
             )}
@@ -258,7 +258,7 @@ export function ImportModal({onImportProgram,onImportClass,onImportRunOfShow,ses
       <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:8}}>
         <button onClick={onClose} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
         {!preview&&<button onClick={handlePreview} disabled={!csvText.trim()} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:csvText.trim()?"var(--color-background-secondary)":"transparent",color:csvText.trim()?"var(--color-text-primary)":"var(--color-text-tertiary)",cursor:csvText.trim()?"pointer":"default"}}>Preview</button>}
-        {preview&&<button onClick={handleImport} disabled={needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:(needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd))?"transparent":"#E1F5EE",color:(needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd))?"var(--color-text-tertiary)":"#0F6E56",cursor:(needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd))?"default":"pointer",fontWeight:500}}>{needsCycle?`Create cycle & import ${preview.length} rows`:`Import ${preview.length} rows`}</button>}
+        {preview&&<button onClick={handleImport} disabled={needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid var(--color-border-success)",background:(needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd))?"transparent":"var(--color-background-success)",color:(needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd))?"var(--color-text-tertiary)":"var(--color-text-success)",cursor:(needsCycle&&(!newCycleName.trim()||!manualCycleStart||!newCycleEnd))?"default":"pointer",fontWeight:500}}>{needsCycle?`Create cycle & import ${preview.length} rows`:`Import ${preview.length} rows`}</button>}
       </div>
       </>)}
     </Modal>
@@ -366,7 +366,7 @@ export function ImportCollateralModal({ onImport, onSync, docs, onClose }) {
         <div style={{marginBottom:16,display:"flex",flexDirection:"column",gap:12}}>
           <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-secondary)"}}>{diff.toAdd.length} new · {diff.toUpdate.length} updated · {diff.toArchive.length} to archive</div>
           {[
-            ["New", diff.toAdd, "#0F6E56", "#E1F5EE", "#9FE1CB"],
+            ["New", diff.toAdd, "var(--color-text-success)", "var(--color-background-success)", "var(--color-border-success)"],
           ].filter(([,items])=>items.length>0).map(([label,items,color,bg,border]) => (
             <div key={label}>
               <div style={{fontSize:12,fontWeight:500,color,marginBottom:6}}>{label} ({items.length})</div>
@@ -382,19 +382,19 @@ export function ImportCollateralModal({ onImport, onSync, docs, onClose }) {
           ))}
           {diff.toUpdate.length>0 && (
             <div>
-              <div style={{fontSize:12,fontWeight:500,color:"#185FA5",marginBottom:6}}>Updated ({diff.toUpdate.length})</div>
+              <div style={{fontSize:12,fontWeight:500,color:"var(--color-text-info)",marginBottom:6}}>Updated ({diff.toUpdate.length})</div>
               <div style={{display:"flex",flexDirection:"column",gap:6,maxHeight:220,overflowY:"auto"}}>
                 {diff.toUpdate.map((item,i) => {
                   const changes = fieldChanges(item);
                   const wasArchived = item._before?.archived === true;
                   return (
-                    <div key={item.id??i} style={{padding:"6px 10px",borderRadius:"var(--border-radius-md)",background:"#E6F1FB",border:"0.5px solid #B5D4F4",fontSize:12}}>
-                      <div style={{color:"#185FA5",fontWeight:500,marginBottom:(changes.length||wasArchived)?4:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.title}</div>
-                      {wasArchived && <div style={{color:"#185FA5",opacity:0.85,fontStyle:"italic"}}>Will be unarchived</div>}
+                    <div key={item.id??i} style={{padding:"6px 10px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-info)",border:"0.5px solid var(--color-border-info)",fontSize:12}}>
+                      <div style={{color:"var(--color-text-info)",fontWeight:500,marginBottom:(changes.length||wasArchived)?4:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.title}</div>
+                      {wasArchived && <div style={{color:"var(--color-text-info)",opacity:0.85,fontStyle:"italic"}}>Will be unarchived</div>}
                       {changes.length===0
-                        ? (!wasArchived && <div style={{color:"#185FA5",opacity:0.6}}>No field changes</div>)
+                        ? (!wasArchived && <div style={{color:"var(--color-text-info)",opacity:0.6}}>No field changes</div>)
                         : changes.map(c => (
-                            <div key={c.label} style={{color:"#185FA5",opacity:0.9,display:"flex",gap:6,flexWrap:"wrap"}}>
+                            <div key={c.label} style={{color:"var(--color-text-info)",opacity:0.9,display:"flex",gap:6,flexWrap:"wrap"}}>
                               <span style={{fontWeight:500,flexShrink:0}}>{c.label}:</span>
                               <span style={{textDecoration:"line-through",opacity:0.6,overflowWrap:"anywhere"}}>{c.before}</span>
                               <span>→</span>
@@ -409,7 +409,7 @@ export function ImportCollateralModal({ onImport, onSync, docs, onClose }) {
             </div>
           )}
           {[
-            ["Archive (missing from CSV)", diff.toArchive, "#854F0B", "#FAEEDA", "#F0C97A"],
+            ["Archive (missing from CSV)", diff.toArchive, "var(--color-text-warning)", "var(--color-background-warning)", "var(--color-border-warning)"],
           ].filter(([,items])=>items.length>0).map(([label,items,color,bg,border]) => (
             <div key={label}>
               <div style={{fontSize:12,fontWeight:500,color,marginBottom:6}}>{label} ({items.length})</div>
@@ -431,8 +431,8 @@ export function ImportCollateralModal({ onImport, onSync, docs, onClose }) {
       <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:8}}>
         <button onClick={onClose} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
         {!preview && <button onClick={()=>runPreview(csvText)} disabled={!csvText.trim()} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:csvText.trim()?"var(--color-background-secondary)":"transparent",color:csvText.trim()?"var(--color-text-primary)":"var(--color-text-tertiary)",cursor:csvText.trim()?"pointer":"default"}}>Preview</button>}
-        {preview && mode==="add" && <button onClick={()=>onImport(preview)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>Import {preview.length} items</button>}
-        {diff && (diff.toAdd.length+diff.toUpdate.length+diff.toArchive.length)>0 && <button onClick={()=>onSync(diff)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>Apply sync</button>}
+        {preview && mode==="add" && <button onClick={()=>onImport(preview)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid var(--color-border-success)",background:"var(--color-background-success)",color:"var(--color-text-success)",cursor:"pointer",fontWeight:500}}>Import {preview.length} items</button>}
+        {diff && (diff.toAdd.length+diff.toUpdate.length+diff.toArchive.length)>0 && <button onClick={()=>onSync(diff)} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid var(--color-border-success)",background:"var(--color-background-success)",color:"var(--color-text-success)",cursor:"pointer",fontWeight:500}}>Apply sync</button>}
       </div>
     </Modal>
   );

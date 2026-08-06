@@ -166,12 +166,12 @@ export function AuthScreen() {
           </div>
 
           {error && (
-            <div style={{ fontSize: 12, color: "#A32D2D", padding: "8px 12px", background: "#FCEBEB", borderRadius: "var(--border-radius-md)", border: "0.5px solid #F7C1C1" }}>
+            <div style={{ fontSize: 12, color: "var(--color-text-danger)", padding: "8px 12px", background: "var(--color-background-danger)", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-danger)" }}>
               {error}
             </div>
           )}
 
-          <button type="submit" disabled={loading} style={{ marginTop: 4, fontSize: 13, fontWeight: 500, padding: 9, borderRadius: "var(--border-radius-md)", border: "1px solid #9FE1CB", background: "#E1F5EE", color: "#0F6E56", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
+          <button type="submit" disabled={loading} style={{ marginTop: 4, fontSize: 13, fontWeight: 500, padding: 9, borderRadius: "var(--border-radius-md)", border: "1px solid var(--color-border-success)", background: "var(--color-background-success)", color: "var(--color-text-success)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
             {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}
           </button>
         </form>

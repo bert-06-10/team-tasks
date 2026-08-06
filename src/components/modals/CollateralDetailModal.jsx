@@ -91,7 +91,7 @@ export function CollateralDetailModal({doc, members, audiences, globalTags, busi
                 </div>
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={handleCancel} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
-                  <button onClick={handleSave} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer",fontWeight:500}}>Save</button>
+                  <button onClick={handleSave} style={{fontSize:13,padding:"6px 14px",borderRadius:"var(--border-radius-md)",border:"1px solid var(--color-border-success)",background:"var(--color-background-success)",color:"var(--color-text-success)",cursor:"pointer",fontWeight:500}}>Save</button>
                 </div>
               </div>
             </>

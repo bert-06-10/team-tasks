@@ -32,7 +32,7 @@ export function TaskCard({task,tasks,docs,readOnly,onEdit,onStatus,getBlockedSta
   const collateralReady = (task.collateralDeps||[]).every(id=>docs.find(d=>d.id===id));
   return (
     <div onClick={onEdit} style={{background:"var(--color-background-primary)",border:"0.5px solid var(--color-border-secondary)",borderRadius:"var(--border-radius-lg)",padding:"12px 14px",cursor:readOnly?"default":"pointer",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
-      {task.type==="class"&&<div style={{fontSize:10,padding:"1px 7px",borderRadius:8,background:"#FAEEDA",color:"#854F0B",display:"inline-block",marginBottom:6}}>{task.sessionName||"Class task"}</div>}
+      {task.type==="class"&&<div style={{fontSize:10,padding:"1px 7px",borderRadius:8,background:"var(--color-background-warning)",color:"var(--color-text-warning)",display:"inline-block",marginBottom:6}}>{task.sessionName||"Class task"}</div>}
       <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",marginBottom:4,textDecoration:task.status==="Done"?"line-through":"none",opacity:task.status==="Done"?0.5:1}}>{task.title}</div>
       {showGroup&&task.department&&<div style={{fontSize:11,color:"var(--color-text-tertiary)",marginBottom:4}}>{task.department}</div>}
       {task.notes&&<div style={{fontSize:12,color:"var(--color-text-secondary)",marginBottom:8,lineHeight:1.5}}>{task.notes}</div>}
@@ -45,11 +45,11 @@ export function TaskCard({task,tasks,docs,readOnly,onEdit,onStatus,getBlockedSta
         <Avatar name={task.assignee} size={22}/>
         {task.assist&&<Avatar name={task.assist} size={22}/>}
         {task.due&&<span style={{fontSize:11,color:overdue?"var(--color-text-danger)":"var(--color-text-secondary)"}}>{fmtDate(task.due)}</span>}
-        {task.flagged&&<Badge label="review" color="#854F0B" bg="#FAEEDA"/>}
-        {bs==="blocked"&&<Badge label="blocked" color="#A32D2D" bg="#FCEBEB"/>}
-        {bs==="at-risk"&&<Badge label="at risk" color="#854F0B" bg="#FAEEDA"/>}
-        {bs==="clear"&&<Badge label="unblocked" color="#0F6E56" bg="#E1F5EE"/>}
-        {(task.collateralDeps||[]).length>0&&<Badge label={collateralReady?"docs ready":"docs pending"} color={collateralReady?"#0F6E56":"#854F0B"} bg={collateralReady?"#E1F5EE":"#FAEEDA"}/>}
+        {task.flagged&&<Badge label="review" color="var(--color-text-warning)" bg="var(--color-background-warning)"/>}
+        {bs==="blocked"&&<Badge label="blocked" color="var(--color-text-danger)" bg="var(--color-background-danger)"/>}
+        {bs==="at-risk"&&<Badge label="at risk" color="var(--color-text-warning)" bg="var(--color-background-warning)"/>}
+        {bs==="clear"&&<Badge label="unblocked" color="var(--color-text-success)" bg="var(--color-background-success)"/>}
+        {(task.collateralDeps||[]).length>0&&<Badge label={collateralReady?"docs ready":"docs pending"} color={collateralReady?"var(--color-text-success)":"var(--color-text-warning)"} bg={collateralReady?"var(--color-background-success)":"var(--color-background-warning)"}/>}
       </div>
       <div onClick={e=>e.stopPropagation()}>
         <StatusPill status={task.status} onChange={s=>onStatus(task.id,s)} readOnly={readOnly} statusColors={statusColors}/>
@@ -61,10 +61,10 @@ export function TaskCard({task,tasks,docs,readOnly,onEdit,onStatus,getBlockedSta
 // ── Milestone Row (list view, inline in chronological flow) ────────────────────
 export function MilestoneRow({milestone,last,selectable,onEdit}) {
   const cols = selectable ? LIST_COLS_SEL : LIST_COLS;
-  const blue = "#185FA5";
+  const blue = "var(--color-text-info)";
   const sep = {borderRight:"1px solid var(--color-border-tertiary)"};
   return (
-    <div onClick={onEdit} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",cursor:onEdit?"pointer":"default",background:"#E6F1FB"}}>
+    <div onClick={onEdit} style={{display:"grid",gridTemplateColumns:cols,alignItems:"center",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",cursor:onEdit?"pointer":"default",background:"var(--color-background-info)"}}>
       {selectable && <div style={{padding:"11px 10px",...sep}}/>}
       <div style={{padding:"11px 12px",fontSize:13,fontWeight:600,color:blue,...sep}}>{milestone.title}</div>
       <div style={{padding:"11px 10px",...sep}}/>
@@ -96,7 +96,7 @@ export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlocke
       <div style={{padding:"11px 12px",minWidth:0,...sep}}>
         <div style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",marginBottom:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textDecoration:task.status==="Done"?"line-through":"none",opacity:task.status==="Done"?0.5:1}}>{task.title}</div>
         <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-          {task.type==="class"&&<span style={{fontSize:10,padding:"1px 6px",borderRadius:8,background:"#FAEEDA",color:"#854F0B"}}>{task.sessionName||"class"}</span>}
+          {task.type==="class"&&<span style={{fontSize:10,padding:"1px 6px",borderRadius:8,background:"var(--color-background-warning)",color:"var(--color-text-warning)"}}>{task.sessionName||"class"}</span>}
           {task.department&&<span style={{fontSize:11,padding:"1px 7px",borderRadius:10,background:"var(--color-background-secondary)",color:"var(--color-text-tertiary)"}}>{task.department}</span>}
           {(task.tags||[]).map(t => <span key={t} style={{fontSize:11,padding:"1px 7px",borderRadius:10,background:"var(--color-background-secondary)",color:"var(--color-text-secondary)"}}>{t}</span>)}
         </div>
@@ -117,11 +117,11 @@ export function ListRow({task,tasks,docs,last,readOnly,onEdit,onStatus,getBlocke
       </div>
       {/* Dependencies */}
       <div style={{padding:"11px 12px",display:"flex",gap:4,flexWrap:"wrap",alignItems:"center",...sep}}>
-        {task.flagged&&<Badge label="review" color="#854F0B" bg="#FAEEDA"/>}
-        {bs==="blocked"&&<Badge label="blocked" color="#A32D2D" bg="#FCEBEB"/>}
-        {bs==="at-risk"&&<Badge label="at risk" color="#854F0B" bg="#FAEEDA"/>}
-        {bs==="clear"&&<Badge label="unblocked" color="#0F6E56" bg="#E1F5EE"/>}
-        {(task.collateralDeps||[]).length>0&&<Badge label="docs" color="#185FA5" bg="#E6F1FB"/>}
+        {task.flagged&&<Badge label="review" color="var(--color-text-warning)" bg="var(--color-background-warning)"/>}
+        {bs==="blocked"&&<Badge label="blocked" color="var(--color-text-danger)" bg="var(--color-background-danger)"/>}
+        {bs==="at-risk"&&<Badge label="at risk" color="var(--color-text-warning)" bg="var(--color-background-warning)"/>}
+        {bs==="clear"&&<Badge label="unblocked" color="var(--color-text-success)" bg="var(--color-background-success)"/>}
+        {(task.collateralDeps||[]).length>0&&<Badge label="docs" color="var(--color-text-info)" bg="var(--color-background-info)"/>}
         {!task.flagged&&bs!=="blocked"&&bs!=="at-risk"&&bs!=="clear"&&!(task.collateralDeps||[]).length&&<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
       {/* Links */}
@@ -148,12 +148,12 @@ export function MilestoneBar({milestones, tasks=[], onEdit}) {
         const doneCount = deps.filter(t=>t.status==="Done").length;
         const allDone = deps.length > 0 && doneCount === deps.length;
         return (
-          <div key={m.id} onClick={onEdit?()=>onEdit(m):undefined} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:"var(--border-radius-md)",border:`1px solid ${allDone?"#9FE1CB":"#B5D4F4"}`,background:allDone?"#E1F5EE":"#E6F1FB",cursor:onEdit?"pointer":"default"}}>
-            <span aria-hidden="true" style={{color:allDone?"#0F6E56":"#185FA5",fontSize:12}}>◆</span>
-            <span style={{fontSize:12,fontWeight:500,color:allDone?"#0F6E56":"#185FA5"}}>{m.title}</span>
-            <span style={{fontSize:11,color:allDone?"#0F6E56":"#185FA5",opacity:0.7}}>{fmtDate(m.date)}</span>
+          <div key={m.id} onClick={onEdit?()=>onEdit(m):undefined} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:"var(--border-radius-md)",border:`1px solid ${allDone?"var(--color-border-success)":"var(--color-border-info)"}`,background:allDone?"var(--color-background-success)":"var(--color-background-info)",cursor:onEdit?"pointer":"default"}}>
+            <span aria-hidden="true" style={{color:allDone?"var(--color-text-success)":"var(--color-text-info)",fontSize:12}}>◆</span>
+            <span style={{fontSize:12,fontWeight:500,color:allDone?"var(--color-text-success)":"var(--color-text-info)"}}>{m.title}</span>
+            <span style={{fontSize:11,color:allDone?"var(--color-text-success)":"var(--color-text-info)",opacity:0.7}}>{fmtDate(m.date)}</span>
             {deps.length > 0 && (
-              <span style={{fontSize:11,padding:"1px 6px",borderRadius:10,background:allDone?"#C6F0E0":"#D0E8FC",color:allDone?"#0F6E56":"#185FA5",fontWeight:500}}>
+              <span style={{fontSize:11,padding:"1px 6px",borderRadius:10,background:allDone?"#C6F0E0":"#D0E8FC",color:allDone?"var(--color-text-success)":"var(--color-text-info)",fontWeight:500}}>
                 {doneCount}/{deps.length}
               </span>
             )}
@@ -167,8 +167,8 @@ export function MilestoneBar({milestones, tasks=[], onEdit}) {
 // ── Doc Card (used in search results) ────────────────────────────────────────
 export function DocCard({doc,readOnly,onEdit,last}) {
   const typeIcon = t => ({"Google Drive":"G","PDF":"P","Web Link":"W"}[t]||"D");
-  const typeColor = t => ({"Google Drive":"#185FA5","PDF":"#A32D2D","Web Link":"#0F6E56"}[t]||"#5F5E5A");
-  const typeBg = t => ({"Google Drive":"#E6F1FB","PDF":"#FCEBEB","Web Link":"#EAF3DE"}[t]||"#F1EFE8");
+  const typeColor = t => ({"Google Drive":"var(--color-text-info)","PDF":"var(--color-text-danger)","Web Link":"var(--color-text-success)"}[t]||"#5F5E5A");
+  const typeBg = t => ({"Google Drive":"var(--color-background-info)","PDF":"var(--color-background-danger)","Web Link":"#EAF3DE"}[t]||"#F1EFE8");
   return (
     <div style={{background:"var(--color-background-primary)",border:"none",borderBottom:last?"none":"1px solid var(--color-border-tertiary)",padding:"14px 18px",display:"flex",alignItems:"flex-start",gap:16}}>
       <div style={{width:36,height:36,borderRadius:"var(--border-radius-md)",background:typeBg(doc.type),display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:500,color:typeColor(doc.type),flexShrink:0}}>{typeIcon(doc.type)}</div>
@@ -235,7 +235,7 @@ function CopyLink({url}) {
   return (
     <div onClick={copy} title={`Click to copy: ${url}`} style={{display:"flex",alignItems:"center",gap:5,cursor:"pointer",minWidth:0,width:"100%"}}>
       <span style={{fontSize:12,color:"var(--color-text-secondary)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",flex:1}}>{url}</span>
-      <span style={{fontSize:15,flexShrink:0,color:copied?"#0F6E56":"var(--color-text-tertiary)"}}>{copied?"✓":"⎘"}</span>
+      <span style={{fontSize:15,flexShrink:0,color:copied?"var(--color-text-success)":"var(--color-text-tertiary)"}}>{copied?"✓":"⎘"}</span>
     </div>
   );
 }
@@ -376,7 +376,7 @@ export function CollateralView({docs,isReadOnly,onSave,onDelete,onDeleteSelected
               Archive {visibleSelected.length===1?"item":`${visibleSelected.length} items`}
             </button>
           )}
-          <button onClick={handleDelete} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer"}}>
+          <button onClick={handleDelete} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-danger)",background:"var(--color-background-danger)",color:"var(--color-text-danger)",cursor:"pointer"}}>
             Delete {visibleSelected.length===1?"item":`${visibleSelected.length} items`}
           </button>
           <button onClick={()=>setSelectedIds(new Set())} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>
@@ -650,7 +650,7 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
             <>
               <span style={{fontSize:13,color:"var(--color-text-secondary)"}}>{selCount} of {rows.length} selected</span>
               {!allSelected && <button onClick={handleSelectAll} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Select all {rows.length}</button>}
-              <button onClick={deleteSelected} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer"}}>Delete {selCount === 1 ? "row" : `${selCount} rows`}</button>
+              <button onClick={deleteSelected} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-danger)",background:"var(--color-background-danger)",color:"var(--color-text-danger)",cursor:"pointer"}}>Delete {selCount === 1 ? "row" : `${selCount} rows`}</button>
               <button onClick={()=>setSelectedIds(new Set())} style={{fontSize:12,padding:"4px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Clear</button>
             </>
           ) : (
@@ -718,7 +718,7 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
                     {row.assist ? <div style={{display:"flex",alignItems:"center",gap:6,...doneStyle}}><Avatar name={row.assist} size={20}/><span style={{fontSize:12}}>{row.assist}</span></div> : <span style={{color:"var(--color-text-tertiary)"}}>—</span>}
                   </div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"center"}} onClick={e=>toggleDone(row.id,e)}>
-                    <span title={done?"Mark incomplete":"Mark complete"} style={{fontSize:16,lineHeight:1,cursor:"pointer",color:done?"#0F6E56":"var(--color-border-secondary)",userSelect:"none"}}>✓</span>
+                    <span title={done?"Mark incomplete":"Mark complete"} style={{fontSize:16,lineHeight:1,cursor:"pointer",color:done?"var(--color-text-success)":"var(--color-border-secondary)",userSelect:"none"}}>✓</span>
                   </div>
                 </div>
               )}
@@ -736,9 +736,9 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
                         style={{width:"100%",fontSize:12,border:"1px solid var(--color-border-secondary)",borderRadius:4,padding:"6px 8px",boxSizing:"border-box",resize:"vertical",fontFamily:"inherit",background:"var(--color-background-primary)",color:"var(--color-text-primary)",marginBottom:8}}
                       />
                       <div style={{display:"flex",gap:8}}>
-                        <button onClick={saveEdit} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid #9FE1CB",background:"#E1F5EE",color:"#0F6E56",cursor:"pointer"}}>Save</button>
+                        <button onClick={saveEdit} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"1px solid var(--color-border-success)",background:"var(--color-background-success)",color:"var(--color-text-success)",cursor:"pointer"}}>Save</button>
                         <button onClick={()=>{setEditingRow(null);setEditVal({});}} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-secondary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Cancel</button>
-                        <button onClick={e=>deleteRow(row.id,e)} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"#FCEBEB",color:"#A32D2D",cursor:"pointer",marginLeft:"auto"}}>Delete</button>
+                        <button onClick={e=>deleteRow(row.id,e)} style={{fontSize:12,padding:"4px 12px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-danger)",background:"var(--color-background-danger)",color:"var(--color-text-danger)",cursor:"pointer",marginLeft:"auto"}}>Delete</button>
                       </div>
                     </>
                   ) : (
@@ -749,7 +749,7 @@ export function RunOfShowView({sessions,runOfShow,setRunOfShow,onSaveRow,onDelet
                       {!isReadOnly && (
                         <div style={{display:"flex",gap:6}}>
                           <button onClick={e=>startEdit(row,e)} style={{fontSize:11,padding:"2px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-tertiary)",background:"transparent",color:"var(--color-text-secondary)",cursor:"pointer"}}>Edit</button>
-                          <button onClick={e=>deleteRow(row.id,e)} style={{fontSize:11,padding:"2px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid #F7C1C1",background:"transparent",color:"#A32D2D",cursor:"pointer"}}>Delete</button>
+                          <button onClick={e=>deleteRow(row.id,e)} style={{fontSize:11,padding:"2px 10px",borderRadius:"var(--border-radius-md)",border:"0.5px solid var(--color-border-danger)",background:"transparent",color:"var(--color-text-danger)",cursor:"pointer"}}>Delete</button>
                         </div>
                       )}
                     </>

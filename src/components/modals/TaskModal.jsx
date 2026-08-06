@@ -106,7 +106,7 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
         const dependentMilestones = milestones.filter(m => (m.deps||[]).includes(task.id));
         const depChip = (label, status, done, onRemove) => (
           <div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",fontSize:13}}>
-            <span style={{color:done?"#0F6E56":"var(--color-text-tertiary)",fontSize:11,flexShrink:0}}>{done?"✓":"○"}</span>
+            <span style={{color:done?"var(--color-text-success)":"var(--color-text-tertiary)",fontSize:11,flexShrink:0}}>{done?"✓":"○"}</span>
             <span style={{flex:1,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</span>
             <span style={{fontSize:11,color:"var(--color-text-tertiary)",flexShrink:0}}>{status}</span>
             {onRemove&&<button onClick={onRemove} aria-label="Remove" style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:"var(--color-text-tertiary)",padding:"0 0 0 4px",lineHeight:1,flexShrink:0}}>×</button>}
@@ -148,10 +148,10 @@ export function TaskModal({task,tasks,docs,milestones=[],members,departments,glo
                 ? <span style={{fontSize:13,color:"var(--color-text-tertiary)"}}>No milestones depend on this task.</span>
                 : <div style={{display:"flex",flexDirection:"column",gap:4}}>
                     {dependentMilestones.map(m => (
-                      <div key={m.id} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:"var(--border-radius-md)",background:"#E6F1FB",border:"0.5px solid #B5D4F4",fontSize:13}}>
-                        <span aria-hidden="true" style={{color:"#185FA5",fontSize:11,flexShrink:0}}>◆</span>
-                        <span style={{flex:1,color:"#185FA5",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.title}</span>
-                        <span style={{fontSize:11,color:"#185FA5",opacity:0.7,flexShrink:0}}>{fmtDate(m.date)}</span>
+                      <div key={m.id} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:"var(--border-radius-md)",background:"var(--color-background-info)",border:"0.5px solid var(--color-border-info)",fontSize:13}}>
+                        <span aria-hidden="true" style={{color:"var(--color-text-info)",fontSize:11,flexShrink:0}}>◆</span>
+                        <span style={{flex:1,color:"var(--color-text-info)",fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.title}</span>
+                        <span style={{fontSize:11,color:"var(--color-text-info)",opacity:0.7,flexShrink:0}}>{fmtDate(m.date)}</span>
                       </div>
                     ))}
                   </div>
