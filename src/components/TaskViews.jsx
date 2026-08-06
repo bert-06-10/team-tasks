@@ -271,7 +271,7 @@ function DocListRow({doc,last,selectable,selected,onSelect,onOpen}) {
       <div style={{...c({cursor:"default"}),padding:"11px 12px",minWidth:0,...sep}}>
         {doc.shareable_link?<CopyLink url={doc.shareable_link}/>:<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
       </div>
-      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDate(doc.next_update)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
+      <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDateYear(doc.next_update)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
       <div onClick={open} style={{...c(),padding:"11px 12px",fontSize:12,color:"var(--color-text-secondary)",...sep}}>{fmtDateYear(doc.updated)||<span style={{color:"var(--color-text-tertiary)"}}>—</span>}</div>
       <div onClick={open} style={{...c(),padding:"11px 12px",flexWrap:"wrap",gap:4,...sep}}>
         {(doc.tags||[]).length>0?doc.tags.map(t=><span key={t} style={{fontSize:11,padding:"2px 7px",borderRadius:10,background:"var(--color-background-secondary)",color:"var(--color-text-secondary)",whiteSpace:"nowrap"}}>{t}</span>):<span style={{fontSize:12,color:"var(--color-text-tertiary)"}}>—</span>}
