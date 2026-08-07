@@ -585,7 +585,7 @@ export default function App() {
     if (key === 'defaultView') setView(val);
     setUserPrefs(p => {
       const next = { ...p, [key]: val };
-      if (userId) db.saveUserPrefs(userId, next).catch(e => console.error("Failed to save prefs:", e));
+      if (userId) db.saveUserPrefs(userId, next).catch(e => { console.error("Failed to save prefs:", e); toast("Failed to save preference: " + (e?.message || "unknown error")); });
       return next;
     });
   };
